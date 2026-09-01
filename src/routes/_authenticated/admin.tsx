@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { CalendarDays, Grid3x3, ShieldAlert, Users2 } from "lucide-react";
+import { BadgeCheck, CalendarDays, Grid3x3, ShieldAlert, ShieldCheck, Users2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { fetchCompetitions, fetchSports } from "@/lib/fanzeno";
@@ -36,10 +36,18 @@ async function fetchGrids() {
   return data ?? [];
 }
 
+async function fetchGridQuality() {
+  const { data, error } = await supabase
+    .from("grid_quality")
+    .select("id, verified_cells, verified_answers, unverified_answers");
+  if (error) throw error;
+  return new Map((data ?? []).map((q) => [q.id, q]));
+}
+
 async function fetchAthletes(term: string) {
   let query = supabase
     .from("athletes")
-    .select("id, name, aliases, sport_id, sports!inner(name)")
+    .select("id, name, aliases, sport_id, verification_status, sports!inner(name)")
     .order("name")
     .limit(40);
   if (term.trim()) query = query.ilike("name", `%${term.trim()}%`);
@@ -116,6 +124,10 @@ function GridsPanel() {
     queryKey: ["competitions"],
     queryFn: fetchCompetitions,
   });
+  const { data: quality, refetch: refetchQuality } = useQuery({
+    queryKey: ["admin-grid-quality"],
+    queryFn: fetchGridQuality,
+  });
 
   const togglePublish = async (id: string, published: boolean) => {
     const { error } = await supabase
@@ -128,6 +140,7 @@ function GridsPanel() {
     }
     toast.success(published ? "Grid unpublished." : "Grid published.");
     void refetch();
+    void refetchQuality();
   };
 
   const toggleCompetition = async (gridId: string, current: string[], competitionId: string) => {
@@ -149,6 +162,9 @@ function GridsPanel() {
         const sport = grid.sports as unknown as { name: string };
         const published = !!grid.published_at;
         const scopes = (competitions ?? []).filter((c) => c.sport_id === grid.sport_id);
+        const q = quality?.get(grid.id);
+        const cells = Number(q?.verified_cells ?? 0);
+        const ready = cells === 9 && grid.competition_ids.length > 0;
         return (
           <div key={grid.id} className="px-5 py-3.5 text-sm">
             <div className="flex items-center gap-3">
@@ -156,6 +172,21 @@ function GridsPanel() {
               <span className="w-24 font-semibold">{grid.scheduled_for ?? "unscheduled"}</span>
               <span className="flex-1">{sport.name}</span>
               <span className="text-xs text-muted-foreground">diff {grid.difficulty}</span>
+              <span
+                title={
+                  ready
+                    ? "All nine cells have verified answers and the grid is tagged"
+                    : `${cells}/9 cells verified${grid.competition_ids.length ? "" : " · untagged"}`
+                }
+                className={`inline-flex items-center gap-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] ${
+                  ready ? "text-primary" : "text-gold"
+                }`}
+              >
+                <ShieldCheck className="size-3.5" /> {cells}/9
+                {Number(q?.unverified_answers ?? 0) > 0 && (
+                  <span className="text-muted-foreground">· {q?.unverified_answers} pending</span>
+                )}
+              </span>
               <span
                 className={`rounded-full px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.12em] ${
                   published ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
@@ -167,6 +198,8 @@ function GridsPanel() {
                 size="sm"
                 variant="outline"
                 onClick={() => void togglePublish(grid.id, published)}
+                disabled={!published && !ready}
+                title={!published && !ready ? "Needs 9 verified cells and a competition tag" : undefined}
               >
                 {published ? "Unpublish" : "Publish"}
               </Button>
@@ -224,7 +257,16 @@ function AthletesPanel() {
       {isLoading && <Row>Searching…</Row>}
       {(data ?? []).map((athlete) => (
         <div key={athlete.id} className="flex items-center gap-3 px-5 py-3 text-sm">
-          <span className="flex-1 font-semibold">{athlete.name}</span>
+          <span className="flex flex-1 items-center gap-1.5 font-semibold">
+            {athlete.name}
+            {athlete.verification_status === "verified" ? (
+              <BadgeCheck className="size-3.5 text-primary" aria-label="Verified" />
+            ) : (
+              <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[0.55rem] font-bold uppercase tracking-widest text-gold">
+                {athlete.verification_status}
+              </span>
+            )}
+          </span>
           <span className="hidden max-w-[45%] truncate text-xs text-muted-foreground sm:block">
             {(athlete.aliases ?? []).join(", ")}
           </span>

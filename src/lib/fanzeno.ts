@@ -114,6 +114,51 @@ export async function fetchDailyGrid(
   };
 }
 
+export type AthleteOption = {
+  id: string;
+  name: string;
+  aliases: string[];
+  countryCode: string | null;
+  verified: boolean;
+  score: number;
+};
+
+/**
+ * Fuzzy, typo-tolerant athlete search (accents, nicknames and transliterations).
+ * Only verified athletes are returned, so a picked option is always a real answer key entry.
+ */
+export async function searchAthletes(query: string, sportId?: string | null): Promise<AthleteOption[]> {
+  if (query.trim().length < 2) return [];
+  const { data, error } = await supabase.rpc("search_athletes", {
+    p_query: query.trim(),
+    ...(sportId ? { p_sport_id: sportId } : {}),
+    p_limit: 6,
+  });
+  if (error) throw error;
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    name: r.name,
+    aliases: r.aliases ?? [],
+    countryCode: r.country_code,
+    verified: r.verified,
+    score: r.score,
+  }));
+}
+
+export type CriterionIcon = "trophy" | "flag" | "people" | "stats" | "hand" | "shield";
+
+/** Picks a meaningful glyph for a criterion label (team, country, trophy, manager, stat). */
+export function criterionIcon(label: string): CriterionIcon {
+  const x = label.toLowerCase();
+  if (/champion|cup|trophy|winner|title|medal|ashes|series/.test(x)) return "trophy";
+  if (/represent|international|national|caps|\b(france|england|spain|pakistan|india|australia|brazil|argentina|usa)\b/.test(x))
+    return "flag";
+  if (/managed|captain|coach/.test(x)) return "people";
+  if (/appearance|runs|goals|points|wickets|assists|rebounds|\d+\+|\bavg\b|average/.test(x)) return "stats";
+  if (/left-handed|left handed|left-arm/.test(x)) return "hand";
+  return "shield";
+}
+
 export type MoveResult = { accepted: boolean; athlete_name: string | null; score?: number | undefined };
 
 /** Signed-in play persists the attempt; guest play is validated but not stored. */
