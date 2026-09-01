@@ -179,6 +179,246 @@ export type Database = {
           },
         ]
       }
+      arcade_questions: {
+        Row: {
+          active_user_id: string
+          answer_display_i18n: Json
+          clue_i18n: Json
+          competition_id: string | null
+          expires_at: string | null
+          id: string
+          issued_at: string
+          prompt_i18n: Json
+          question_id: string | null
+          revealed_answer: boolean
+          revealed_clue: boolean
+          room_id: string
+          sport_id: string | null
+          turn_no: number
+        }
+        Insert: {
+          active_user_id: string
+          answer_display_i18n: Json
+          clue_i18n?: Json
+          competition_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          prompt_i18n: Json
+          question_id?: string | null
+          revealed_answer?: boolean
+          revealed_clue?: boolean
+          room_id: string
+          sport_id?: string | null
+          turn_no: number
+        }
+        Update: {
+          active_user_id?: string
+          answer_display_i18n?: Json
+          clue_i18n?: Json
+          competition_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          prompt_i18n?: Json
+          question_id?: string | null
+          revealed_answer?: boolean
+          revealed_clue?: boolean
+          room_id?: string
+          sport_id?: string | null
+          turn_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_questions_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_questions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_questions_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arcade_room_players: {
+        Row: {
+          category_key: string | null
+          competition_id: string | null
+          correct_answers: number
+          display_name: string
+          passes: number
+          points: number
+          position: number
+          room_id: string
+          seat: number
+          sport_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          category_key?: string | null
+          competition_id?: string | null
+          correct_answers?: number
+          display_name: string
+          passes?: number
+          points?: number
+          position?: number
+          room_id: string
+          seat: number
+          sport_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          category_key?: string | null
+          competition_id?: string | null
+          correct_answers?: number
+          display_name?: string
+          passes?: number
+          points?: number
+          position?: number
+          room_id?: string
+          seat?: number
+          sport_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_room_players_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_room_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_room_players_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arcade_rooms: {
+        Row: {
+          active_seat: number | null
+          code: string
+          created_at: string
+          difficulty: number
+          host_id: string
+          id: string
+          mode_slug: string
+          round_no: number
+          settings: Json
+          status: string
+          turn_ends_at: string | null
+          turn_started_at: string | null
+          visibility: Database["public"]["Enums"]["match_visibility"]
+        }
+        Insert: {
+          active_seat?: number | null
+          code: string
+          created_at?: string
+          difficulty: number
+          host_id: string
+          id?: string
+          mode_slug: string
+          round_no?: number
+          settings?: Json
+          status?: string
+          turn_ends_at?: string | null
+          turn_started_at?: string | null
+          visibility?: Database["public"]["Enums"]["match_visibility"]
+        }
+        Update: {
+          active_seat?: number | null
+          code?: string
+          created_at?: string
+          difficulty?: number
+          host_id?: string
+          id?: string
+          mode_slug?: string
+          round_no?: number
+          settings?: Json
+          status?: string
+          turn_ends_at?: string | null
+          turn_started_at?: string | null
+          visibility?: Database["public"]["Enums"]["match_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_rooms_mode_slug_fkey"
+            columns: ["mode_slug"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      arcade_submissions: {
+        Row: {
+          action: string
+          answer_text: string | null
+          awarded_points: number
+          correct: boolean | null
+          id: string
+          movement: number
+          question_id: string
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          answer_text?: string | null
+          awarded_points?: number
+          correct?: boolean | null
+          id?: string
+          movement?: number
+          question_id: string
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          answer_text?: string | null
+          awarded_points?: number
+          correct?: boolean | null
+          id?: string
+          movement?: number
+          question_id?: string
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_submissions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_aliases: {
         Row: {
           alias: string
@@ -766,27 +1006,38 @@ export type Database = {
           active: boolean
           granted_at: string
           key: Database["public"]["Enums"]["entitlement_key"]
+          lifetime: boolean
+          revoked_at: string | null
+          tier: string
           user_id: string
         }
         Insert: {
           active?: boolean
           granted_at?: string
           key: Database["public"]["Enums"]["entitlement_key"]
+          lifetime?: boolean
+          revoked_at?: string | null
+          tier?: string
           user_id: string
         }
         Update: {
           active?: boolean
           granted_at?: string
           key?: Database["public"]["Enums"]["entitlement_key"]
+          lifetime?: boolean
+          revoked_at?: string | null
+          tier?: string
           user_id?: string
         }
         Relationships: []
       }
       game_modes: {
         Row: {
+          access_tier: string
           board_config: Json
           description: string
           enabled: boolean
+          guest_join_allowed: boolean
           max_players: number
           min_players: number
           name: string
@@ -794,9 +1045,11 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          access_tier?: string
           board_config: Json
           description: string
           enabled?: boolean
+          guest_join_allowed?: boolean
           max_players: number
           min_players: number
           name: string
@@ -804,9 +1057,11 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          access_tier?: string
           board_config?: Json
           description?: string
           enabled?: boolean
+          guest_join_allowed?: boolean
           max_players?: number
           min_players?: number
           name?: string
@@ -1776,8 +2031,32 @@ export type Database = {
           },
         ]
       }
+      mastermind_standings: {
+        Row: {
+          correct_answers: number | null
+          display_name: string | null
+          passes: number | null
+          place: number | null
+          points: number | null
+          room_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_room_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      can_host_game: {
+        Args: { p_mode_slug: string; p_user_id: string }
+        Returns: boolean
+      }
       fz_check_answer: {
         Args: { p_cell: number; p_grid: string; p_guess: string }
         Returns: {
@@ -1842,6 +2121,7 @@ export type Database = {
         Returns: boolean
       }
       has_staff_role: { Args: never; Returns: boolean }
+      is_arcade_member: { Args: { p_room: string }; Returns: boolean }
       search_athletes: {
         Args: { p_limit?: number; p_query: string; p_sport_id?: string }
         Returns: {
