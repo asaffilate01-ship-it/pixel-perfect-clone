@@ -38,3 +38,5 @@
 - Wikidata/licensed-feed import pipeline (schema ready; no ingestion runner yet)
 - Admin UI for honours, verified facts and generation jobs
 - Multi-language copy (mobile app ships i18n; web is English only)
+- v0.9 fold-in (in progress): Quiz Ludo / Snakes & Ladders / Sports Mastermind modes, arcade room schema, Pro tier gating, Pro upgrade page
+- v0.10 fold-in: question scope hierarchy (`scope_entities`, `question_scope_links`, scope paths on grids/packs/profiles), sport + category picker and team/person scope picker in board-game setup and filters
