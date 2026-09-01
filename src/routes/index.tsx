@@ -84,7 +84,7 @@ function Home() {
           <span className="flex items-center gap-1.5">
             <Flame className="size-4 text-gold" /> Daily streaks
           </span>
-          <span>10 sports</span>
+          <span>20 sports</span>
           <span>Server-validated answers</span>
         </div>
       </section>

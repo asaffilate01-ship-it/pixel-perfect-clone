@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_events: {
+        Row: {
+          ad_unit_id: string
+          currency: string | null
+          event_type: string
+          id: number
+          network: string | null
+          occurred_at: string
+          placement: string
+          profile_id: string | null
+          revenue_micros: number | null
+          session_id: string | null
+        }
+        Insert: {
+          ad_unit_id: string
+          currency?: string | null
+          event_type: string
+          id?: never
+          network?: string | null
+          occurred_at?: string
+          placement: string
+          profile_id?: string | null
+          revenue_micros?: number | null
+          session_id?: string | null
+        }
+        Update: {
+          ad_unit_id?: string
+          currency?: string | null
+          event_type?: string
+          id?: never
+          network?: string | null
+          occurred_at?: string
+          placement?: string
+          profile_id?: string | null
+          revenue_micros?: number | null
+          session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answer_import_jobs: {
         Row: {
           competition_id: string | null
@@ -501,15 +548,20 @@ export type Database = {
       competitions: {
         Row: {
           active: boolean
+          category_key: string | null
+          category_label: string | null
           competition_type: string
           country_code: string | null
+          format_key: string | null
           gender: string
           governing_body: string | null
           id: string
+          level_key: string | null
           lineage_key: string | null
           metadata: Json
           name: string
           name_i18n: Json
+          parent_competition_id: string | null
           predecessor_id: string | null
           region: string | null
           short_name: string | null
@@ -521,15 +573,20 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          category_key?: string | null
+          category_label?: string | null
           competition_type: string
           country_code?: string | null
+          format_key?: string | null
           gender?: string
           governing_body?: string | null
           id?: string
+          level_key?: string | null
           lineage_key?: string | null
           metadata?: Json
           name: string
           name_i18n?: Json
+          parent_competition_id?: string | null
           predecessor_id?: string | null
           region?: string | null
           short_name?: string | null
@@ -541,15 +598,20 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          category_key?: string | null
+          category_label?: string | null
           competition_type?: string
           country_code?: string | null
+          format_key?: string | null
           gender?: string
           governing_body?: string | null
           id?: string
+          level_key?: string | null
           lineage_key?: string | null
           metadata?: Json
           name?: string
           name_i18n?: Json
+          parent_competition_id?: string | null
           predecessor_id?: string | null
           region?: string | null
           short_name?: string | null
@@ -560,6 +622,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "competitions_parent_competition_id_fkey"
+            columns: ["parent_competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "competitions_predecessor_id_fkey"
             columns: ["predecessor_id"]
