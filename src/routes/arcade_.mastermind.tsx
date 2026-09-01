@@ -196,6 +196,17 @@ function MastermindPage() {
     [list, n],
   );
 
+  const current = list[activeIdx];
+  const turnKey = online
+    ? `${room?.active_seat}-${room?.round_no}-${current?.points ?? 0}-${current?.passes ?? 0}`
+    : `${active}-${phase}-${question}`;
+  // Round 2 is "all sports": pick a random sport per question, stable for the life of the turn key.
+  const randomSport = useMemo(
+    () => sports?.[Math.floor(Math.random() * (sports.length || 1))]?.id ?? null,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [turnKey, sports],
+  );
+
   const reset = () => {
     if (online) return void navigate({ to: "/arcade/rooms" });
     setSetup(true);
@@ -330,13 +341,6 @@ function MastermindPage() {
   }
   const sportName = sports?.find((s) => s.id === p.sportId)?.name ?? "Chosen sport";
   const shown = online ? onlineSeconds : seconds;
-  const turnKey = online ? `${room?.active_seat}-${room?.round_no}-${p.points}-${p.passes}` : `${active}-${phase}-${question}`;
-  // Round 2 is "all sports": pick a random sport per question, stable for the life of the turn key.
-  const randomSport = useMemo(
-    () => sports?.[Math.floor(Math.random() * (sports.length || 1))]?.id ?? null,
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [turnKey, sports],
-  );
   const questionSport = currentPhase === 1 ? p.sportId : randomSport;
 
   return (
