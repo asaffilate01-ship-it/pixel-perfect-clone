@@ -29,7 +29,7 @@ export const Route = createFileRoute("/_authenticated/admin")({
 async function fetchGrids() {
   const { data, error } = await supabase
     .from("grids")
-    .select("id, scheduled_for, difficulty, published_at, sports!inner(name, slug)")
+    .select("id, scheduled_for, difficulty, published_at, competition_ids, sport_id, sports!inner(name, slug)")
     .order("scheduled_for", { ascending: false })
     .limit(30);
   if (error) throw error;
