@@ -1,17 +1,19 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Flame,
   Gem,
   Grid3x3,
   Infinity as InfinityIcon,
+  SlidersHorizontal,
   Thermometer,
   Users,
   Zap,
 } from "lucide-react";
 import { fetchSports } from "@/lib/fanzeno";
+import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
