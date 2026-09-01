@@ -36,14 +36,21 @@ const sports = [
 function Compete() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { prefs, hydrated } = useQuizPrefs();
   const [sport, setSport] = useState("football");
   const [code, setCode] = useState("");
   const [created, setCreated] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Rooms follow the player's saved quiz coverage by default.
+  useEffect(() => {
+    if (hydrated && sports.some((s) => s.slug === prefs.sport)) setSport(prefs.sport);
+  }, [hydrated, prefs.sport]);
+
+  const competitionId = prefs.sport === sport ? prefs.competitionId : null;
   const gridQuery = useQuery({
-    queryKey: ["daily-grid", sport],
-    queryFn: () => fetchDailyGrid(sport),
+    queryKey: ["daily-grid", sport, competitionId],
+    queryFn: () => fetchDailyGrid(sport, { competitionId }),
   });
 
   const host = async () => {
