@@ -103,11 +103,18 @@ function Home() {
       </Link>
 
       <section className="mt-12">
-        <div className="flex items-end justify-between">
+        <div className="flex flex-wrap items-end justify-between gap-2">
           <h2 className="text-2xl">Choose your sport</h2>
-          <span className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
-            {sports?.length ?? 10} available
-          </span>
+          <Link
+            to="/filters"
+            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.16em] text-primary hover:underline"
+          >
+            <SlidersHorizontal className="size-3.5" />
+            League filters
+            <span className="rounded-full border border-primary/40 bg-primary/10 px-2 py-0.5 text-[0.6rem] normal-case tracking-normal text-foreground">
+              {scopeLabel(prefs, sportName)}
+            </span>
+          </Link>
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           {(sports ?? []).map((s) => {
