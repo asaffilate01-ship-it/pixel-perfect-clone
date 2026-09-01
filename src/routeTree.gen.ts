@@ -22,6 +22,7 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
 import { Route as ArcadeMastermindRouteImport } from './routes/arcade_.mastermind'
 import { Route as ArcadeQuizRaceRouteImport } from './routes/arcade_.quiz-race'
+import { Route as ArcadeRoomsRouteImport } from './routes/arcade_.rooms'
 import { Route as ClueSportRouteImport } from './routes/clue.$sport'
 import { Route as EndlessSportRouteImport } from './routes/endless.$sport'
 import { Route as ModesSportRouteImport } from './routes/modes.$sport'
@@ -91,6 +92,11 @@ const ArcadeQuizRaceRoute = ArcadeQuizRaceRouteImport.update({
   path: '/arcade/quiz-race',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArcadeRoomsRoute = ArcadeRoomsRouteImport.update({
+  id: '/arcade_/rooms',
+  path: '/arcade/rooms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClueSportRoute = ClueSportRouteImport.update({
   id: '/clue/$sport',
   path: '/clue/$sport',
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
+  '/arcade/rooms': typeof ArcadeRoomsRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByTo {
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
+  '/arcade/rooms': typeof ArcadeRoomsRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
@@ -163,6 +171,7 @@ export interface FileRoutesById {
   '/arcade_/connect-four': typeof ArcadeConnectFourRoute
   '/arcade_/mastermind': typeof ArcadeMastermindRoute
   '/arcade_/quiz-race': typeof ArcadeQuizRaceRoute
+  '/arcade_/rooms': typeof ArcadeRoomsRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
@@ -183,6 +192,7 @@ export interface FileRouteTypes {
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
+    | '/arcade/rooms'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
@@ -201,6 +211,7 @@ export interface FileRouteTypes {
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
+    | '/arcade/rooms'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
@@ -220,6 +231,7 @@ export interface FileRouteTypes {
     | '/arcade_/connect-four'
     | '/arcade_/mastermind'
     | '/arcade_/quiz-race'
+    | '/arcade_/rooms'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
@@ -238,6 +250,7 @@ export interface RootRouteChildren {
   ArcadeConnectFourRoute: typeof ArcadeConnectFourRoute
   ArcadeMastermindRoute: typeof ArcadeMastermindRoute
   ArcadeQuizRaceRoute: typeof ArcadeQuizRaceRoute
+  ArcadeRoomsRoute: typeof ArcadeRoomsRoute
   ClueSportRoute: typeof ClueSportRoute
   EndlessSportRoute: typeof EndlessSportRoute
   ModesSportRoute: typeof ModesSportRoute
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArcadeQuizRaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/arcade_/rooms': {
+      id: '/arcade_/rooms'
+      path: '/arcade/rooms'
+      fullPath: '/arcade/rooms'
+      preLoaderRoute: typeof ArcadeRoomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clue/$sport': {
       id: '/clue/$sport'
       path: '/clue/$sport'
@@ -393,6 +413,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArcadeConnectFourRoute: ArcadeConnectFourRoute,
   ArcadeMastermindRoute: ArcadeMastermindRoute,
   ArcadeQuizRaceRoute: ArcadeQuizRaceRoute,
+  ArcadeRoomsRoute: ArcadeRoomsRoute,
   ClueSportRoute: ClueSportRoute,
   EndlessSportRoute: EndlessSportRoute,
   ModesSportRoute: ModesSportRoute,
