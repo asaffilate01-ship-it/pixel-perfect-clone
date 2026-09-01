@@ -177,20 +177,22 @@ function Home() {
           <ModeCard
             icon={<Zap className="size-5 text-primary" />}
             title="Grid battle"
-            sub="Ranked room against another fan."
-            to="/compete"
+            sub="Pass & play, vs CPU or online — pick a difficulty."
+            to="/modes/$sport"
+            params={{ sport }}
+          />
+          <ModeCard
+            icon={<InfinityIcon className="size-5 text-primary" />}
+            title="Endless"
+            sub="Never-repeating grids from verified facts."
+            to="/endless/$sport"
+            params={{ sport }}
           />
           <ModeCard
             icon={<Users className="size-5 text-primary" />}
             title="Challenge"
             sub="Pick a friend or share a room code."
             to="/compete"
-          />
-          <ModeCard
-            icon={<InfinityIcon className="size-5 text-primary" />}
-            title="Ranks"
-            sub="Seasonal ratings and streaks."
-            to="/leaderboard"
           />
         </div>
       </section>
@@ -222,7 +224,7 @@ function ModeCard({
   icon: React.ReactNode;
   title: string;
   sub: string;
-  to: "/play/$sport" | "/compete" | "/leaderboard";
+  to: "/play/$sport" | "/modes/$sport" | "/endless/$sport" | "/compete" | "/leaderboard";
   params?: { sport: string };
 }) {
   return (

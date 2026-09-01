@@ -21,6 +21,8 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
 import { Route as ClueSportRouteImport } from './routes/clue.$sport'
+import { Route as EndlessSportRouteImport } from './routes/endless.$sport'
+import { Route as ModesSportRouteImport } from './routes/modes.$sport'
 import { Route as PlaySportRouteImport } from './routes/play.$sport'
 
 const IndexRoute = IndexRouteImport.update({
@@ -82,6 +84,16 @@ const ClueSportRoute = ClueSportRouteImport.update({
   path: '/clue/$sport',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EndlessSportRoute = EndlessSportRouteImport.update({
+  id: '/endless/$sport',
+  path: '/endless/$sport',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModesSportRoute = ModesSportRouteImport.update({
+  id: '/modes/$sport',
+  path: '/modes/$sport',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PlaySportRoute = PlaySportRouteImport.update({
   id: '/play/$sport',
   path: '/play/$sport',
@@ -100,6 +112,8 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/clue/$sport': typeof ClueSportRoute
+  '/endless/$sport': typeof EndlessSportRoute
+  '/modes/$sport': typeof ModesSportRoute
   '/play/$sport': typeof PlaySportRoute
 }
 export interface FileRoutesByTo {
@@ -114,6 +128,8 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/clue/$sport': typeof ClueSportRoute
+  '/endless/$sport': typeof EndlessSportRoute
+  '/modes/$sport': typeof ModesSportRoute
   '/play/$sport': typeof PlaySportRoute
 }
 export interface FileRoutesById {
@@ -130,6 +146,8 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/arcade_/connect-four': typeof ArcadeConnectFourRoute
   '/clue/$sport': typeof ClueSportRoute
+  '/endless/$sport': typeof EndlessSportRoute
+  '/modes/$sport': typeof ModesSportRoute
   '/play/$sport': typeof PlaySportRoute
 }
 export interface FileRouteTypes {
@@ -146,6 +164,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/arcade/connect-four'
     | '/clue/$sport'
+    | '/endless/$sport'
+    | '/modes/$sport'
     | '/play/$sport'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -160,6 +180,8 @@ export interface FileRouteTypes {
     | '/profile'
     | '/arcade/connect-four'
     | '/clue/$sport'
+    | '/endless/$sport'
+    | '/modes/$sport'
     | '/play/$sport'
   id:
     | '__root__'
@@ -175,6 +197,8 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/arcade_/connect-four'
     | '/clue/$sport'
+    | '/endless/$sport'
+    | '/modes/$sport'
     | '/play/$sport'
   fileRoutesById: FileRoutesById
 }
@@ -189,6 +213,8 @@ export interface RootRouteChildren {
   UpgradeRoute: typeof UpgradeRoute
   ArcadeConnectFourRoute: typeof ArcadeConnectFourRoute
   ClueSportRoute: typeof ClueSportRoute
+  EndlessSportRoute: typeof EndlessSportRoute
+  ModesSportRoute: typeof ModesSportRoute
   PlaySportRoute: typeof PlaySportRoute
 }
 
@@ -278,6 +304,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ClueSportRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/endless/$sport': {
+      id: '/endless/$sport'
+      path: '/endless/$sport'
+      fullPath: '/endless/$sport'
+      preLoaderRoute: typeof EndlessSportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/modes/$sport': {
+      id: '/modes/$sport'
+      path: '/modes/$sport'
+      fullPath: '/modes/$sport'
+      preLoaderRoute: typeof ModesSportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/play/$sport': {
       id: '/play/$sport'
       path: '/play/$sport'
@@ -312,6 +352,8 @@ const rootRouteChildren: RootRouteChildren = {
   UpgradeRoute: UpgradeRoute,
   ArcadeConnectFourRoute: ArcadeConnectFourRoute,
   ClueSportRoute: ClueSportRoute,
+  EndlessSportRoute: EndlessSportRoute,
+  ModesSportRoute: ModesSportRoute,
   PlaySportRoute: PlaySportRoute,
 }
 export const routeTree = rootRouteImport

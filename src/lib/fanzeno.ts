@@ -159,7 +159,28 @@ export function criterionIcon(label: string): CriterionIcon {
   return "shield";
 }
 
-export type MoveResult = { accepted: boolean; athlete_name: string | null; score?: number | undefined };
+export type MoveResult = {
+  accepted: boolean;
+  athlete_name: string | null;
+  score?: number | undefined;
+  points?: number | undefined;
+  move_points?: number | undefined;
+};
+
+export type PlayMode = "daily" | "endless" | "pass" | "cpu";
+export type PersistedMode = "daily" | "endless";
+
+/** Difficulty ladder shared by Endless, Pass & Play and CPU battles (mirrors `scoring_rules`). */
+export const DIFFICULTIES = [
+  { level: 1, label: "Easy", multiplier: 1 },
+  { level: 2, label: "Medium", multiplier: 2 },
+  { level: 3, label: "Hard", multiplier: 3 },
+  { level: 4, label: "Expert", multiplier: 5 },
+] as const;
+export type DifficultyLevel = (typeof DIFFICULTIES)[number]["level"];
+export const difficultyMeta = (level: number) =>
+  DIFFICULTIES.find((d) => d.level === level) ?? DIFFICULTIES[1];
+export const BASE_POINTS = 100;
 
 /** Signed-in play persists the attempt; guest play is validated but not stored. */
 export async function submitGuess(args: {
@@ -167,17 +188,30 @@ export async function submitGuess(args: {
   cell: number;
   guess: string;
   signedIn: boolean;
+  mode?: PersistedMode | undefined;
 }): Promise<MoveResult> {
   if (args.signedIn) {
     const { data, error } = await supabase.rpc("fz_play_move", {
       p_grid: args.gridId,
       p_cell: args.cell,
       p_guess: args.guess,
+      p_mode: args.mode ?? "daily",
     });
     if (error) throw error;
     const res = data as unknown as MoveResult;
-    return { accepted: !!res.accepted, athlete_name: res.athlete_name ?? null, score: res.score };
+    return {
+      accepted: !!res.accepted,
+      athlete_name: res.athlete_name ?? null,
+      score: res.score,
+      points: res.points,
+      move_points: res.move_points,
+    };
   }
+  return checkGuess(args);
+}
+
+/** Stateless validation against the answer key (used for guests and local battles). */
+export async function checkGuess(args: { gridId: string; cell: number; guess: string }): Promise<MoveResult> {
   const { data, error } = await supabase.rpc("fz_check_answer", {
     p_grid: args.gridId,
     p_cell: args.cell,
@@ -186,6 +220,71 @@ export async function submitGuess(args: {
   if (error) throw error;
   const row = (data ?? [])[0];
   return { accepted: !!row?.accepted, athlete_name: row?.athlete_name ?? null };
+}
+
+/** A specific published grid (used for Endless and shared rooms). */
+export async function fetchGridById(id: string): Promise<GridPuzzle | null> {
+  const { data, error } = await supabase
+    .from("grids")
+    .select("id, difficulty, scheduled_for, row_criteria, column_criteria, sports!inner(id, slug, name, accent)")
+    .eq("id", id)
+    .not("published_at", "is", null)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  const ids = [...data.row_criteria, ...data.column_criteria];
+  const { data: criteria, error: cErr } = await supabase.from("criteria").select("id, label").in("id", ids);
+  if (cErr) throw cErr;
+  const byId = new Map((criteria ?? []).map((c) => [c.id, c.label]));
+  return {
+    id: data.id,
+    difficulty: data.difficulty,
+    scheduled_for: data.scheduled_for,
+    sport: data.sports as unknown as GridPuzzle["sport"],
+    rows: data.row_criteria.map((x: string) => byId.get(x) ?? "—"),
+    cols: data.column_criteria.map((x: string) => byId.get(x) ?? "—"),
+  };
+}
+
+/** Asks the server for a fresh, never-repeated grid built only from verified facts. */
+export async function generateEndlessGrid(args: {
+  sportId: string;
+  competitionId?: string | null | undefined;
+  difficulty: number;
+}): Promise<string> {
+  const { data, error } = await supabase.rpc("generate_endless_grid", {
+    p_sport_id: args.sportId,
+    ...(args.competitionId ? { p_competition_id: args.competitionId } : {}),
+    p_difficulty: args.difficulty,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
+export type Owner = "p1" | "p2";
+const LINES = [
+  [0, 1, 2], [3, 4, 5], [6, 7, 8],
+  [0, 3, 6], [1, 4, 7], [2, 5, 8],
+  [0, 4, 8], [2, 4, 6],
+];
+/** Grid Battle win check: three claimed squares in a row, column or diagonal. */
+export function hasLine(owners: (Owner | undefined)[], who: Owner): boolean {
+  return LINES.some((line) => line.every((i) => owners[i] === who));
+}
+/** Simple tactical pick: win if possible, otherwise block, otherwise centre/random. */
+export function tacticalPick(owners: (Owner | undefined)[], me: Owner): number | null {
+  const free = owners.map((o, i) => (o ? -1 : i)).filter((i) => i >= 0);
+  if (!free.length) return null;
+  const other: Owner = me === "p1" ? "p2" : "p1";
+  for (const who of [me, other]) {
+    for (const line of LINES) {
+      const mine = line.filter((i) => owners[i] === who).length;
+      const empty = line.filter((i) => !owners[i]);
+      if (mine === 2 && empty.length === 1) return empty[0]!;
+    }
+  }
+  if (!owners[4]) return 4;
+  return free[Math.floor(Math.random() * free.length)]!;
 }
 
 export async function fetchReveal(gridId: string): Promise<Record<number, string[]>> {
@@ -254,13 +353,13 @@ export async function fetchLeaderboard(sportId?: string): Promise<LeaderRow[]> {
   }));
 }
 
-export async function fetchMyGame(gridId: string, userId: string) {
+export async function fetchMyGame(gridId: string, userId: string, mode: PersistedMode = "daily") {
   const { data: game } = await supabase
     .from("games")
-    .select("id, score, status")
+    .select("id, score, status, points")
     .eq("grid_id", gridId)
     .eq("player_one", userId)
-    .eq("mode", "daily")
+    .eq("mode", mode)
     .maybeSingle();
   if (!game) return null;
   const { data: moves } = await supabase

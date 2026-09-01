@@ -19,6 +19,11 @@
   (outcome/end reason/passes/draw offers/rematch, `match_events`, `game_modes`), Tactical Arcade
   hub at `/arcade` with playable Connect Four vs bot (pass, draw offer, resign, turn timer, rematch),
   banner-only ad slots hidden for lifetime ad-free holders
+- v0.7 fold-in: endless quiz pipeline (`athlete_criteria` verified facts backfilled from grid answers,
+  provider records/cursors/coverage/generation jobs, `grid_exposures`, `generate_endless_grid` RPC),
+  difficulty scoring (`scoring_rules`, per-move points, Easy 1x / Medium 2x / Hard 3x / Expert 5x),
+  competition lineage + honours catalogue, `/modes/:sport` picker (Pass & Play, vs CPU, Endless, online),
+  `/endless/:sport`, battle modes on the play board with three-in-a-row win detection
 
 ## Open
 - Stripe checkout for the £4.99 lifetime ad-free pass
@@ -27,4 +32,6 @@
 - Real ad network integration for the banner/rail slots (currently house placeholders)
 - More sports content: grids/clue puzzles beyond football, NBA and cricket
 - Admin evidence/verification review UI (mark athletes + answers verified, attach sources)
+- Wikidata/licensed-feed import pipeline (schema ready; no ingestion runner yet)
+- Admin UI for honours, verified facts and generation jobs
 - Multi-language copy (mobile app ships i18n; web is English only)
