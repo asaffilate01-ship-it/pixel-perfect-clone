@@ -1,14 +1,23 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Brain, Check, ChevronLeft, Eye, Gem, SkipForward, Trophy, Users } from "lucide-react";
+import { Brain, ChevronLeft, Eye, Gem, Radio, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchSports } from "@/lib/fanzeno";
-import { fetchClueBank, pickPrompt, SEAT_COLORS, SEAT_TEXT } from "@/lib/arcadeQuiz";
+import { fetchClueBank, fetchRoom, fetchRoomPlayers, SEAT_COLORS, SEAT_TEXT } from "@/lib/arcadeQuiz";
 import { useEntitlements } from "@/lib/entitlements";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 import { Chip, Label, PlayerCard } from "@/components/game/ArcadeSetup";
+import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
+import { QuestionCard } from "@/components/game/QuestionCard";
+import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
+
+type Search = { room?: string };
 
 export const Route = createFileRoute("/arcade_/mastermind")({
+  validateSearch: (raw: Record<string, unknown>): Search =>
+    typeof raw["room"] === "string" && raw["room"] ? { room: raw["room"] } : {},
   head: () => ({
     meta: [
       { title: "Sports Mastermind — Fanzeno Arcade" },
@@ -27,50 +36,111 @@ export const Route = createFileRoute("/arcade_/mastermind")({
 });
 
 const ROUND_SECONDS = 180;
-type P = { name: string; sportId: string | null; categoryKey: string | null; points: number; passes: number; correct: number };
+type P = {
+  name: string;
+  avatar: string;
+  sportId: string | null;
+  categoryKey: string | null;
+  points: number;
+  passes: number;
+  correct: number;
+  userId?: string;
+};
 
 function MastermindPage() {
+  const { room: roomId } = Route.useSearch();
+  const online = !!roomId;
   const navigate = useNavigate();
+  const qc = useQueryClient();
+  const { user } = useAuth();
   const { pro, loading: entLoading } = useEntitlements();
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
+  const { data: room } = useQuery({ queryKey: ["arcade-room", roomId], queryFn: () => fetchRoom(roomId!), enabled: online });
+  const { data: roomPlayers } = useQuery({
+    queryKey: ["arcade-room-players", roomId],
+    queryFn: () => fetchRoomPlayers(roomId!),
+    enabled: online,
+  });
 
   const [setup, setSetup] = useState(true);
   const [count, setCount] = useState(2);
   const [players, setPlayers] = useState<P[]>(() =>
-    Array.from({ length: 4 }, (_, i) => ({ name: `Player ${i + 1}`, sportId: null, categoryKey: null, points: 0, passes: 0, correct: 0 })),
+    Array.from({ length: 4 }, (_, i) => ({
+      name: `Player ${i + 1}`,
+      avatar: AVATARS[i]!.id,
+      sportId: null,
+      categoryKey: null,
+      points: 0,
+      passes: 0,
+      correct: 0,
+    })),
   );
   const [active, setActive] = useState(0);
   const [phase, setPhase] = useState<1 | 2>(1);
   const [seconds, setSeconds] = useState(ROUND_SECONDS);
   const [question, setQuestion] = useState(1);
-  const [prompt, setPrompt] = useState("");
   const [finished, setFinished] = useState(false);
   const nextTurnRef = useRef<() => void>(() => {});
 
   useEffect(() => {
-    if (!sports?.length) return;
+    if (online || !sports?.length) return;
     setPlayers((x) => x.map((p, i) => (p.sportId ? p : { ...p, sportId: sports[i % sports.length]!.id })));
-  }, [sports]);
+  }, [sports, online]);
 
-  const promptFor = (seat: number, ph: 1 | 2) => setPrompt(pickPrompt(bank ?? {}, ph === 1 ? players[seat]!.sportId : null));
+  useEffect(() => {
+    if (!online) return;
+    const refresh = () => {
+      void qc.invalidateQueries({ queryKey: ["arcade-room-players", roomId] });
+      void qc.invalidateQueries({ queryKey: ["arcade-room", roomId] });
+    };
+    const channel = supabase
+      .channel(`arcade-mm-${roomId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "arcade_room_players", filter: `room_id=eq.${roomId}` }, refresh)
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "arcade_rooms", filter: `id=eq.${roomId}` }, refresh)
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [online, roomId, qc]);
+
+  // Online state is derived from the room row; the server owns seats, rounds and scores.
+  const onlinePlayers: P[] = useMemo(
+    () =>
+      (roomPlayers ?? []).map((p) => ({
+        name: p.display_name,
+        avatar: p.avatar_id,
+        sportId: p.sport_id,
+        categoryKey: p.category_key,
+        points: p.points,
+        passes: p.passes,
+        correct: p.correct_answers,
+        userId: p.user_id,
+      })),
+    [roomPlayers],
+  );
+  const seatOrder = useMemo(() => (roomPlayers ?? []).map((p) => p.seat), [roomPlayers]);
+  const list = online ? onlinePlayers : players;
+  const n = online ? list.length : count;
+  const activeIdx = online ? Math.max(0, seatOrder.indexOf(room?.active_seat ?? 0)) : active;
+  const currentPhase: 1 | 2 = online ? ((room?.round_no ?? 1) >= 2 ? 2 : 1) : phase;
+  const isFinished = online ? room?.status === "finished" : finished;
+  const myTurn = online ? list[activeIdx]?.userId === user?.id : true;
+  const [onlineSeconds, setOnlineSeconds] = useState(ROUND_SECONDS);
 
   const nextTurn = () => {
     setSeconds(ROUND_SECONDS);
     setQuestion(1);
-    if (active + 1 < count) {
-      setActive(active + 1);
-      promptFor(active + 1, phase);
-    } else if (phase === 1) {
+    if (active + 1 < count) setActive(active + 1);
+    else if (phase === 1) {
       setPhase(2);
       setActive(0);
-      promptFor(0, 2);
     } else setFinished(true);
   };
   nextTurnRef.current = nextTurn;
 
   useEffect(() => {
-    if (setup || finished) return;
+    if (online || setup || finished) return;
     const t = setInterval(() => {
       setSeconds((x) => {
         if (x > 1) return x - 1;
@@ -79,35 +149,55 @@ function MastermindPage() {
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [setup, finished]);
+  }, [online, setup, finished]);
 
-  const mark = (kind: "answer" | "pass") => {
+  // Online timer follows the server's turn_ends_at; the active player hands over when it hits zero.
+  const advancing = useRef(false);
+  useEffect(() => {
+    if (!online || !room?.turn_ends_at || isFinished) return;
+    const end = new Date(room.turn_ends_at).getTime();
+    const tick = () => {
+      const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+      setOnlineSeconds(left);
+      if (left === 0 && myTurn && !advancing.current) {
+        advancing.current = true;
+        void arcadeRoomAction({ data: { action: "advance", roomId: roomId! } }).finally(() => {
+          advancing.current = false;
+        });
+      }
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [online, room?.turn_ends_at, isFinished, myTurn, roomId]);
+
+  const markLocal = (correct: boolean, passed: boolean) => {
     setPlayers((x) =>
       x.map((p, i) =>
         i === active
           ? {
               ...p,
-              points: p.points + (kind === "answer" ? 100 : 0),
-              correct: p.correct + (kind === "answer" ? 1 : 0),
-              passes: p.passes + (kind === "pass" ? 1 : 0),
+              points: p.points + (correct ? 100 : 0),
+              correct: p.correct + (correct ? 1 : 0),
+              passes: p.passes + (passed ? 1 : 0),
             }
           : p,
       ),
     );
     setQuestion((q) => q + 1);
-    promptFor(active, phase);
   };
 
   const standings = useMemo(
     () =>
-      players
-        .slice(0, count)
+      list
+        .slice(0, n)
         .map((p, i) => ({ ...p, seat: i }))
         .sort((a, b) => b.points - a.points || a.passes - b.passes || b.correct - a.correct),
-    [players, count],
+    [list, n],
   );
 
   const reset = () => {
+    if (online) return void navigate({ to: "/arcade/rooms" });
     setSetup(true);
     setFinished(false);
     setPhase(1);
@@ -116,7 +206,7 @@ function MastermindPage() {
     setPlayers((x) => x.map((p) => ({ ...p, points: 0, passes: 0, correct: 0 })));
   };
 
-  if (!entLoading && !pro) {
+  if (!online && !entLoading && !pro) {
     return (
       <Shell onBack={() => void navigate({ to: "/arcade" })}>
         <div className="panel mt-8 p-7 text-center">
@@ -132,7 +222,7 @@ function MastermindPage() {
               <Link to="/upgrade">Unlock Fanzeno Pro</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link to="/arcade">Back to arcade</Link>
+              <Link to="/arcade/rooms">Join a room</Link>
             </Button>
           </div>
         </div>
@@ -140,7 +230,7 @@ function MastermindPage() {
     );
   }
 
-  if (setup) {
+  if (!online && setup) {
     return (
       <Shell onBack={() => void navigate({ to: "/arcade" })}>
         <h2 className="mt-6 text-4xl leading-tight">
@@ -150,11 +240,21 @@ function MastermindPage() {
           Each player gets three minutes on a chosen sport, followed by three minutes of all-sports questions. Correct
           answers score 100; passes count against you in a tie.
         </p>
+        <Link
+          to="/arcade/rooms"
+          className="mt-4 flex items-center gap-3 rounded-2xl border border-primary/40 bg-primary/8 p-3 text-xs hover:border-primary"
+        >
+          <Radio className="size-4 shrink-0 text-primary" />
+          <span>
+            <span className="font-black uppercase tracking-[0.14em] text-primary">Host a live room</span> — friends join on their
+            own devices; everyone sees the question, only the active player can answer.
+          </span>
+        </Link>
         <Label>Players</Label>
         <div className="flex flex-wrap gap-2">
-          {[2, 3, 4].map((n) => (
-            <Chip key={n} on={count === n} onClick={() => setCount(n)}>
-              {n} players
+          {[2, 3, 4].map((c) => (
+            <Chip key={c} on={count === c} onClick={() => setCount(c)}>
+              {c} players
             </Chip>
           ))}
         </div>
@@ -164,38 +264,39 @@ function MastermindPage() {
               key={i}
               seat={i}
               player={p}
+              avatar={p.avatar}
               sports={sports ?? []}
               onName={(name) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, name } : v)))}
               onSport={(sportId) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, sportId } : v)))}
               onCategory={(categoryKey) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, categoryKey } : v)))}
-            />
+            >
+              <AvatarPicker
+                value={p.avatar}
+                pro={pro}
+                label={`${p.name} avatar`}
+                onChange={(avatar) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, avatar } : v)))}
+              />
+            </PlayerCard>
           ))}
         </div>
-        <p className="mt-5 flex items-center gap-2 text-[0.62rem] font-black uppercase tracking-[0.16em] text-muted-foreground">
-          <Users className="size-3.5 text-primary" /> Local pass &amp; play · private online rooms coming soon
-        </p>
-        <Button
-          size="lg"
-          className="mt-6 w-full font-bold uppercase tracking-[0.14em]"
-          onClick={() => {
-            setSetup(false);
-            promptFor(0, 1);
-          }}
-        >
+        <Button size="lg" className="mt-6 w-full font-bold uppercase tracking-[0.14em]" onClick={() => setSetup(false)}>
           Start Mastermind
         </Button>
       </Shell>
     );
   }
 
-  if (finished) {
-    const w = standings[0]!;
+  if (isFinished && standings[0]) {
+    const w = standings[0];
     return (
       <Shell onBack={reset}>
         <div className="panel mt-8 p-8 text-center">
           <Trophy className="mx-auto size-14 text-gold" />
           <p className="eyebrow mt-4">Winner</p>
-          <h2 className={`text-5xl ${SEAT_TEXT[w.seat]}`}>{w.name}</h2>
+          <div className="mt-3 flex justify-center">
+            <Avatar id={w.avatar} size={64} />
+          </div>
+          <h2 className={`mt-3 text-5xl ${SEAT_TEXT[w.seat % 4]}`}>{w.name}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             {w.points} points · {w.passes} passes
           </p>
@@ -204,7 +305,7 @@ function MastermindPage() {
           {standings.map((p, i) => (
             <div key={p.seat} className="panel flex items-center gap-3 px-4 py-3">
               <span className="w-6 font-display text-2xl text-muted-foreground">{i + 1}</span>
-              <span className={`size-3 rounded-full ${SEAT_COLORS[p.seat]}`} />
+              <Avatar id={p.avatar} size={28} />
               <span className="flex-1 text-sm font-bold">{p.name}</span>
               <span className="text-xs text-muted-foreground">
                 {p.points} · {p.passes}P
@@ -213,58 +314,81 @@ function MastermindPage() {
           ))}
         </div>
         <Button className="mt-6 w-full" onClick={reset}>
-          Play again
+          {online ? "Back to rooms" : "Play again"}
         </Button>
       </Shell>
     );
   }
 
-  const p = players[active]!;
+  const p = list[activeIdx];
+  if (!p) {
+    return (
+      <Shell onBack={reset}>
+        <p className="mt-8 animate-pulse text-center text-sm text-muted-foreground">Joining the room…</p>
+      </Shell>
+    );
+  }
   const sportName = sports?.find((s) => s.id === p.sportId)?.name ?? "Chosen sport";
+  const shown = online ? onlineSeconds : seconds;
+  const questionSport = currentPhase === 1 ? p.sportId : (sports?.[Math.floor(Math.random() * (sports.length || 1))]?.id ?? null);
+  const turnKey = online ? `${room?.active_seat}-${room?.round_no}-${p.points}-${p.passes}` : `${active}-${phase}-${question}`;
+
   return (
     <Shell onBack={reset}>
       <div className="mt-6 flex items-center justify-between text-[0.62rem] font-black uppercase tracking-[0.16em]">
-        <span className="text-primary">● Live room · {count - 1} watching</span>
-        <span className="text-muted-foreground">Round {phase}/2</span>
+        <span className="text-primary">● Live room{online && room ? ` ${room.code}` : ""} · {n - 1} watching</span>
+        <span className="text-muted-foreground">Round {currentPhase}/2</span>
       </div>
-      <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${count}, minmax(0, 1fr))` }}>
-        {players.slice(0, count).map((x, i) => (
-          <div key={i} className={`panel p-3 text-center ${i === active ? "border-primary" : ""}`}>
-            <p className={`truncate text-[0.6rem] font-black uppercase tracking-[0.12em] ${SEAT_TEXT[i]}`}>{x.name}</p>
+      <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+        {list.slice(0, n).map((x, i) => (
+          <div key={i} className={`panel p-3 text-center ${i === activeIdx ? "border-primary" : ""}`}>
+            <div className="flex justify-center">
+              <Avatar id={x.avatar} size={30} />
+            </div>
+            <p className={`mt-1 truncate text-[0.6rem] font-black uppercase tracking-[0.12em] ${SEAT_TEXT[i % 4]}`}>{x.name}</p>
             <p className="font-display text-3xl">{x.points}</p>
             <p className="text-[0.6rem] text-muted-foreground">{x.passes} passes</p>
           </div>
         ))}
       </div>
 
-      <div className={`panel mt-4 p-6 text-center ${seconds <= 10 ? "border-destructive" : ""}`}>
+      <div className={`panel mt-4 p-6 text-center ${shown <= 10 ? "border-destructive" : ""}`}>
         <p className="font-display text-7xl tabular-nums">
-          {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+          {Math.floor(shown / 60)}:{String(shown % 60).padStart(2, "0")}
         </p>
         <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-muted-foreground">
-          {p.name} · {phase === 1 ? sportName : "All sports"}
+          {p.name}
+          {online && myTurn ? " · your turn" : ""} · {currentPhase === 1 ? sportName : "All sports"}
         </p>
       </div>
 
-      <div className="panel mt-4 p-5">
-        <p className={`text-[0.62rem] font-black uppercase tracking-[0.16em] ${SEAT_TEXT[active]}`}>Question {question}</p>
-        <p className="mt-2 font-display text-2xl leading-tight">{prompt}</p>
-        <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-          <Eye className="size-3.5 text-primary" /> Everyone sees the question; only the active player answers.
-        </p>
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <Button variant="outline" className="flex-1" onClick={() => mark("pass")}>
-          <SkipForward className="size-4" /> Pass
+      <QuestionCard
+        turnKey={turnKey}
+        sportId={questionSport}
+        categoryKey={currentPhase === 1 ? p.categoryKey : null}
+        difficulty={online ? room?.difficulty ?? 2 : 2}
+        roomId={roomId ?? null}
+        canAnswer={myTurn}
+        bank={bank}
+        accentClass={SEAT_TEXT[activeIdx % 4]!}
+        rewardLabel={() => `Question ${online ? p.correct + p.passes + 1 : question} · +100`}
+        onResolved={(o) => {
+          if (!online) markLocal(o.correct, o.passed);
+        }}
+      />
+      <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+        <Eye className="size-3.5 text-primary" /> Everyone sees the question; only the active player answers.
+      </p>
+      {(!online || myTurn || room?.host_id === user?.id) && (
+        <Button
+          variant="ghost"
+          className="mt-2 w-full text-muted-foreground"
+          onClick={() => (online ? void arcadeRoomAction({ data: { action: "advance", roomId: roomId! } }) : nextTurn())}
+        >
+          End player&apos;s turn
         </Button>
-        <Button className="flex-[2]" onClick={() => mark("answer")}>
-          <Check className="size-4" /> Correct · +100
-        </Button>
-      </div>
-      <Button variant="ghost" className="mt-2 w-full text-muted-foreground" onClick={nextTurn}>
-        End player&apos;s turn
-      </Button>
+      )}
+      <span className="sr-only">{SEAT_COLORS[0]}</span>
     </Shell>
   );
 }
