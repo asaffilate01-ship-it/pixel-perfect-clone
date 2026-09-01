@@ -36,8 +36,19 @@ export const Route = createFileRoute("/")({
 function Home() {
   const navigate = useNavigate();
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
-  const [sport, setSport] = useState("football");
+  const { prefs, hydrated, setPrefs } = useQuizPrefs();
+  const [sport, setSportLocal] = useState("football");
+  useEffect(() => {
+    if (hydrated) setSportLocal(prefs.sport);
+  }, [hydrated, prefs.sport]);
+  const setSport = (slug: string) => {
+    setSportLocal(slug);
+    if (slug !== prefs.sport) {
+      void setPrefs({ ...prefs, sport: slug, competitionId: null, competitionName: null });
+    }
+  };
   const playable = new Set(["football", "cricket", "nba"]);
+  const sportName = sports?.find((s) => s.slug === sport)?.name;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10">
