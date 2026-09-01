@@ -12,6 +12,7 @@ import {
   Layers,
   LayoutGrid,
   Network,
+  Radio,
   TrendingUp,
   Trophy,
   Users,
@@ -52,6 +53,7 @@ type ModeRoute =
   | { to: "/arcade/connect-four" }
   | { to: "/compete" }
   | { to: "/arcade/mastermind" }
+  | { to: "/arcade/rooms" }
   | { to: "/arcade/quiz-race"; search: { game: "ludo" | "snakes" } };
 
 type ModeMeta = { icon: React.ElementType; tone: string; status: string; route?: ModeRoute | undefined };
@@ -59,8 +61,8 @@ const meta: Record<string, ModeMeta> = {
   "tic-tac-toe": { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Arena", route: { to: "/compete" } },
   "connect-four": { icon: LayoutGrid, tone: "text-primary bg-primary/12", status: "Play now", route: { to: "/arcade/connect-four" } },
   "quiz-ludo": { icon: Dices, tone: "text-gold bg-gold/12", status: "Local + online", route: { to: "/arcade/quiz-race", search: { game: "ludo" } } },
-  "quiz-snakes-ladders": { icon: TrendingUp, tone: "text-primary bg-primary/12", status: "Play now", route: { to: "/arcade/quiz-race", search: { game: "snakes" } } },
-  "sports-mastermind": { icon: Brain, tone: "text-gold bg-gold/12", status: "Live room", route: { to: "/arcade/mastermind" } },
+  "quiz-snakes-ladders": { icon: TrendingUp, tone: "text-primary bg-primary/12", status: "Local + online", route: { to: "/arcade/quiz-race", search: { game: "snakes" } } },
+  "sports-mastermind": { icon: Brain, tone: "text-gold bg-gold/12", status: "Local + online", route: { to: "/arcade/mastermind" } },
   territory: { icon: Hexagon, tone: "text-gold bg-gold/12", status: "Tactical" },
   "category-tower": { icon: Trophy, tone: "text-gold bg-gold/12", status: "1v1" },
   "sports-501": { icon: Gauge, tone: "text-gold bg-gold/12", status: "Numbers" },
@@ -173,8 +175,25 @@ function Arcade() {
       </div>
 
       <Link
+        to="/arcade/rooms"
+        className="mt-8 flex items-center gap-4 rounded-2xl border border-primary/40 bg-primary/8 p-5 transition-colors hover:border-primary"
+      >
+        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-primary/15">
+          <Radio className="size-5 text-primary" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-display text-2xl">Online arcade rooms</span>
+          <span className="block text-xs text-muted-foreground">
+            Host a private room for Quiz Ludo, Snakes &amp; Ladders or Mastermind. Friends join by code on their own
+            devices; the server picks fair questions and checks every answer.
+          </span>
+        </span>
+        <ArrowRight className="size-4 shrink-0 text-primary" />
+      </Link>
+
+      <Link
         to="/arcade/connect-four"
-        className="mt-8 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-primary hover:underline"
+        className="mt-6 flex items-center gap-3 text-xs font-bold uppercase tracking-[0.16em] text-primary hover:underline"
       >
         Jump into Connect Four <ArrowRight className="size-4" />
       </Link>

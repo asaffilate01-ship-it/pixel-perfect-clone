@@ -1,8 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { Flame, Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Brain, Flame, Trophy } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useEntitlements } from "@/lib/entitlements";
+import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -30,11 +34,19 @@ async function fetchMyStats(userId: string) {
     .from("clue_attempts")
     .select("solved, score")
     .eq("user_id", userId);
-  return { ratings: ratings ?? [], clues: clues ?? [] };
+  const { data: profile } = await supabase.from("profiles").select("avatar_preset").eq("id", userId).maybeSingle();
+  const { data: abilities } = await supabase
+    .from("player_abilities")
+    .select("ability_theta, attempts, category_key, sports!inner(name)")
+    .eq("user_id", userId)
+    .order("attempts", { ascending: false });
+  return { ratings: ratings ?? [], clues: clues ?? [], avatar: profile?.avatar_preset ?? "captain", abilities: abilities ?? [] };
 }
 
 function ProfilePage() {
   const { user, displayName } = useAuth();
+  const { pro } = useEntitlements();
+  const [avatar, setAvatar] = useState("captain");
   const { data } = useQuery({
     queryKey: ["my-stats", user?.id],
     queryFn: () => fetchMyStats(user!.id),
@@ -45,26 +57,64 @@ function ProfilePage() {
   const played = ratings.reduce((sum, r) => sum + r.played, 0);
   const bestStreak = ratings.reduce((max, r) => Math.max(max, r.streak), 0);
   const cluePoints = (data?.clues ?? []).reduce((sum, c) => sum + c.score, 0);
-  const initials = (displayName ?? "Fan").slice(0, 2).toUpperCase();
+  useEffect(() => {
+    if (data?.avatar) setAvatar(data.avatar);
+  }, [data?.avatar]);
+  const saveAvatar = async (id: string) => {
+    setAvatar(id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_preset: id, avatar_settings: { preset: id, frame: "standard" } })
+      .eq("id", user!.id);
+    if (error) toast.error(error.message);
+    else toast.success("Avatar updated");
+  };
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <p className="eyebrow">Your profile</p>
       <div className="mt-6 flex items-center gap-4">
-        <span className="grid size-16 place-items-center rounded-2xl bg-primary font-display text-2xl text-primary-foreground">
-          {initials}
-        </span>
-        <div>
+        <Avatar id={avatar} size={64} />
+        <div className="min-w-0 flex-1">
           <h1 className="text-3xl">{displayName ?? "Fanzeno player"}</h1>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>
       </div>
+      <AvatarPicker value={avatar} pro={pro} label="Arcade avatar" onChange={(id) => void saveAvatar(id)} />
 
       <div className="panel mt-7 grid grid-cols-3 divide-x divide-border/70">
         <Stat value={String(played)} label="Grids played" />
         <Stat value={String(bestStreak)} label="Best streak" />
         <Stat value={String(cluePoints)} label="Clue points" />
       </div>
+
+      {(data?.abilities.length ?? 0) > 0 && (
+        <>
+          <h2 className="mt-9 text-2xl">Quiz form</h2>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Calibrated from your server-checked arcade answers. Positive means you beat the field on that subject.
+          </p>
+          <div className="panel mt-4 divide-y divide-border/70">
+            {data!.abilities.map((a, i) => (
+              <div key={i} className="flex items-center gap-3 px-5 py-3">
+                <span className="grid size-9 place-items-center rounded-xl bg-gold/12">
+                  <Brain className="size-4 text-gold" />
+                </span>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold">{(a.sports as unknown as { name: string }).name}</p>
+                  <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-muted-foreground">
+                    {a.category_key === "all" ? "All categories" : a.category_key} · {a.attempts} answered
+                  </p>
+                </div>
+                <span className={`font-display text-2xl ${Number(a.ability_theta) >= 0 ? "text-primary" : "text-muted-foreground"}`}>
+                  {Number(a.ability_theta) >= 0 ? "+" : ""}
+                  {Number(a.ability_theta).toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
       <h2 className="mt-9 text-2xl">Sport ratings</h2>
       <div className="panel mt-4 divide-y divide-border/70">

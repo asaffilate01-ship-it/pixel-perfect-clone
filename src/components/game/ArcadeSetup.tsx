@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCompetitions, groupCompetitions, type Sport } from "@/lib/fanzeno";
 import { SEAT_COLORS } from "@/lib/arcadeQuiz";
+import { Avatar } from "@/components/game/AvatarPicker";
 
 export function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -33,17 +34,21 @@ export type SeatPlayer = { name: string; sportId: string | null; categoryKey?: s
 export function PlayerCard({
   seat,
   player,
+  avatar,
   sports,
   onName,
   onSport,
   onCategory,
+  children,
 }: {
   seat: number;
   player: SeatPlayer;
+  avatar?: string | undefined;
   sports: Sport[];
   onName: (name: string) => void;
   onSport: (id: string) => void;
   onCategory?: ((key: string | null) => void) | undefined;
+  children?: React.ReactNode;
 }) {
   const { data: competitions } = useQuery({ queryKey: ["competitions"], queryFn: fetchCompetitions });
   const categories = useMemo(
@@ -52,9 +57,13 @@ export function PlayerCard({
   );
   return (
     <div className="panel flex gap-3 p-3">
-      <span className={`grid size-10 shrink-0 place-items-center rounded-xl font-display text-xl text-background ${SEAT_COLORS[seat]}`}>
-        {seat + 1}
-      </span>
+      {avatar ? (
+        <Avatar id={avatar} size={40} />
+      ) : (
+        <span className={`grid size-10 shrink-0 place-items-center rounded-xl font-display text-xl text-background ${SEAT_COLORS[seat]}`}>
+          {seat + 1}
+        </span>
+      )}
       <div className="min-w-0 flex-1">
         <input
           value={player.name}
@@ -104,6 +113,7 @@ export function PlayerCard({
             ))}
           </div>
         )}
+        {children}
       </div>
     </div>
   );

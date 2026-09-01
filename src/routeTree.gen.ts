@@ -22,10 +22,12 @@ import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticate
 import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
 import { Route as ArcadeMastermindRouteImport } from './routes/arcade_.mastermind'
 import { Route as ArcadeQuizRaceRouteImport } from './routes/arcade_.quiz-race'
+import { Route as ArcadeRoomsRouteImport } from './routes/arcade_.rooms'
 import { Route as ClueSportRouteImport } from './routes/clue.$sport'
 import { Route as EndlessSportRouteImport } from './routes/endless.$sport'
 import { Route as ModesSportRouteImport } from './routes/modes.$sport'
 import { Route as PlaySportRouteImport } from './routes/play.$sport'
+import { Route as ArcadeRoomsIdRouteImport } from './routes/arcade_.rooms_.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -91,6 +93,11 @@ const ArcadeQuizRaceRoute = ArcadeQuizRaceRouteImport.update({
   path: '/arcade/quiz-race',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArcadeRoomsRoute = ArcadeRoomsRouteImport.update({
+  id: '/arcade_/rooms',
+  path: '/arcade/rooms',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClueSportRoute = ClueSportRouteImport.update({
   id: '/clue/$sport',
   path: '/clue/$sport',
@@ -111,6 +118,11 @@ const PlaySportRoute = PlaySportRouteImport.update({
   path: '/play/$sport',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArcadeRoomsIdRoute = ArcadeRoomsIdRouteImport.update({
+  id: '/arcade_/rooms_/$id',
+  path: '/arcade/rooms/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,10 +137,12 @@ export interface FileRoutesByFullPath {
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
+  '/arcade/rooms': typeof ArcadeRoomsRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
   '/play/$sport': typeof PlaySportRoute
+  '/arcade/rooms/$id': typeof ArcadeRoomsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -143,10 +157,12 @@ export interface FileRoutesByTo {
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
+  '/arcade/rooms': typeof ArcadeRoomsRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
   '/play/$sport': typeof PlaySportRoute
+  '/arcade/rooms/$id': typeof ArcadeRoomsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,10 +179,12 @@ export interface FileRoutesById {
   '/arcade_/connect-four': typeof ArcadeConnectFourRoute
   '/arcade_/mastermind': typeof ArcadeMastermindRoute
   '/arcade_/quiz-race': typeof ArcadeQuizRaceRoute
+  '/arcade_/rooms': typeof ArcadeRoomsRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
   '/play/$sport': typeof PlaySportRoute
+  '/arcade_/rooms_/$id': typeof ArcadeRoomsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -183,10 +201,12 @@ export interface FileRouteTypes {
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
+    | '/arcade/rooms'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
     | '/play/$sport'
+    | '/arcade/rooms/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -201,10 +221,12 @@ export interface FileRouteTypes {
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
+    | '/arcade/rooms'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
     | '/play/$sport'
+    | '/arcade/rooms/$id'
   id:
     | '__root__'
     | '/'
@@ -220,10 +242,12 @@ export interface FileRouteTypes {
     | '/arcade_/connect-four'
     | '/arcade_/mastermind'
     | '/arcade_/quiz-race'
+    | '/arcade_/rooms'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
     | '/play/$sport'
+    | '/arcade_/rooms_/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -238,10 +262,12 @@ export interface RootRouteChildren {
   ArcadeConnectFourRoute: typeof ArcadeConnectFourRoute
   ArcadeMastermindRoute: typeof ArcadeMastermindRoute
   ArcadeQuizRaceRoute: typeof ArcadeQuizRaceRoute
+  ArcadeRoomsRoute: typeof ArcadeRoomsRoute
   ClueSportRoute: typeof ClueSportRoute
   EndlessSportRoute: typeof EndlessSportRoute
   ModesSportRoute: typeof ModesSportRoute
   PlaySportRoute: typeof PlaySportRoute
+  ArcadeRoomsIdRoute: typeof ArcadeRoomsIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -337,6 +363,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArcadeQuizRaceRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/arcade_/rooms': {
+      id: '/arcade_/rooms'
+      path: '/arcade/rooms'
+      fullPath: '/arcade/rooms'
+      preLoaderRoute: typeof ArcadeRoomsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clue/$sport': {
       id: '/clue/$sport'
       path: '/clue/$sport'
@@ -363,6 +396,13 @@ declare module '@tanstack/react-router' {
       path: '/play/$sport'
       fullPath: '/play/$sport'
       preLoaderRoute: typeof PlaySportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arcade_/rooms_/$id': {
+      id: '/arcade_/rooms_/$id'
+      path: '/arcade/rooms/$id'
+      fullPath: '/arcade/rooms/$id'
+      preLoaderRoute: typeof ArcadeRoomsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -393,10 +433,12 @@ const rootRouteChildren: RootRouteChildren = {
   ArcadeConnectFourRoute: ArcadeConnectFourRoute,
   ArcadeMastermindRoute: ArcadeMastermindRoute,
   ArcadeQuizRaceRoute: ArcadeQuizRaceRoute,
+  ArcadeRoomsRoute: ArcadeRoomsRoute,
   ClueSportRoute: ClueSportRoute,
   EndlessSportRoute: EndlessSportRoute,
   ModesSportRoute: ModesSportRoute,
   PlaySportRoute: PlaySportRoute,
+  ArcadeRoomsIdRoute: ArcadeRoomsIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
