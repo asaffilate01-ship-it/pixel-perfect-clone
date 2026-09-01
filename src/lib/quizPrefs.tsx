@@ -14,12 +14,30 @@ export const ERAS = [
 
 export type EraId = (typeof ERAS)[number]["id"];
 
+/** Question focus buckets (v0.10). */
+export const QUESTION_FOCUS = [
+  "Mixed",
+  "Players & careers",
+  "Teams & titles",
+  "Stats & records",
+  "Awards & honours",
+  "Venues & events",
+  "Images & badges",
+] as const;
+export type QuestionFocus = (typeof QUESTION_FOCUS)[number];
+
+export type ScopePick = { id: string; name: string } | null;
+
 export type QuizPrefs = {
   sport: string;
   /** null = whole sport. Otherwise a competitions.id */
   competitionId: string | null;
   competitionName: string | null;
   era: EraId;
+  /** Optional drill-down to a team-like or person-like scope entity (v0.10). */
+  team?: ScopePick;
+  person?: ScopePick;
+  focus?: QuestionFocus;
 };
 
 export const DEFAULT_PREFS: QuizPrefs = {
@@ -27,6 +45,9 @@ export const DEFAULT_PREFS: QuizPrefs = {
   competitionId: null,
   competitionName: null,
   era: "all",
+  team: null,
+  person: null,
+  focus: "Mixed",
 };
 
 const STORAGE_KEY = "fz.quizPrefs";
