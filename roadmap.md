@@ -7,6 +7,9 @@
 - Admin ops console at `/admin` behind staff-role gate
 - v0.3 fold-in: Clue Ladder mode (`/clue/:sport`) with server-checked guesses and
   hot/cold hints, plus player profile at `/profile`
+- v0.4 fold-in: competition/league + era filters (`/filters`), 39 seeded competitions,
+  preferences saved to profile (or locally for guests), scoped grid lookup with
+  whole-sport fallback, admin scope tagging on grids
 
 ## Open
 - Stripe checkout for the £4.99 lifetime ad-free pass
