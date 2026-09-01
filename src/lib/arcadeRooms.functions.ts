@@ -36,6 +36,7 @@ const actionSchema = z.discriminatedUnion("action", [
     avatarId: z.string().optional(),
   }),
   z.object({ action: z.literal("start"), roomId: z.string().uuid() }),
+  z.object({ action: z.literal("advance"), roomId: z.string().uuid() }),
   z.object({ action: z.literal("leave"), roomId: z.string().uuid() }),
 ]);
 
@@ -190,6 +191,30 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         })
         .eq("id", room.id);
       return { started: true };
+    }
+
+    if (data.action === "advance") {
+      // Mastermind: the active player's 3-minute slot ended. Host or active player may pass the baton.
+      const { data: players } = await admin.from("arcade_room_players").select("user_id, seat").eq("room_id", room.id).order("seat");
+      const { data: live } = await admin.from("arcade_rooms").select("active_seat, round_no").eq("id", room.id).single();
+      const seats = (players ?? []).map((p) => p.seat);
+      const activeUser = players?.find((p) => p.seat === live?.active_seat)?.user_id;
+      if (room.host_id !== userId && activeUser !== userId) throw new Error("Only the host or active player can end a turn");
+      const idx = seats.indexOf(live?.active_seat ?? 0);
+      const wrap = idx + 1 >= seats.length;
+      const nextSeat = wrap ? seats[0] ?? 0 : seats[idx + 1] ?? 0;
+      const nextRound = wrap ? (live?.round_no ?? 1) + 1 : live?.round_no ?? 1;
+      await admin
+        .from("arcade_rooms")
+        .update({
+          active_seat: nextSeat,
+          round_no: nextRound,
+          status: nextRound > 2 ? "finished" : "active",
+          turn_started_at: new Date().toISOString(),
+          turn_ends_at: new Date(Date.now() + 180_000).toISOString(),
+        })
+        .eq("id", room.id);
+      return { advanced: true, finished: nextRound > 2 };
     }
 
     // leave
@@ -362,6 +387,8 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
 
         const won =
           (mode === "quiz-snakes-ladders" && position >= 100) || (mode === "quiz-ludo" && position >= LUDO_HOME);
+        // Mastermind keeps the same player on the clock; the turn ends via the "advance" action.
+        if (mode === "sports-mastermind") return { correct, answer, movement };
         // A clean first-time answer in Ludo earns another go, like rolling a six.
         const again = mode === "quiz-ludo" && movement === 6 && !won;
         const seats = (players ?? []).map((p) => p.seat).sort((a, b) => a - b);
