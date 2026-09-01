@@ -12,6 +12,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/useAuth";
+import { QuizPrefsProvider } from "@/lib/quizPrefs";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { Toaster } from "@/components/ui/sonner";
 
