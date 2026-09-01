@@ -14,6 +14,76 @@ export type Database = {
   }
   public: {
     Tables: {
+      answer_import_jobs: {
+        Row: {
+          competition_id: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_summary: Json
+          id: string
+          records_accepted: number
+          records_rejected: number
+          records_seen: number
+          source_id: string | null
+          sport_id: string | null
+          started_at: string | null
+          status: string
+        }
+        Insert: {
+          competition_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_summary?: Json
+          id?: string
+          records_accepted?: number
+          records_rejected?: number
+          records_seen?: number
+          source_id?: string | null
+          sport_id?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Update: {
+          competition_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_summary?: Json
+          id?: string
+          records_accepted?: number
+          records_rejected?: number
+          records_seen?: number
+          source_id?: string | null
+          sport_id?: string | null
+          started_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answer_import_jobs_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answer_import_jobs_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answer_import_jobs_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answer_reports: {
         Row: {
           cell_index: number | null
@@ -50,7 +120,106 @@ export type Database = {
             foreignKeyName: "answer_reports_grid_id_fkey"
             columns: ["grid_id"]
             isOneToOne: false
+            referencedRelation: "grid_quality"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "answer_reports_grid_id_fkey"
+            columns: ["grid_id"]
+            isOneToOne: false
             referencedRelation: "grids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_aliases: {
+        Row: {
+          alias: string
+          alias_type: string
+          athlete_id: string
+          id: number
+          locale: string | null
+          normalized_alias: string
+        }
+        Insert: {
+          alias: string
+          alias_type?: string
+          athlete_id: string
+          id?: never
+          locale?: string | null
+          normalized_alias: string
+        }
+        Update: {
+          alias?: string
+          alias_type?: string
+          athlete_id?: string
+          id?: never
+          locale?: string | null
+          normalized_alias?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_aliases_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_evidence: {
+        Row: {
+          athlete_id: string
+          claim_key: string
+          claim_type: string
+          evidence: Json
+          id: string
+          observed_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          source_id: string
+          source_record_id: string | null
+          source_url: string | null
+        }
+        Insert: {
+          athlete_id: string
+          claim_key: string
+          claim_type: string
+          evidence?: Json
+          id?: string
+          observed_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id: string
+          source_record_id?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          athlete_id?: string
+          claim_key?: string
+          claim_type?: string
+          evidence?: Json
+          id?: string
+          observed_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          source_id?: string
+          source_record_id?: string | null
+          source_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_evidence_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_evidence_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -62,7 +231,11 @@ export type Database = {
           country_code: string | null
           id: string
           name: string
+          normalized_name: string | null
           sport_id: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           active?: boolean
@@ -70,7 +243,11 @@ export type Database = {
           country_code?: string | null
           id?: string
           name: string
+          normalized_name?: string | null
           sport_id: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           active?: boolean
@@ -78,7 +255,11 @@ export type Database = {
           country_code?: string | null
           id?: string
           name?: string
+          normalized_name?: string | null
           sport_id?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -282,6 +463,33 @@ export type Database = {
           },
         ]
       }
+      data_sources: {
+        Row: {
+          active: boolean
+          base_url: string | null
+          id: string
+          licence_notes: string | null
+          name: string
+          source_type: string
+        }
+        Insert: {
+          active?: boolean
+          base_url?: string | null
+          id?: string
+          licence_notes?: string | null
+          name: string
+          source_type: string
+        }
+        Update: {
+          active?: boolean
+          base_url?: string | null
+          id?: string
+          licence_notes?: string | null
+          name?: string
+          source_type?: string
+        }
+        Relationships: []
+      }
       entitlements: {
         Row: {
           active: boolean
@@ -390,6 +598,13 @@ export type Database = {
             foreignKeyName: "games_grid_id_fkey"
             columns: ["grid_id"]
             isOneToOne: false
+            referencedRelation: "grid_quality"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_grid_id_fkey"
+            columns: ["grid_id"]
+            isOneToOne: false
             referencedRelation: "grids"
             referencedColumns: ["id"]
           },
@@ -406,20 +621,32 @@ export type Database = {
         Row: {
           athlete_id: string
           cell_index: number
+          evidence_count: number
           grid_id: string
           rarity_score: number | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           athlete_id: string
           cell_index: number
+          evidence_count?: number
           grid_id: string
           rarity_score?: number | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           athlete_id?: string
           cell_index?: number
+          evidence_count?: number
           grid_id?: string
           rarity_score?: number | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -427,6 +654,13 @@ export type Database = {
             columns: ["athlete_id"]
             isOneToOne: false
             referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grid_answers_grid_id_fkey"
+            columns: ["grid_id"]
+            isOneToOne: false
+            referencedRelation: "grid_quality"
             referencedColumns: ["id"]
           },
           {
@@ -452,6 +686,7 @@ export type Database = {
           row_criteria: string[]
           scheduled_for: string | null
           sport_id: string
+          validated_at: string | null
         }
         Insert: {
           column_criteria: string[]
@@ -466,6 +701,7 @@ export type Database = {
           row_criteria: string[]
           scheduled_for?: string | null
           sport_id: string
+          validated_at?: string | null
         }
         Update: {
           column_criteria?: string[]
@@ -480,6 +716,7 @@ export type Database = {
           row_criteria?: string[]
           scheduled_for?: string | null
           sport_id?: string
+          validated_at?: string | null
         }
         Relationships: [
           {
@@ -595,6 +832,13 @@ export type Database = {
             foreignKeyName: "rooms_grid_id_fkey"
             columns: ["grid_id"]
             isOneToOne: false
+            referencedRelation: "grid_quality"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rooms_grid_id_fkey"
+            columns: ["grid_id"]
+            isOneToOne: false
             referencedRelation: "grids"
             referencedColumns: ["id"]
           },
@@ -644,7 +888,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      grid_quality: {
+        Row: {
+          competition_ids: string[] | null
+          id: string | null
+          published_at: string | null
+          scheduled_for: string | null
+          sport_id: string | null
+          unverified_answers: number | null
+          verified_answers: number | null
+          verified_cells: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grids_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       fz_check_answer: {
@@ -700,6 +964,17 @@ export type Database = {
         Returns: boolean
       }
       has_staff_role: { Args: never; Returns: boolean }
+      search_athletes: {
+        Args: { p_limit?: number; p_query: string; p_sport_id?: string }
+        Returns: {
+          aliases: string[]
+          country_code: string
+          id: string
+          name: string
+          score: number
+          verified: boolean
+        }[]
+      }
     }
     Enums: {
       app_role: "player" | "moderator" | "content_editor" | "admin" | "owner"

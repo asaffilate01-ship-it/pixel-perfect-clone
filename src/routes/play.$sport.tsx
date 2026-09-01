@@ -2,8 +2,22 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Eye, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import {
+  BarChart3,
+  Check,
+  Eye,
+  Flag,
+  Hand,
+  RotateCcw,
+  Shield,
+  SlidersHorizontal,
+  Trophy,
+  Users,
+  X,
+} from "lucide-react";
+import { AthleteAutocomplete } from "@/components/game/AthleteAutocomplete";
+import {
+  criterionIcon,
   emptyBoard,
   fetchDailyGrid,
   fetchMyGame,
@@ -14,7 +28,6 @@ import {
 import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -189,16 +202,18 @@ function PlayPage() {
           {grid.cols.map((label) => (
             <div
               key={label}
-              className="rounded-lg bg-surface-strong/70 px-2 py-3 text-center text-[0.66rem] font-bold uppercase leading-tight tracking-[0.08em]"
+              className="flex flex-col items-center gap-1 rounded-lg bg-surface-strong/70 px-2 py-3 text-center text-[0.66rem] font-bold uppercase leading-tight tracking-[0.08em]"
             >
+              <CriterionGlyph label={label} />
               {label}
             </div>
           ))}
 
           {grid.rows.map((rowLabel, r) => (
             <div key={rowLabel} className="contents">
-              <div className="flex items-center rounded-lg bg-surface-strong/70 px-2 py-3 text-[0.66rem] font-bold uppercase leading-tight tracking-[0.08em]">
-                {rowLabel}
+              <div className="flex items-center gap-2 rounded-lg bg-surface-strong/70 px-2 py-3 text-[0.66rem] font-bold uppercase leading-tight tracking-[0.08em]">
+                <CriterionGlyph label={rowLabel} />
+                <span>{rowLabel}</span>
               </div>
               {[0, 1, 2].map((c) => {
                 const index = r * 3 + c;
@@ -286,7 +301,8 @@ function PlayPage() {
                 `${grid.rows[Math.floor(active / 3)]} × ${grid.cols[active % 3]}`}
             </DialogTitle>
             <DialogDescription>
-              Name an athlete who satisfies both criteria. Nicknames and short names work.
+              Name an athlete who satisfies both criteria. Suggestions come from the verified athlete
+              index — typos, accents and nicknames are fine.
             </DialogDescription>
           </DialogHeader>
           <form
@@ -294,14 +310,18 @@ function PlayPage() {
               e.preventDefault();
               void send();
             }}
-            className="flex gap-2"
+            className="flex items-start gap-2"
           >
-            <Input
-              autoFocus
-              value={guess}
-              onChange={(e) => setGuess(e.target.value)}
-              placeholder="e.g. Lionel Messi"
-            />
+            <div className="flex-1">
+              <AthleteAutocomplete
+                value={guess}
+                onChange={setGuess}
+                onSelect={() => void 0}
+                sportId={grid.sport.id}
+                placeholder="e.g. Lionel Messi"
+                disabled={pending}
+              />
+            </div>
             <Button type="submit" disabled={pending || !guess.trim()}>
               {pending ? "Checking…" : "Submit"}
             </Button>
@@ -310,6 +330,20 @@ function PlayPage() {
       </Dialog>
     </div>
   );
+}
+
+const glyphs = {
+  trophy: Trophy,
+  flag: Flag,
+  people: Users,
+  stats: BarChart3,
+  hand: Hand,
+  shield: Shield,
+} as const;
+
+function CriterionGlyph({ label }: { label: string }) {
+  const Icon = glyphs[criterionIcon(label)];
+  return <Icon className="size-3.5 shrink-0 text-primary" aria-hidden />;
 }
 
 function PageShell({ children }: { children: React.ReactNode }) {
