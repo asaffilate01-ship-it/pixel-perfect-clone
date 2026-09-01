@@ -59,7 +59,20 @@ function Filters() {
   }, [hydrated, prefs]);
 
   const sport = sports?.find((s) => s.slug === draft.sport);
-  const list = (competitions ?? []).filter((c) => c.sport_id === sport?.id);
+  const list = useMemo(
+    () => (competitions ?? []).filter((c) => c.sport_id === sport?.id),
+    [competitions, sport?.id],
+  );
+  const countries = useMemo(() => countriesForSport(list), [list]);
+  const [country, setCountry] = useState("all");
+  const [open, setOpen] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    setCountry("all");
+    setOpen({});
+  }, [sport?.id]);
+  const groups = useMemo(() => groupCompetitions(list, country), [list, country]);
+  const selectedGroup = groups.find((g) => g.items.some((c) => c.id === draft.competitionId))?.key;
+  const isOpen = (key: string, index: number) => open[key] ?? (key === selectedGroup || (index === 0 && !selectedGroup));
 
   const save = async () => {
     setSaving(true);
