@@ -47,13 +47,24 @@ export type ArcadeRoomRow = {
   mode_slug: string;
   difficulty: number;
   status: string;
-  settings: Record<string, unknown>;
+  settings: { max_players?: number } | null;
+};
+
+export type ArcadeRoomInput = z.infer<typeof actionSchema>;
+export type ArcadeRoomResult = {
+  room?: ArcadeRoomRow;
+  ready?: boolean;
+  started?: boolean;
+  advanced?: boolean;
+  finished?: boolean;
+  left?: boolean;
+  settings?: Record<string, string | null>;
 };
 
 export const arcadeRoomAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => actionSchema.parse(data))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<ArcadeRoomResult> => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     const userId = context.userId;
 
@@ -155,8 +166,8 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     }
 
     if (data.action === "settings") {
-      const current = (member.settings ?? {}) as Record<string, unknown>;
-      const next = {
+      const current = (member.settings ?? {}) as Record<string, string | null>;
+      const next: Record<string, string | null> = {
         ...current,
         ...(data.sportId !== undefined ? { sport_id: data.sportId } : {}),
         ...(data.categoryKey !== undefined ? { category_key: data.categoryKey } : {}),
@@ -248,10 +259,10 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       p_user_id: context.userId,
       p_room_id: (data.roomId ?? null) as unknown as string,
       p_sport_id: data.sportId,
-      p_competition_id: data.competitionId ?? undefined,
-      p_category_key: data.category ?? undefined,
+      ...(data.competitionId ? { p_competition_id: data.competitionId } : {}),
+      ...(data.category ? { p_category_key: data.category } : {}),
       p_difficulty: data.difficulty,
-      p_question_types: data.questionTypes ?? undefined,
+      ...(data.questionTypes ? { p_question_types: data.questionTypes } : {}),
     });
     if (error) throw new Error(error.message);
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");

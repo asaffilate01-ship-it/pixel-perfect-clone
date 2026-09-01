@@ -9,7 +9,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useEntitlements } from "@/lib/entitlements";
 import { fetchCompetitions, fetchSports, groupCompetitions } from "@/lib/fanzeno";
 import { fetchRoom, fetchRoomPlayers, modeName } from "@/lib/arcadeQuiz";
-import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
+import { arcadeRoomAction, type ArcadeRoomInput } from "@/lib/arcadeRooms.functions";
 import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
 
 export const Route = createFileRoute("/arcade_/rooms_/$id")({
@@ -74,7 +74,7 @@ function RoomLobby() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status]);
 
-  const act = async (data: Parameters<typeof arcadeRoomAction>[0]["data"]) => {
+  const act = async (data: ArcadeRoomInput) => {
     setBusy(true);
     try {
       await arcadeRoomAction({ data });

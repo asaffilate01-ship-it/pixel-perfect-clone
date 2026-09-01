@@ -50,7 +50,7 @@ function RoomsPage() {
     setBusy("create");
     try {
       const { room } = await arcadeRoomAction({ data: { action: "create", mode, maxPlayers: players, difficulty } });
-      void navigate({ to: "/arcade/rooms/$id", params: { id: room.id } });
+      if (room) void navigate({ to: "/arcade/rooms/$id", params: { id: room.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not create room");
     } finally {
@@ -60,11 +60,14 @@ function RoomsPage() {
 
   const join = async () => {
     const clean = code.trim().toUpperCase();
-    if (clean.length < 6) return toast.error("Enter a room code like FZ-9K2P");
+    if (clean.length < 6) {
+      toast.error("Enter a room code like FZ-9K2P");
+      return;
+    }
     setBusy("join");
     try {
       const { room } = await arcadeRoomAction({ data: { action: "join", code: clean } });
-      void navigate({ to: "/arcade/rooms/$id", params: { id: room.id } });
+      if (room) void navigate({ to: "/arcade/rooms/$id", params: { id: room.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not join room");
     } finally {
