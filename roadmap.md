@@ -24,6 +24,9 @@
   difficulty scoring (`scoring_rules`, per-move points, Easy 1x / Medium 2x / Hard 3x / Expert 5x),
   competition lineage + honours catalogue, `/modes/:sport` picker (Pass & Play, vs CPU, Endless, online),
   `/endless/:sport`, battle modes on the play board with three-in-a-row win detection
+- v0.8 fold-in: competition hierarchy (category / format / level / parent, 117 competitions across 20 sports),
+  10 new pro sports (snooker, darts, horse racing, F1, NASCAR, IndyCar, MotoGP, superbikes, boxing, UFC),
+  `/filters` country chips + category accordions, `ad_events` analytics with impression/click logging
 
 ## Open
 - Stripe checkout for the £4.99 lifetime ad-free pass
