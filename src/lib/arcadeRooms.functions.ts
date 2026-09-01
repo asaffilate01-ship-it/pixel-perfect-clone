@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
 
 /**
  * Online arcade room actions (v0.11). Rooms, seats, questions and answers are all
@@ -374,7 +375,6 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
             round_no: nextSeat <= me.seat && !again ? room.round_no + 1 : room.round_no,
             turn_started_at: new Date().toISOString(),
             turn_ends_at: new Date(Date.now() + 180_000).toISOString(),
-            version: undefined,
           })
           .eq("id", data.roomId);
       }
