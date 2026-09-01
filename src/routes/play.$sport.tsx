@@ -127,7 +127,7 @@ function PlayPage() {
     }
   };
 
-  if (gridQuery.isLoading) {
+  if (gridQuery.isLoading || !hydrated) {
     return <PageShell>Loading today&apos;s grid…</PageShell>;
   }
 
