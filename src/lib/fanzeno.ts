@@ -44,16 +44,66 @@ export type Competition = {
   region: string | null;
   competition_type: string;
   sport_id: string;
+  /** Hierarchy (v0.8): e.g. "Domestic leagues", "Grand Slams", "Weight classes". */
+  category_key: string | null;
+  category_label: string | null;
+  /** Format / level within the category, e.g. "Test", "T20", "First class". */
+  level_key: string | null;
+  country_code: string | null;
 };
 
 export async function fetchCompetitions(): Promise<Competition[]> {
   const { data, error } = await supabase
     .from("competitions")
-    .select("id, slug, name, short_name, region, competition_type, sport_id")
+    .select(
+      "id, slug, name, short_name, region, competition_type, sport_id, category_key, category_label, level_key, country_code",
+    )
     .eq("active", true)
     .order("sort_order");
   if (error) throw error;
   return data ?? [];
+}
+
+export type CompetitionGroup = { key: string; label: string; items: Competition[] };
+
+/** Country / region chips for a sport — derived from the catalogue so new sports need no code. */
+export function countriesForSport(list: Competition[]): string[] {
+  const seen = new Set<string>();
+  for (const c of list) {
+    if (c.country_code) seen.add(c.region ?? c.country_code);
+  }
+  return [...seen];
+}
+
+/** Groups a sport's competitions by hierarchy category, optionally narrowed to one country/region. */
+export function groupCompetitions(list: Competition[], country = "all"): CompetitionGroup[] {
+  const map = new Map<string, CompetitionGroup>();
+  for (const c of list) {
+    if (country !== "all" && c.region !== country && c.country_code !== country) continue;
+    const key = c.category_key ?? c.competition_type;
+    const label = c.category_label ?? c.competition_type;
+    const g = map.get(key) ?? { key, label, items: [] };
+    g.items.push(c);
+    map.set(key, g);
+  }
+  return [...map.values()];
+}
+
+/** Banner analytics — guests log anonymously, signed-in players attach their profile. */
+export async function recordAdEvent(args: {
+  placement: string;
+  adUnitId: string;
+  eventType: "impression" | "click";
+  profileId?: string | null | undefined;
+}): Promise<void> {
+  const { error } = await supabase.from("ad_events").insert({
+    placement: args.placement,
+    ad_unit_id: args.adUnitId,
+    event_type: args.eventType,
+    profile_id: args.profileId ?? null,
+    network: "house",
+  });
+  if (error) console.warn("[ad]", error.message);
 }
 
 export type GridScope = { competitionId?: string | null | undefined };
