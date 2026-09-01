@@ -9,7 +9,11 @@ import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { useEntitlements } from "@/lib/entitlements";
 
+type Search = { code?: string };
+
 export const Route = createFileRoute("/arcade_/rooms")({
+  validateSearch: (raw: Record<string, unknown>): Search =>
+    typeof raw["code"] === "string" && raw["code"] ? { code: raw["code"].toUpperCase() } : {},
   head: () => ({
     meta: [
       { title: "Online arcade rooms — Fanzeno" },
@@ -40,7 +44,8 @@ function RoomsPage() {
   const [mode, setMode] = useState<(typeof MODES)[number]["slug"]>("quiz-snakes-ladders");
   const [players, setPlayers] = useState(4);
   const [difficulty, setDifficulty] = useState(2);
-  const [code, setCode] = useState("");
+  const { code: invited } = Route.useSearch();
+  const [code, setCode] = useState(invited ?? "");
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
 
   const selected = MODES.find((m) => m.slug === mode)!;

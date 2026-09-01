@@ -34,9 +34,17 @@
 - v0.10 fold-in: question scope hierarchy (`scope_entities` seeded for 11 sports, `question_scope_links`, grid scope
   paths, profile recent scopes), team/person drill-down pickers + question focus on `/filters`, per-player competition
   category picker in board-game setup
+- v0.11 fold-in: online arcade rooms at `/arcade/rooms` (create/join by code, lobby with realtime seats, ready/start,
+  per-seat avatar + subject) driving Quiz Ludo, Snakes & Ladders and Mastermind across devices; `arcade_presence`,
+  avatar presets (12, 4 Pro) on profiles + pickers; typed/voice `AnswerComposer` (Web Speech) with voice metadata on
+  submissions; fair question bank (`question_bank`, exposures, attempts, `player_abilities` IRT calibration,
+  selection audit) with `reserve_fair_question` / `record_question_attempt`, server-checked answers via
+  `nextFairQuestion` / `submitArcadeAnswer`, 18 seeded verified questions; "Quiz form" on profile
 
 ## Open
-- Online arcade rooms (host/join, realtime questions) on top of the v0.9 room schema — games are local pass & play today
+- Arcade presence heartbeat + reconnect UI (table + realtime exist; no client heartbeat yet)
+- Online Quiz Ludo races a single token per player (local mode keeps four tokens + captures)
+- Question bank authoring/calibration review in admin (18 starter questions only)
 - Stripe checkout for the £4.99 lifetime ad-free pass
 - Real-time head-to-head room gameplay (currently code share + solo boards); wire Connect Four to `match_events`
 - Remaining arcade modes: Territory, Category Tower, Sports 501, Connections, Draft XI, Bingo, Stat Cards
