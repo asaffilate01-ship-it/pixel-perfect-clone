@@ -122,6 +122,31 @@ function Filters() {
         })}
       </div>
 
+      {countries.length > 1 && (
+        <>
+          <SectionLabel>Country or region</SectionLabel>
+          <div className="flex flex-wrap gap-2">
+            {["all", ...countries].map((c) => {
+              const on = country === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCountry(c)}
+                  className={`rounded-full border px-3.5 py-2 text-[0.66rem] font-extrabold uppercase tracking-[0.1em] transition-colors ${
+                    on
+                      ? "border-primary bg-primary/15 text-foreground"
+                      : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {c === "all" ? "All regions" : c}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <SectionLabel>Competition or league</SectionLabel>
       <div className="space-y-2">
         <ScopeRow
@@ -135,20 +160,62 @@ function Filters() {
           title={`All ${sport?.name ?? "sports"}`}
           sub="Mix competitions, nations and eras"
         />
-        {list.map((c) => (
-          <ScopeRow
-            key={c.id}
-            on={draft.competitionId === c.id}
-            onClick={() => setDraft({ ...draft, competitionId: c.id, competitionName: c.name })}
-            badge={
-              <span className="grid size-10 place-items-center rounded-xl bg-surface-strong text-[0.6rem] font-black tracking-wide">
-                {c.short_name}
-              </span>
-            }
-            title={c.name}
-            sub={`${c.region ?? c.competition_type} · Dedicated questions only`}
-          />
-        ))}
+        {groups.map((g, i) => {
+          const expanded = isOpen(g.key, i);
+          const selectedHere = g.items.some((c) => c.id === draft.competitionId);
+          return (
+            <div key={g.key} className="overflow-hidden rounded-2xl border border-border bg-surface/40">
+              <button
+                type="button"
+                aria-expanded={expanded}
+                onClick={() => setOpen({ ...open, [g.key]: !expanded })}
+                className="flex w-full items-center gap-3 p-3 text-left"
+              >
+                <span className="grid size-9 place-items-center rounded-xl bg-surface-strong">
+                  {/leagues?|championship|tour/.test(g.key) ? (
+                    <Layers className="size-4 text-primary" />
+                  ) : /historic|era/.test(g.key) ? (
+                    <Clock className="size-4 text-gold" />
+                  ) : (
+                    <Trophy className="size-4 text-gold" />
+                  )}
+                </span>
+                <span className="flex-1">
+                  <span className="block text-sm font-bold">{g.label}</span>
+                  <span className="block text-[0.7rem] text-muted-foreground">
+                    {g.items.length} {g.items.length === 1 ? "option" : "options"}
+                    {selectedHere && " · selected"}
+                  </span>
+                </span>
+                {expanded ? (
+                  <ChevronUp className="size-4 text-muted-foreground" />
+                ) : (
+                  <ChevronDown className="size-4 text-muted-foreground" />
+                )}
+              </button>
+              {expanded && (
+                <div className="space-y-2 border-t border-border p-2">
+                  {g.items.map((c) => (
+                    <ScopeRow
+                      key={c.id}
+                      on={draft.competitionId === c.id}
+                      onClick={() =>
+                        setDraft({ ...draft, competitionId: c.id, competitionName: c.name })
+                      }
+                      badge={
+                        <span className="grid size-10 place-items-center rounded-xl bg-surface-strong text-[0.6rem] font-black tracking-wide">
+                          {c.short_name}
+                        </span>
+                      }
+                      title={c.name}
+                      sub={[c.region, c.level_key].filter(Boolean).join(" · ") || c.competition_type}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
         {sport && list.length === 0 && (
           <p className="text-xs text-muted-foreground">No competition scopes for this sport yet.</p>
         )}
