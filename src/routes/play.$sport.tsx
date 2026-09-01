@@ -151,6 +151,16 @@ function PlayPage() {
         <div>
           <p className="eyebrow">{grid.scheduled_for ?? "Daily"} · difficulty {grid.difficulty}</p>
           <h1 className="mt-2 text-4xl">{grid.sport.name} grid</h1>
+          <Link
+            to="/filters"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground"
+          >
+            <SlidersHorizontal className="size-3" />
+            {competitionId ? scopeLabel(prefs, grid.sport.name) : `All ${grid.sport.name}`}
+            {grid.scopeFallback && (
+              <span className="normal-case tracking-normal text-gold">· no dedicated grid yet</span>
+            )}
+          </Link>
         </div>
         <div className="text-right">
           <span className="font-display text-4xl text-primary">{correct}</span>
