@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AuthProvider } from "@/hooks/useAuth";
 import { QuizPrefsProvider } from "@/lib/quizPrefs";
+import { EntitlementsProvider } from "@/lib/entitlements";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -128,6 +129,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <EntitlementsProvider>
         <QuizPrefsProvider>
           <div className="flex min-h-screen flex-col">
             <SiteHeader />
@@ -146,6 +148,7 @@ function RootComponent() {
           </div>
           <Toaster />
         </QuizPrefsProvider>
+        </EntitlementsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

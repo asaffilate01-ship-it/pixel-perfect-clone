@@ -14,10 +14,17 @@
   evidence + data sources, import jobs), trigram fuzzy `search_athletes`, publish guard
   (9 verified cells + competition tag), `grid_quality` view, athlete autocomplete and
   criterion icons in play, first verified EPL grid
+- v0.6 fold-in: historical catalogue (Olympic games/events/medals, historical seasons, 44 Olympic
+  sports switched off pending content, global T20 + rugby competitions), match lifecycle schema
+  (outcome/end reason/passes/draw offers/rematch, `match_events`, `game_modes`), Tactical Arcade
+  hub at `/arcade` with playable Connect Four vs bot (pass, draw offer, resign, turn timer, rematch),
+  banner-only ad slots hidden for lifetime ad-free holders
 
 ## Open
 - Stripe checkout for the £4.99 lifetime ad-free pass
-- Real-time head-to-head room gameplay (currently code share + solo boards)
+- Real-time head-to-head room gameplay (currently code share + solo boards); wire Connect Four to `match_events`
+- Remaining arcade modes: Territory, Category Tower, Sports 501, Connections, Draft XI, Bingo, Stat Cards
+- Real ad network integration for the banner/rail slots (currently house placeholders)
 - More sports content: grids/clue puzzles beyond football, NBA and cricket
 - Admin evidence/verification review UI (mark athletes + answers verified, attach sources)
 - Multi-language copy (mobile app ships i18n; web is English only)

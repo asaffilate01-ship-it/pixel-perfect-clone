@@ -7,6 +7,7 @@ const nav = [
   { to: "/", label: "Home" },
   { to: "/clue/$sport", label: "Clue", params: { sport: "football" } },
   { to: "/compete", label: "Arena" },
+  { to: "/arcade", label: "Arcade" },
   { to: "/leaderboard", label: "Ranks" },
   { to: "/upgrade", label: "Ad free" },
 ] as const;
