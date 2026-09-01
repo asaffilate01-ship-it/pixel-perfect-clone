@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { CalendarDays, Grid3x3, ShieldAlert, Users2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { fetchSports } from "@/lib/fanzeno";
+import { fetchCompetitions, fetchSports } from "@/lib/fanzeno";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
