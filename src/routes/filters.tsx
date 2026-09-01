@@ -1,9 +1,24 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, CircleCheck, Globe, Sparkles } from "lucide-react";
-import { fetchCompetitions, fetchSports } from "@/lib/fanzeno";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronUp,
+  CircleCheck,
+  Clock,
+  Globe,
+  Layers,
+  Sparkles,
+  Trophy,
+} from "lucide-react";
+import {
+  countriesForSport,
+  fetchCompetitions,
+  fetchSports,
+  groupCompetitions,
+} from "@/lib/fanzeno";
 import { ERAS, useQuizPrefs, type EraId, type QuizPrefs } from "@/lib/quizPrefs";
 import { Button } from "@/components/ui/button";
 
