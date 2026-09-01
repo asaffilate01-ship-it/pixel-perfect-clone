@@ -134,6 +134,8 @@ export function useQuizPrefs() {
 /** Short human label for the active scope, e.g. "EPL · 2010s". */
 export function scopeLabel(prefs: QuizPrefs, sportName?: string) {
   const parts = [prefs.competitionName ?? (sportName ? `All ${sportName}` : "All")];
+  if (prefs.team) parts.push(prefs.team.name);
+  if (prefs.person) parts.push(prefs.person.name);
   const era = ERAS.find((e) => e.id === prefs.era);
   if (era && era.id !== "all") parts.push(era.label);
   return parts.join(" · ");
