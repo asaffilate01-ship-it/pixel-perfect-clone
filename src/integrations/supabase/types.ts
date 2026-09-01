@@ -142,8 +142,11 @@ export type Database = {
           answer_athlete_id: string
           archive_enabled: boolean
           clues_i18n: Json
+          competition_ids: string[]
           created_at: string
           created_by: string | null
+          era_end: number | null
+          era_start: number | null
           id: string
           published_at: string | null
           scheduled_for: string | null
@@ -154,8 +157,11 @@ export type Database = {
           answer_athlete_id: string
           archive_enabled?: boolean
           clues_i18n: Json
+          competition_ids?: string[]
           created_at?: string
           created_by?: string | null
+          era_end?: number | null
+          era_start?: number | null
           id?: string
           published_at?: string | null
           scheduled_for?: string | null
@@ -166,8 +172,11 @@ export type Database = {
           answer_athlete_id?: string
           archive_enabled?: boolean
           clues_i18n?: Json
+          competition_ids?: string[]
           created_at?: string
           created_by?: string | null
+          era_end?: number | null
+          era_start?: number | null
           id?: string
           published_at?: string | null
           scheduled_for?: string | null
@@ -184,6 +193,53 @@ export type Database = {
           },
           {
             foreignKeyName: "clue_puzzles_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitions: {
+        Row: {
+          active: boolean
+          competition_type: string
+          id: string
+          name: string
+          name_i18n: Json
+          region: string | null
+          short_name: string | null
+          slug: string
+          sort_order: number
+          sport_id: string
+        }
+        Insert: {
+          active?: boolean
+          competition_type: string
+          id?: string
+          name: string
+          name_i18n?: Json
+          region?: string | null
+          short_name?: string | null
+          slug: string
+          sort_order?: number
+          sport_id: string
+        }
+        Update: {
+          active?: boolean
+          competition_type?: string
+          id?: string
+          name?: string
+          name_i18n?: Json
+          region?: string | null
+          short_name?: string | null
+          slug?: string
+          sort_order?: number
+          sport_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitions_sport_id_fkey"
             columns: ["sport_id"]
             isOneToOne: false
             referencedRelation: "sports"
@@ -385,9 +441,12 @@ export type Database = {
       grids: {
         Row: {
           column_criteria: string[]
+          competition_ids: string[]
           created_at: string
           created_by: string | null
           difficulty: number
+          era_end: number | null
+          era_start: number | null
           id: string
           published_at: string | null
           row_criteria: string[]
@@ -396,9 +455,12 @@ export type Database = {
         }
         Insert: {
           column_criteria: string[]
+          competition_ids?: string[]
           created_at?: string
           created_by?: string | null
           difficulty?: number
+          era_end?: number | null
+          era_start?: number | null
           id?: string
           published_at?: string | null
           row_criteria: string[]
@@ -407,9 +469,12 @@ export type Database = {
         }
         Update: {
           column_criteria?: string[]
+          competition_ids?: string[]
           created_at?: string
           created_by?: string | null
           difficulty?: number
+          era_end?: number | null
+          era_start?: number | null
           id?: string
           published_at?: string | null
           row_criteria?: string[]
@@ -476,6 +541,7 @@ export type Database = {
           id: string
           locale: string
           preferred_sports: string[]
+          quiz_preferences: Json
         }
         Insert: {
           avatar_url?: string | null
@@ -485,6 +551,7 @@ export type Database = {
           id: string
           locale?: string
           preferred_sports?: string[]
+          quiz_preferences?: Json
         }
         Update: {
           avatar_url?: string | null
@@ -494,6 +561,7 @@ export type Database = {
           id?: string
           locale?: string
           preferred_sports?: string[]
+          quiz_preferences?: Json
         }
         Relationships: []
       }
