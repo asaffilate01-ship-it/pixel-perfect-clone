@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Eye, RotateCcw, X } from "lucide-react";
+import { Check, Eye, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import {
   emptyBoard,
   fetchDailyGrid,
@@ -11,6 +11,7 @@ import {
   submitGuess,
   type CellState,
 } from "@/lib/fanzeno";
+import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
