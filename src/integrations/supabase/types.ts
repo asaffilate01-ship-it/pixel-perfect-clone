@@ -179,6 +179,246 @@ export type Database = {
           },
         ]
       }
+      arcade_questions: {
+        Row: {
+          active_user_id: string
+          answer_display_i18n: Json
+          clue_i18n: Json
+          competition_id: string | null
+          expires_at: string | null
+          id: string
+          issued_at: string
+          prompt_i18n: Json
+          question_id: string | null
+          revealed_answer: boolean
+          revealed_clue: boolean
+          room_id: string
+          sport_id: string | null
+          turn_no: number
+        }
+        Insert: {
+          active_user_id: string
+          answer_display_i18n: Json
+          clue_i18n?: Json
+          competition_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          prompt_i18n: Json
+          question_id?: string | null
+          revealed_answer?: boolean
+          revealed_clue?: boolean
+          room_id: string
+          sport_id?: string | null
+          turn_no: number
+        }
+        Update: {
+          active_user_id?: string
+          answer_display_i18n?: Json
+          clue_i18n?: Json
+          competition_id?: string | null
+          expires_at?: string | null
+          id?: string
+          issued_at?: string
+          prompt_i18n?: Json
+          question_id?: string | null
+          revealed_answer?: boolean
+          revealed_clue?: boolean
+          room_id?: string
+          sport_id?: string | null
+          turn_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_questions_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_questions_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_questions_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arcade_room_players: {
+        Row: {
+          category_key: string | null
+          competition_id: string | null
+          correct_answers: number
+          display_name: string
+          passes: number
+          points: number
+          position: number
+          room_id: string
+          seat: number
+          sport_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          category_key?: string | null
+          competition_id?: string | null
+          correct_answers?: number
+          display_name: string
+          passes?: number
+          points?: number
+          position?: number
+          room_id: string
+          seat: number
+          sport_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          category_key?: string | null
+          competition_id?: string | null
+          correct_answers?: number
+          display_name?: string
+          passes?: number
+          points?: number
+          position?: number
+          room_id?: string
+          seat?: number
+          sport_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_room_players_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_room_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_room_players_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arcade_rooms: {
+        Row: {
+          active_seat: number | null
+          code: string
+          created_at: string
+          difficulty: number
+          host_id: string
+          id: string
+          mode_slug: string
+          round_no: number
+          settings: Json
+          status: string
+          turn_ends_at: string | null
+          turn_started_at: string | null
+          visibility: Database["public"]["Enums"]["match_visibility"]
+        }
+        Insert: {
+          active_seat?: number | null
+          code: string
+          created_at?: string
+          difficulty: number
+          host_id: string
+          id?: string
+          mode_slug: string
+          round_no?: number
+          settings?: Json
+          status?: string
+          turn_ends_at?: string | null
+          turn_started_at?: string | null
+          visibility?: Database["public"]["Enums"]["match_visibility"]
+        }
+        Update: {
+          active_seat?: number | null
+          code?: string
+          created_at?: string
+          difficulty?: number
+          host_id?: string
+          id?: string
+          mode_slug?: string
+          round_no?: number
+          settings?: Json
+          status?: string
+          turn_ends_at?: string | null
+          turn_started_at?: string | null
+          visibility?: Database["public"]["Enums"]["match_visibility"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_rooms_mode_slug_fkey"
+            columns: ["mode_slug"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
+      arcade_submissions: {
+        Row: {
+          action: string
+          answer_text: string | null
+          awarded_points: number
+          correct: boolean | null
+          id: string
+          movement: number
+          question_id: string
+          submitted_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          answer_text?: string | null
+          awarded_points?: number
+          correct?: boolean | null
+          id?: string
+          movement?: number
+          question_id: string
+          submitted_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          answer_text?: string | null
+          awarded_points?: number
+          correct?: boolean | null
+          id?: string
+          movement?: number
+          question_id?: string
+          submitted_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_submissions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_aliases: {
         Row: {
           alias: string
@@ -766,27 +1006,38 @@ export type Database = {
           active: boolean
           granted_at: string
           key: Database["public"]["Enums"]["entitlement_key"]
+          lifetime: boolean
+          revoked_at: string | null
+          tier: string
           user_id: string
         }
         Insert: {
           active?: boolean
           granted_at?: string
           key: Database["public"]["Enums"]["entitlement_key"]
+          lifetime?: boolean
+          revoked_at?: string | null
+          tier?: string
           user_id: string
         }
         Update: {
           active?: boolean
           granted_at?: string
           key?: Database["public"]["Enums"]["entitlement_key"]
+          lifetime?: boolean
+          revoked_at?: string | null
+          tier?: string
           user_id?: string
         }
         Relationships: []
       }
       game_modes: {
         Row: {
+          access_tier: string
           board_config: Json
           description: string
           enabled: boolean
+          guest_join_allowed: boolean
           max_players: number
           min_players: number
           name: string
@@ -794,9 +1045,11 @@ export type Database = {
           sort_order: number
         }
         Insert: {
+          access_tier?: string
           board_config: Json
           description: string
           enabled?: boolean
+          guest_join_allowed?: boolean
           max_players: number
           min_players: number
           name: string
@@ -804,9 +1057,11 @@ export type Database = {
           sort_order?: number
         }
         Update: {
+          access_tier?: string
           board_config?: Json
           description?: string
           enabled?: boolean
+          guest_join_allowed?: boolean
           max_players?: number
           min_players?: number
           name?: string
@@ -1081,6 +1336,7 @@ export type Database = {
           published_at: string | null
           row_criteria: string[]
           scheduled_for: string | null
+          scope_path: string[]
           sport_id: string
           validated_at: string | null
         }
@@ -1099,6 +1355,7 @@ export type Database = {
           published_at?: string | null
           row_criteria: string[]
           scheduled_for?: string | null
+          scope_path?: string[]
           sport_id: string
           validated_at?: string | null
         }
@@ -1117,6 +1374,7 @@ export type Database = {
           published_at?: string | null
           row_criteria?: string[]
           scheduled_for?: string | null
+          scope_path?: string[]
           sport_id?: string
           validated_at?: string | null
         }
@@ -1466,6 +1724,7 @@ export type Database = {
           locale: string
           preferred_sports: string[]
           quiz_preferences: Json
+          recent_scope_paths: Json
         }
         Insert: {
           avatar_url?: string | null
@@ -1476,6 +1735,7 @@ export type Database = {
           locale?: string
           preferred_sports?: string[]
           quiz_preferences?: Json
+          recent_scope_paths?: Json
         }
         Update: {
           avatar_url?: string | null
@@ -1486,6 +1746,7 @@ export type Database = {
           locale?: string
           preferred_sports?: string[]
           quiz_preferences?: Json
+          recent_scope_paths?: Json
         }
         Relationships: []
       }
@@ -1549,6 +1810,39 @@ export type Database = {
             columns: ["sport_id"]
             isOneToOne: false
             referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_scope_links: {
+        Row: {
+          criterion_id: string
+          entity_id: string
+          relationship: string
+        }
+        Insert: {
+          criterion_id: string
+          entity_id: string
+          relationship?: string
+        }
+        Update: {
+          criterion_id?: string
+          entity_id?: string
+          relationship?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_scope_links_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_scope_links_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "scope_entities"
             referencedColumns: ["id"]
           },
         ]
@@ -1651,6 +1945,96 @@ export type Database = {
             columns: ["grid_id"]
             isOneToOne: false
             referencedRelation: "grids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scope_entities: {
+        Row: {
+          athlete_id: string | null
+          competition_id: string | null
+          country_code: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["scope_entity_kind"]
+          name: string
+          name_i18n: Json
+          parent_id: string | null
+          slug: string
+          source_id: string | null
+          sport_id: string
+          valid_from: string | null
+          valid_to: string | null
+          verification_status: string
+        }
+        Insert: {
+          athlete_id?: string | null
+          competition_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["scope_entity_kind"]
+          name: string
+          name_i18n?: Json
+          parent_id?: string | null
+          slug: string
+          source_id?: string | null
+          sport_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_status?: string
+        }
+        Update: {
+          athlete_id?: string | null
+          competition_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["scope_entity_kind"]
+          name?: string
+          name_i18n?: Json
+          parent_id?: string | null
+          slug?: string
+          source_id?: string | null
+          sport_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scope_entities_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "scope_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
             referencedColumns: ["id"]
           },
         ]
@@ -1776,8 +2160,32 @@ export type Database = {
           },
         ]
       }
+      mastermind_standings: {
+        Row: {
+          correct_answers: number | null
+          display_name: string | null
+          passes: number | null
+          place: number | null
+          points: number | null
+          room_id: string | null
+          user_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_room_players_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      can_host_game: {
+        Args: { p_mode_slug: string; p_user_id: string }
+        Returns: boolean
+      }
       fz_check_answer: {
         Args: { p_cell: number; p_grid: string; p_guess: string }
         Returns: {
@@ -1842,6 +2250,7 @@ export type Database = {
         Returns: boolean
       }
       has_staff_role: { Args: never; Returns: boolean }
+      is_arcade_member: { Args: { p_room: string }; Returns: boolean }
       search_athletes: {
         Args: { p_limit?: number; p_query: string; p_sport_id?: string }
         Returns: {
@@ -1859,6 +2268,27 @@ export type Database = {
       entitlement_key: "ad_free_lifetime"
       game_status: "waiting" | "active" | "completed" | "abandoned"
       match_visibility: "public" | "friends" | "private"
+      scope_entity_kind:
+        | "sport"
+        | "discipline"
+        | "format"
+        | "country"
+        | "competition"
+        | "team"
+        | "constructor"
+        | "manufacturer"
+        | "stable"
+        | "nation"
+        | "person"
+        | "player"
+        | "driver"
+        | "rider"
+        | "boxer"
+        | "fighter"
+        | "horse"
+        | "jockey"
+        | "venue"
+        | "award"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1990,6 +2420,28 @@ export const Constants = {
       entitlement_key: ["ad_free_lifetime"],
       game_status: ["waiting", "active", "completed", "abandoned"],
       match_visibility: ["public", "friends", "private"],
+      scope_entity_kind: [
+        "sport",
+        "discipline",
+        "format",
+        "country",
+        "competition",
+        "team",
+        "constructor",
+        "manufacturer",
+        "stable",
+        "nation",
+        "person",
+        "player",
+        "driver",
+        "rider",
+        "boxer",
+        "fighter",
+        "horse",
+        "jockey",
+        "venue",
+        "award",
+      ],
     },
   },
 } as const

@@ -19,7 +19,8 @@ import {
   fetchSports,
   groupCompetitions,
 } from "@/lib/fanzeno";
-import { ERAS, useQuizPrefs, type EraId, type QuizPrefs } from "@/lib/quizPrefs";
+import { ERAS, QUESTION_FOCUS, useQuizPrefs, type EraId, type QuizPrefs } from "@/lib/quizPrefs";
+import { EntityScopePicker } from "@/components/game/EntityScopePicker";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/filters")({
@@ -108,7 +109,7 @@ function Filters() {
               key={s.id}
               type="button"
               onClick={() =>
-                setDraft({ ...draft, sport: s.slug, competitionId: null, competitionName: null })
+                setDraft({ ...draft, sport: s.slug, competitionId: null, competitionName: null, team: null, person: null })
               }
               className={`rounded-xl border px-4 py-2.5 text-[0.7rem] font-extrabold uppercase tracking-[0.1em] transition-colors ${
                 on
@@ -219,6 +220,51 @@ function Filters() {
         {sport && list.length === 0 && (
           <p className="text-xs text-muted-foreground">No competition scopes for this sport yet.</p>
         )}
+      </div>
+
+      {sport && (
+        <>
+          <SectionLabel>Drill down</SectionLabel>
+          <div className="space-y-2">
+            <EntityScopePicker
+              sportId={sport.id}
+              sportSlug={sport.slug}
+              sportName={sport.name}
+              kind="team"
+              value={draft.team ?? null}
+              onChange={(team) => setDraft({ ...draft, team })}
+            />
+            <EntityScopePicker
+              sportId={sport.id}
+              sportSlug={sport.slug}
+              sportName={sport.name}
+              kind="person"
+              value={draft.person ?? null}
+              onChange={(person) => setDraft({ ...draft, person })}
+            />
+          </div>
+        </>
+      )}
+
+      <SectionLabel>Question focus</SectionLabel>
+      <div className="flex flex-wrap gap-2">
+        {QUESTION_FOCUS.map((f) => {
+          const on = (draft.focus ?? "Mixed") === f;
+          return (
+            <button
+              key={f}
+              type="button"
+              onClick={() => setDraft({ ...draft, focus: f })}
+              className={`rounded-xl border px-4 py-2.5 text-[0.7rem] font-extrabold uppercase tracking-[0.1em] transition-colors ${
+                on
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {f}
+            </button>
+          );
+        })}
       </div>
 
       <SectionLabel>Era</SectionLabel>
