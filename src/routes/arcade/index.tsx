@@ -83,7 +83,8 @@ function Arcade() {
         {(data ?? []).map((mode) => {
           const m: ModeMeta = meta[mode.slug] ?? { icon: Gamepad2, tone: "text-primary bg-primary/12", status: "Soon" };
           const Icon = m.icon;
-          const playable = !!m.route;
+          const route = m.route;
+          const playable = !!route;
           const body = (
             <>
               <span className={`grid size-11 place-items-center rounded-xl ${m.tone}`}>
@@ -106,8 +107,8 @@ function Arcade() {
           const cls = `panel flex min-h-44 flex-col p-5 text-left transition-colors ${
             playable ? "hover:border-primary/60" : "opacity-70"
           }`;
-          return playable ? (
-            <Link key={mode.slug} to={m.route} className={cls}>
+          return route ? (
+            <Link key={mode.slug} to={route} className={cls}>
               {body}
             </Link>
           ) : (
