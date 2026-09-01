@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
 export type Sport = {
   id: string;
@@ -429,8 +430,9 @@ export type ScopeEntity = {
   countryCode: string | null;
 };
 
-const TEAM_KINDS = ["team", "constructor", "manufacturer", "stable", "nation", "discipline", "country", "venue"];
-const PERSON_KINDS = ["person", "player", "driver", "rider", "boxer", "fighter", "horse", "jockey"];
+type ScopeKind = Database["public"]["Enums"]["scope_entity_kind"];
+const TEAM_KINDS: ScopeKind[] = ["team", "constructor", "manufacturer", "stable", "nation", "discipline", "country", "venue"];
+const PERSON_KINDS: ScopeKind[] = ["person", "player", "driver", "rider", "boxer", "fighter", "horse", "jockey"];
 
 /** Verified team-like or person-like scope entities for a sport (RLS hides unverified rows). */
 export async function fetchScopeEntities(sportId: string, kind: "team" | "person"): Promise<ScopeEntity[]> {
