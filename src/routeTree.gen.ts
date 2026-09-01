@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CompeteRouteImport } from './routes/compete'
+import { Route as FiltersRouteImport } from './routes/filters'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
@@ -37,6 +38,11 @@ const AuthRoute = AuthRouteImport.update({
 const CompeteRoute = CompeteRouteImport.update({
   id: '/compete',
   path: '/compete',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FiltersRoute = FiltersRouteImport.update({
+  id: '/filters',
+  path: '/filters',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LeaderboardRoute = LeaderboardRouteImport.update({
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
+  '/filters': typeof FiltersRoute
   '/leaderboard': typeof LeaderboardRoute
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
+  '/filters': typeof FiltersRoute
   '/leaderboard': typeof LeaderboardRoute
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
@@ -98,6 +106,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
+  '/filters': typeof FiltersRoute
   '/leaderboard': typeof LeaderboardRoute
   '/upgrade': typeof UpgradeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/compete'
+    | '/filters'
     | '/leaderboard'
     | '/upgrade'
     | '/admin'
@@ -122,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/compete'
+    | '/filters'
     | '/leaderboard'
     | '/upgrade'
     | '/admin'
@@ -134,6 +145,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/compete'
+    | '/filters'
     | '/leaderboard'
     | '/upgrade'
     | '/_authenticated/admin'
@@ -147,6 +159,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRoute
   CompeteRoute: typeof CompeteRoute
+  FiltersRoute: typeof FiltersRoute
   LeaderboardRoute: typeof LeaderboardRoute
   UpgradeRoute: typeof UpgradeRoute
   ClueSportRoute: typeof ClueSportRoute
@@ -181,6 +194,13 @@ declare module '@tanstack/react-router' {
       path: '/compete'
       fullPath: '/compete'
       preLoaderRoute: typeof CompeteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/filters': {
+      id: '/filters'
+      path: '/filters'
+      fullPath: '/filters'
+      preLoaderRoute: typeof FiltersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/leaderboard': {
@@ -246,6 +266,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRoute,
   CompeteRoute: CompeteRoute,
+  FiltersRoute: FiltersRoute,
   LeaderboardRoute: LeaderboardRoute,
   UpgradeRoute: UpgradeRoute,
   ClueSportRoute: ClueSportRoute,
