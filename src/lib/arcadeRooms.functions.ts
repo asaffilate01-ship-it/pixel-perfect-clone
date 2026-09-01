@@ -220,7 +220,7 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { data: id, error } = await context.supabase.rpc("reserve_fair_question", {
       p_user_id: context.userId,
-      p_room_id: data.roomId ?? undefined,
+      p_room_id: (data.roomId ?? null) as unknown as string,
       p_sport_id: data.sportId,
       p_competition_id: data.competitionId ?? undefined,
       p_category_key: data.category ?? undefined,
@@ -300,7 +300,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
 
     const { error } = await context.supabase.rpc("record_question_attempt", {
       p_question_id: data.questionId,
-      p_room_id: data.roomId ?? undefined,
+      p_room_id: (data.roomId ?? null) as unknown as string,
       p_difficulty: data.difficulty,
       p_correct: correct,
       p_used_clue: data.usedClue,
