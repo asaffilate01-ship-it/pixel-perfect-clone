@@ -35,7 +35,7 @@ export const Route = createFileRoute("/arcade_/quiz-race")({
   component: QuizRacePage,
 });
 
-type Player = { name: string; sportId: string | null; position: number; tokens: number[] };
+type Player = { name: string; sportId: string | null; categoryKey: string | null; position: number; tokens: number[] };
 
 const LUDO_HOME = 57;
 const LUDO_SAFE = new Set([1, 9, 14, 22, 27, 35, 40, 48]);
@@ -62,7 +62,7 @@ function QuizRacePage() {
   const [clue, setClue] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [players, setPlayers] = useState<Player[]>(() =>
-    Array.from({ length: 4 }, (_, i) => ({ name: `Player ${i + 1}`, sportId: null, position: 0, tokens: [0, 0, 0, 0] })),
+    Array.from({ length: 4 }, (_, i) => ({ name: `Player ${i + 1}`, sportId: null, categoryKey: null, position: 0, tokens: [0, 0, 0, 0] })),
   );
 
   useEffect(() => {
@@ -183,6 +183,7 @@ function QuizRacePage() {
               sports={sports ?? []}
               onName={(name) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, name } : v)))}
               onSport={(sportId) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, sportId } : v)))}
+              onCategory={(categoryKey) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, categoryKey } : v)))}
             />
           ))}
         </div>

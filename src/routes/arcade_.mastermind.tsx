@@ -27,7 +27,7 @@ export const Route = createFileRoute("/arcade_/mastermind")({
 });
 
 const ROUND_SECONDS = 180;
-type P = { name: string; sportId: string | null; points: number; passes: number; correct: number };
+type P = { name: string; sportId: string | null; categoryKey: string | null; points: number; passes: number; correct: number };
 
 function MastermindPage() {
   const navigate = useNavigate();
@@ -38,7 +38,7 @@ function MastermindPage() {
   const [setup, setSetup] = useState(true);
   const [count, setCount] = useState(2);
   const [players, setPlayers] = useState<P[]>(() =>
-    Array.from({ length: 4 }, (_, i) => ({ name: `Player ${i + 1}`, sportId: null, points: 0, passes: 0, correct: 0 })),
+    Array.from({ length: 4 }, (_, i) => ({ name: `Player ${i + 1}`, sportId: null, categoryKey: null, points: 0, passes: 0, correct: 0 })),
   );
   const [active, setActive] = useState(0);
   const [phase, setPhase] = useState<1 | 2>(1);
@@ -167,6 +167,7 @@ function MastermindPage() {
               sports={sports ?? []}
               onName={(name) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, name } : v)))}
               onSport={(sportId) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, sportId } : v)))}
+              onCategory={(categoryKey) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, categoryKey } : v)))}
             />
           ))}
         </div>
