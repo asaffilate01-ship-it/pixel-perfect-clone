@@ -9,7 +9,7 @@ import {
   Layers,
   LayoutGrid,
   Network,
-  Podium,
+  Trophy,
   Users,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,7 +47,7 @@ const meta: Record<string, { icon: React.ElementType; tone: string; status: stri
   "tic-tac-toe": { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Arena", route: "/compete" },
   "connect-four": { icon: LayoutGrid, tone: "text-primary bg-primary/12", status: "Play now", route: "/arcade/connect-four" },
   territory: { icon: Hexagon, tone: "text-accent bg-accent/12", status: "Tactical" },
-  "category-tower": { icon: Podium, tone: "text-gold bg-gold/12", status: "1v1" },
+  "category-tower": { icon: Trophy, tone: "text-gold bg-gold/12", status: "1v1" },
   "sports-501": { icon: Gauge, tone: "text-gold bg-gold/12", status: "Numbers" },
   connections: { icon: Network, tone: "text-primary bg-primary/12", status: "Daily" },
   "draft-xi": { icon: Users, tone: "text-accent bg-accent/12", status: "Squad" },

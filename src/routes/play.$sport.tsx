@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { AthleteAutocomplete } from "@/components/game/AthleteAutocomplete";
+import { CriterionGlyph } from "@/components/game/CriterionGlyph";
 import {
   criterionIcon,
   emptyBoard,
@@ -330,20 +331,6 @@ function PlayPage() {
       </Dialog>
     </div>
   );
-}
-
-const glyphs = {
-  trophy: Trophy,
-  flag: Flag,
-  people: Users,
-  stats: BarChart3,
-  hand: Hand,
-  shield: Shield,
-} as const;
-
-function CriterionGlyph({ label }: { label: string }) {
-  const Icon = glyphs[criterionIcon(label)];
-  return <Icon className="size-3.5 shrink-0 text-primary" aria-hidden />;
 }
 
 function PageShell({ children }: { children: React.ReactNode }) {
