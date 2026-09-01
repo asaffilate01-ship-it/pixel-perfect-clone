@@ -1336,6 +1336,7 @@ export type Database = {
           published_at: string | null
           row_criteria: string[]
           scheduled_for: string | null
+          scope_path: string[]
           sport_id: string
           validated_at: string | null
         }
@@ -1354,6 +1355,7 @@ export type Database = {
           published_at?: string | null
           row_criteria: string[]
           scheduled_for?: string | null
+          scope_path?: string[]
           sport_id: string
           validated_at?: string | null
         }
@@ -1372,6 +1374,7 @@ export type Database = {
           published_at?: string | null
           row_criteria?: string[]
           scheduled_for?: string | null
+          scope_path?: string[]
           sport_id?: string
           validated_at?: string | null
         }
@@ -1721,6 +1724,7 @@ export type Database = {
           locale: string
           preferred_sports: string[]
           quiz_preferences: Json
+          recent_scope_paths: Json
         }
         Insert: {
           avatar_url?: string | null
@@ -1731,6 +1735,7 @@ export type Database = {
           locale?: string
           preferred_sports?: string[]
           quiz_preferences?: Json
+          recent_scope_paths?: Json
         }
         Update: {
           avatar_url?: string | null
@@ -1741,6 +1746,7 @@ export type Database = {
           locale?: string
           preferred_sports?: string[]
           quiz_preferences?: Json
+          recent_scope_paths?: Json
         }
         Relationships: []
       }
@@ -1804,6 +1810,39 @@ export type Database = {
             columns: ["sport_id"]
             isOneToOne: false
             referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_scope_links: {
+        Row: {
+          criterion_id: string
+          entity_id: string
+          relationship: string
+        }
+        Insert: {
+          criterion_id: string
+          entity_id: string
+          relationship?: string
+        }
+        Update: {
+          criterion_id?: string
+          entity_id?: string
+          relationship?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_scope_links_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_scope_links_entity_id_fkey"
+            columns: ["entity_id"]
+            isOneToOne: false
+            referencedRelation: "scope_entities"
             referencedColumns: ["id"]
           },
         ]
@@ -1906,6 +1945,96 @@ export type Database = {
             columns: ["grid_id"]
             isOneToOne: false
             referencedRelation: "grids"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scope_entities: {
+        Row: {
+          athlete_id: string | null
+          competition_id: string | null
+          country_code: string | null
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["scope_entity_kind"]
+          name: string
+          name_i18n: Json
+          parent_id: string | null
+          slug: string
+          source_id: string | null
+          sport_id: string
+          valid_from: string | null
+          valid_to: string | null
+          verification_status: string
+        }
+        Insert: {
+          athlete_id?: string | null
+          competition_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["scope_entity_kind"]
+          name: string
+          name_i18n?: Json
+          parent_id?: string | null
+          slug: string
+          source_id?: string | null
+          sport_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_status?: string
+        }
+        Update: {
+          athlete_id?: string | null
+          competition_id?: string | null
+          country_code?: string | null
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["scope_entity_kind"]
+          name?: string
+          name_i18n?: Json
+          parent_id?: string | null
+          slug?: string
+          source_id?: string | null
+          sport_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scope_entities_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "scope_entities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scope_entities_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
             referencedColumns: ["id"]
           },
         ]
@@ -2139,6 +2268,27 @@ export type Database = {
       entitlement_key: "ad_free_lifetime"
       game_status: "waiting" | "active" | "completed" | "abandoned"
       match_visibility: "public" | "friends" | "private"
+      scope_entity_kind:
+        | "sport"
+        | "discipline"
+        | "format"
+        | "country"
+        | "competition"
+        | "team"
+        | "constructor"
+        | "manufacturer"
+        | "stable"
+        | "nation"
+        | "person"
+        | "player"
+        | "driver"
+        | "rider"
+        | "boxer"
+        | "fighter"
+        | "horse"
+        | "jockey"
+        | "venue"
+        | "award"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2270,6 +2420,28 @@ export const Constants = {
       entitlement_key: ["ad_free_lifetime"],
       game_status: ["waiting", "active", "completed", "abandoned"],
       match_visibility: ["public", "friends", "private"],
+      scope_entity_kind: [
+        "sport",
+        "discipline",
+        "format",
+        "country",
+        "competition",
+        "team",
+        "constructor",
+        "manufacturer",
+        "stable",
+        "nation",
+        "person",
+        "player",
+        "driver",
+        "rider",
+        "boxer",
+        "fighter",
+        "horse",
+        "jockey",
+        "venue",
+        "award",
+      ],
     },
   },
 } as const
