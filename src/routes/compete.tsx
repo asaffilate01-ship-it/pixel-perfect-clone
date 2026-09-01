@@ -1,9 +1,10 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Copy, Swords, Users } from "lucide-react";
 import { createRoom, fetchDailyGrid, findRoom } from "@/lib/fanzeno";
+import { useQuizPrefs } from "@/lib/quizPrefs";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,14 +37,21 @@ const sports = [
 function Compete() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { prefs, hydrated } = useQuizPrefs();
   const [sport, setSport] = useState("football");
   const [code, setCode] = useState("");
   const [created, setCreated] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  // Rooms follow the player's saved quiz coverage by default.
+  useEffect(() => {
+    if (hydrated && sports.some((s) => s.slug === prefs.sport)) setSport(prefs.sport);
+  }, [hydrated, prefs.sport]);
+
+  const competitionId = prefs.sport === sport ? prefs.competitionId : null;
   const gridQuery = useQuery({
-    queryKey: ["daily-grid", sport],
-    queryFn: () => fetchDailyGrid(sport),
+    queryKey: ["daily-grid", sport, competitionId],
+    queryFn: () => fetchDailyGrid(sport, { competitionId }),
   });
 
   const host = async () => {

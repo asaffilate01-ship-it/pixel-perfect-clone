@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Check, Eye, RotateCcw, X } from "lucide-react";
+import { Check, Eye, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import {
   emptyBoard,
   fetchDailyGrid,
@@ -11,6 +11,7 @@ import {
   submitGuess,
   type CellState,
 } from "@/lib/fanzeno";
+import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,15 +43,19 @@ export const Route = createFileRoute("/play/$sport")({
 function PlayPage() {
   const { sport } = Route.useParams();
   const { user } = useAuth();
+  const { prefs, hydrated } = useQuizPrefs();
   const [board, setBoard] = useState<CellState[]>(emptyBoard);
   const [active, setActive] = useState<number | null>(null);
   const [guess, setGuess] = useState("");
   const [pending, setPending] = useState(false);
   const [revealed, setRevealed] = useState<Record<number, string[]> | null>(null);
 
+  // Only apply the competition scope when it belongs to the sport being played.
+  const competitionId = prefs.sport === sport ? prefs.competitionId : null;
   const gridQuery = useQuery({
-    queryKey: ["daily-grid", sport],
-    queryFn: () => fetchDailyGrid(sport),
+    queryKey: ["daily-grid", sport, competitionId],
+    queryFn: () => fetchDailyGrid(sport, { competitionId }),
+    enabled: hydrated,
   });
   const grid = gridQuery.data;
 
@@ -123,7 +128,7 @@ function PlayPage() {
     }
   };
 
-  if (gridQuery.isLoading) {
+  if (gridQuery.isLoading || !hydrated) {
     return <PageShell>Loading today&apos;s grid…</PageShell>;
   }
 
@@ -147,6 +152,16 @@ function PlayPage() {
         <div>
           <p className="eyebrow">{grid.scheduled_for ?? "Daily"} · difficulty {grid.difficulty}</p>
           <h1 className="mt-2 text-4xl">{grid.sport.name} grid</h1>
+          <Link
+            to="/filters"
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border bg-surface/60 px-2.5 py-1 text-[0.62rem] font-bold uppercase tracking-[0.12em] text-muted-foreground hover:text-foreground"
+          >
+            <SlidersHorizontal className="size-3" />
+            {competitionId ? scopeLabel(prefs, grid.sport.name) : `All ${grid.sport.name}`}
+            {grid.scopeFallback && (
+              <span className="normal-case tracking-normal text-gold">· no dedicated grid yet</span>
+            )}
+          </Link>
         </div>
         <div className="text-right">
           <span className="font-display text-4xl text-primary">{correct}</span>

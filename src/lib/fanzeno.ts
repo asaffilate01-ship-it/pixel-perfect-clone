@@ -36,18 +36,62 @@ export async function fetchSports(): Promise<Sport[]> {
   return data ?? [];
 }
 
-export async function fetchDailyGrid(slug: string): Promise<GridPuzzle | null> {
+export type Competition = {
+  id: string;
+  slug: string;
+  name: string;
+  short_name: string | null;
+  region: string | null;
+  competition_type: string;
+  sport_id: string;
+};
+
+export async function fetchCompetitions(): Promise<Competition[]> {
   const { data, error } = await supabase
-    .from("grids")
-    .select(
-      "id, difficulty, scheduled_for, row_criteria, column_criteria, sports!inner(id, slug, name, accent)",
-    )
-    .eq("sports.slug", slug)
-    .not("published_at", "is", null)
-    .order("scheduled_for", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .from("competitions")
+    .select("id, slug, name, short_name, region, competition_type, sport_id")
+    .eq("active", true)
+    .order("sort_order");
   if (error) throw error;
+  return data ?? [];
+}
+
+export type GridScope = { competitionId?: string | null | undefined };
+
+/**
+ * Latest published grid for a sport. When a competition scope is given, a grid tagged
+ * with that competition is preferred; if none exists we fall back to the whole-sport
+ * grid and flag it with `scopeFallback` so the UI can say so.
+ */
+export async function fetchDailyGrid(
+  slug: string,
+  scope: GridScope = {},
+): Promise<(GridPuzzle & { scopeFallback: boolean }) | null> {
+  const base = () =>
+    supabase
+      .from("grids")
+      .select(
+        "id, difficulty, scheduled_for, row_criteria, column_criteria, competition_ids, sports!inner(id, slug, name, accent)",
+      )
+      .eq("sports.slug", slug)
+      .not("published_at", "is", null)
+      .order("scheduled_for", { ascending: false })
+      .limit(1);
+
+  let data: Awaited<ReturnType<typeof base>>["data"] extends (infer R)[] | null ? R | null : never = null;
+  let scopeFallback = false;
+
+  if (scope.competitionId) {
+    const scoped = await base().contains("competition_ids", [scope.competitionId]).maybeSingle();
+    if (scoped.error) throw scoped.error;
+    data = scoped.data;
+  }
+  if (!data) {
+    const any = await base().maybeSingle();
+    if (any.error) throw any.error;
+    data = any.data;
+    scopeFallback = !!scope.competitionId && !!data;
+  }
   if (!data) return null;
 
   const ids = [...data.row_criteria, ...data.column_criteria];
@@ -66,6 +110,7 @@ export async function fetchDailyGrid(slug: string): Promise<GridPuzzle | null> {
     sport,
     rows: data.row_criteria.map((id: string) => byId.get(id) ?? "—"),
     cols: data.column_criteria.map((id: string) => byId.get(id) ?? "—"),
+    scopeFallback,
   };
 }
 
