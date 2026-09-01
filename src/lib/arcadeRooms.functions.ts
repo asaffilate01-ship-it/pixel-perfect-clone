@@ -282,21 +282,24 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       .maybeSingle();
     if (!q) throw new Error("Question unavailable");
 
+    let roomQuestionId: string | null = null;
     if (data.roomId) {
       const { data: roomQ } = await admin
         .from("arcade_questions")
-        .select("active_user_id, expires_at")
+        .select("id, active_user_id, expires_at, revealed_answer")
         .eq("room_id", data.roomId)
         .eq("question_id", data.questionId)
         .order("turn_no", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!roomQ || roomQ.active_user_id !== context.userId || (roomQ.expires_at && new Date(roomQ.expires_at) < new Date()))
+      if (!roomQ || roomQ.active_user_id !== context.userId || roomQ.revealed_answer)
         throw new Error("Not your active question");
+      roomQuestionId = roomQ.id;
     }
 
     const accepted = (((q.answer_rule as { accepted?: string[] }) ?? {}).accepted ?? []).map(normalise);
     const correct = !data.passed && data.answer.trim().length > 0 && accepted.includes(normalise(data.answer));
+    const movement = correct ? (data.usedClue ? 5 : 6) : 0;
 
     const { error } = await context.supabase.rpc("record_question_attempt", {
       p_question_id: data.questionId,
@@ -309,14 +312,73 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
     });
     if (error) throw new Error(error.message);
 
-    if (data.roomId) {
-      await admin
-        .from("arcade_questions")
-        .update({ revealed_answer: true })
-        .eq("room_id", data.roomId)
-        .eq("question_id", data.questionId);
+    const answer = (q.answer_display_i18n as Record<string, string> | null)?.["en"] ?? "";
+
+    if (data.roomId && roomQuestionId) {
+      // Reveal to the room, record the submission, move the token / score, and pass the turn.
+      await admin.from("arcade_questions").update({ revealed_answer: true }).eq("id", roomQuestionId);
+      await admin.from("arcade_submissions").insert({
+        question_id: roomQuestionId,
+        user_id: context.userId,
+        action: data.passed ? "pass" : "answer",
+        answer_text: data.passed ? null : data.answer,
+        correct,
+        movement,
+        awarded_points: correct ? 100 : 0,
+        input_method: data.inputMethod,
+        transcript_confidence: data.transcriptConfidence ?? null,
+      });
+
+      const [{ data: room }, { data: players }] = await Promise.all([
+        admin.from("arcade_rooms").select("id, mode_slug, active_seat, round_no, status").eq("id", data.roomId).single(),
+        admin
+          .from("arcade_room_players")
+          .select("user_id, seat, position, points, passes, correct_answers")
+          .eq("room_id", data.roomId)
+          .order("seat"),
+      ]);
+      const me = players?.find((p) => p.user_id === context.userId);
+      if (room && me) {
+        const mode = room.mode_slug;
+        let position = me.position;
+        if (mode === "quiz-snakes-ladders") {
+          const raw = Math.min(100, position + movement);
+          position = JUMPS[raw] ?? raw;
+        } else if (mode === "quiz-ludo") {
+          position = Math.min(LUDO_HOME, position + movement);
+        }
+        await admin
+          .from("arcade_room_players")
+          .update({
+            position,
+            points: me.points + (correct ? 100 : 0),
+            passes: me.passes + (data.passed ? 1 : 0),
+            correct_answers: me.correct_answers + (correct ? 1 : 0),
+            last_seen_at: new Date().toISOString(),
+          })
+          .eq("room_id", data.roomId)
+          .eq("user_id", context.userId);
+
+        const won =
+          (mode === "quiz-snakes-ladders" && position >= 100) || (mode === "quiz-ludo" && position >= LUDO_HOME);
+        // A clean first-time answer in Ludo earns another go, like rolling a six.
+        const again = mode === "quiz-ludo" && movement === 6 && !won;
+        const seats = (players ?? []).map((p) => p.seat).sort((a, b) => a - b);
+        const idx = seats.indexOf(me.seat);
+        const nextSeat = again ? me.seat : (seats[(idx + 1) % seats.length] ?? me.seat);
+        await admin
+          .from("arcade_rooms")
+          .update({
+            status: won ? "finished" : room.status,
+            active_seat: nextSeat,
+            round_no: nextSeat <= me.seat && !again ? room.round_no + 1 : room.round_no,
+            turn_started_at: new Date().toISOString(),
+            turn_ends_at: new Date(Date.now() + 180_000).toISOString(),
+            version: undefined,
+          })
+          .eq("id", data.roomId);
+      }
     }
 
-    const answer = (q.answer_display_i18n as Record<string, string> | null)?.["en"] ?? "";
-    return { correct, answer, movement: correct ? (data.usedClue ? 5 : 6) : 0 };
+    return { correct, answer, movement };
   });
