@@ -419,3 +419,39 @@ export async function fetchMyGame(gridId: string, userId: string, mode: Persiste
     .order("created_at");
   return { ...game, moves: moves ?? [] };
 }
+
+/* ---------- v0.10 question scope hierarchy ---------- */
+
+export type ScopeEntity = {
+  id: string;
+  kind: string;
+  name: string;
+  countryCode: string | null;
+};
+
+const TEAM_KINDS = ["team", "constructor", "manufacturer", "stable", "nation", "discipline", "country", "venue"];
+const PERSON_KINDS = ["person", "player", "driver", "rider", "boxer", "fighter", "horse", "jockey"];
+
+/** Verified team-like or person-like scope entities for a sport (RLS hides unverified rows). */
+export async function fetchScopeEntities(sportId: string, kind: "team" | "person"): Promise<ScopeEntity[]> {
+  const { data, error } = await supabase
+    .from("scope_entities")
+    .select("id, kind, name, country_code")
+    .eq("sport_id", sportId)
+    .in("kind", kind === "team" ? TEAM_KINDS : PERSON_KINDS)
+    .order("name");
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ id: r.id, kind: r.kind, name: r.name, countryCode: r.country_code }));
+}
+
+/** Sport-aware wording for the two scope pickers (F1 → drivers, horse racing → horses…). */
+export function entityLabels(sportSlug: string): { team: string; person: string } {
+  if (["f1", "nascar", "indycar"].includes(sportSlug)) return { team: "Team or constructor", person: "Driver" };
+  if (["motogp", "superbikes"].includes(sportSlug)) return { team: "Team or manufacturer", person: "Rider" };
+  if (sportSlug === "horse-racing") return { team: "Stable, trainer or nation", person: "Horse or jockey" };
+  if (sportSlug === "boxing-pro") return { team: "Governing body or nation", person: "Boxer" };
+  if (sportSlug === "ufc") return { team: "Division or nation", person: "Fighter" };
+  if (["golf", "tennis", "snooker", "darts"].includes(sportSlug)) return { team: "Tour, nation or event", person: "Player" };
+  if (sportSlug === "cricket") return { team: "Team, county or franchise", person: "Player" };
+  return { team: "Team, club or nation", person: "Player" };
+}
