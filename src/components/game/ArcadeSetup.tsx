@@ -113,6 +113,7 @@ export function PlayerCard({
             ))}
           </div>
         )}
+        {children}
       </div>
     </div>
   );
