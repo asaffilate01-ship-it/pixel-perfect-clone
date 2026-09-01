@@ -42,15 +42,19 @@ export const Route = createFileRoute("/play/$sport")({
 function PlayPage() {
   const { sport } = Route.useParams();
   const { user } = useAuth();
+  const { prefs, hydrated } = useQuizPrefs();
   const [board, setBoard] = useState<CellState[]>(emptyBoard);
   const [active, setActive] = useState<number | null>(null);
   const [guess, setGuess] = useState("");
   const [pending, setPending] = useState(false);
   const [revealed, setRevealed] = useState<Record<number, string[]> | null>(null);
 
+  // Only apply the competition scope when it belongs to the sport being played.
+  const competitionId = prefs.sport === sport ? prefs.competitionId : null;
   const gridQuery = useQuery({
-    queryKey: ["daily-grid", sport],
-    queryFn: () => fetchDailyGrid(sport),
+    queryKey: ["daily-grid", sport, competitionId],
+    queryFn: () => fetchDailyGrid(sport, { competitionId }),
+    enabled: hydrated,
   });
   const grid = gridQuery.data;
 
