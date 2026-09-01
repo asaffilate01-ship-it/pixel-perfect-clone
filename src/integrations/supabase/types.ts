@@ -385,7 +385,11 @@ export type Database = {
         Row: {
           active: boolean
           competition_type: string
+          country_code: string | null
+          gender: string
+          governing_body: string | null
           id: string
+          metadata: Json
           name: string
           name_i18n: Json
           region: string | null
@@ -393,11 +397,17 @@ export type Database = {
           slug: string
           sort_order: number
           sport_id: string
+          valid_from: string
+          valid_to: string | null
         }
         Insert: {
           active?: boolean
           competition_type: string
+          country_code?: string | null
+          gender?: string
+          governing_body?: string | null
           id?: string
+          metadata?: Json
           name: string
           name_i18n?: Json
           region?: string | null
@@ -405,11 +415,17 @@ export type Database = {
           slug: string
           sort_order?: number
           sport_id: string
+          valid_from?: string
+          valid_to?: string | null
         }
         Update: {
           active?: boolean
           competition_type?: string
+          country_code?: string | null
+          gender?: string
+          governing_body?: string | null
           id?: string
+          metadata?: Json
           name?: string
           name_i18n?: Json
           region?: string | null
@@ -417,6 +433,8 @@ export type Database = {
           slug?: string
           sort_order?: number
           sport_id?: string
+          valid_from?: string
+          valid_to?: string | null
         }
         Relationships: [
           {
@@ -511,6 +529,39 @@ export type Database = {
         }
         Relationships: []
       }
+      game_modes: {
+        Row: {
+          board_config: Json
+          description: string
+          enabled: boolean
+          max_players: number
+          min_players: number
+          name: string
+          slug: string
+          sort_order: number
+        }
+        Insert: {
+          board_config: Json
+          description: string
+          enabled?: boolean
+          max_players: number
+          min_players: number
+          name: string
+          slug: string
+          sort_order?: number
+        }
+        Update: {
+          board_config?: Json
+          description?: string
+          enabled?: boolean
+          max_players?: number
+          min_players?: number
+          name?: string
+          slug?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       game_moves: {
         Row: {
           accepted: boolean
@@ -562,34 +613,55 @@ export type Database = {
       games: {
         Row: {
           completed_at: string | null
+          consecutive_passes: number
+          draw_offered_by: string | null
+          end_reason: string | null
           grid_id: string
           id: string
           mode: string
+          outcome: string | null
           player_one: string
+          player_two: string | null
+          rematch_of: string | null
           room_id: string | null
           score: number
+          settings: Json
           started_at: string
           status: Database["public"]["Enums"]["game_status"]
         }
         Insert: {
           completed_at?: string | null
+          consecutive_passes?: number
+          draw_offered_by?: string | null
+          end_reason?: string | null
           grid_id: string
           id?: string
           mode?: string
+          outcome?: string | null
           player_one: string
+          player_two?: string | null
+          rematch_of?: string | null
           room_id?: string | null
           score?: number
+          settings?: Json
           started_at?: string
           status?: Database["public"]["Enums"]["game_status"]
         }
         Update: {
           completed_at?: string | null
+          consecutive_passes?: number
+          draw_offered_by?: string | null
+          end_reason?: string | null
           grid_id?: string
           id?: string
           mode?: string
+          outcome?: string | null
           player_one?: string
+          player_two?: string | null
+          rematch_of?: string | null
           room_id?: string | null
           score?: number
+          settings?: Json
           started_at?: string
           status?: Database["public"]["Enums"]["game_status"]
         }
@@ -606,6 +678,13 @@ export type Database = {
             columns: ["grid_id"]
             isOneToOne: false
             referencedRelation: "grids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "games_rematch_of_fkey"
+            columns: ["rematch_of"]
+            isOneToOne: false
+            referencedRelation: "games"
             referencedColumns: ["id"]
           },
           {
@@ -724,6 +803,212 @@ export type Database = {
             columns: ["sport_id"]
             isOneToOne: false
             referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historical_seasons: {
+        Row: {
+          competition_id: string
+          ends_on: string | null
+          format: Json
+          id: string
+          season_label: string
+          starts_on: string | null
+          verification_status: string
+        }
+        Insert: {
+          competition_id: string
+          ends_on?: string | null
+          format?: Json
+          id?: string
+          season_label: string
+          starts_on?: string | null
+          verification_status?: string
+        }
+        Update: {
+          competition_id?: string
+          ends_on?: string | null
+          format?: Json
+          id?: string
+          season_label?: string
+          starts_on?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historical_seasons_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          game_id: string
+          game_version: number
+          id: number
+          payload: Json
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          game_id: string
+          game_version: number
+          id?: never
+          payload?: Json
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          game_id?: string
+          game_version?: number
+          id?: never
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_events_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      olympic_events: {
+        Row: {
+          event_name: string
+          event_name_i18n: Json
+          games_id: string
+          gender: string
+          id: string
+          sport_id: string
+        }
+        Insert: {
+          event_name: string
+          event_name_i18n?: Json
+          games_id: string
+          gender: string
+          id?: string
+          sport_id: string
+        }
+        Update: {
+          event_name?: string
+          event_name_i18n?: Json
+          games_id?: string
+          gender?: string
+          id?: string
+          sport_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "olympic_events_games_id_fkey"
+            columns: ["games_id"]
+            isOneToOne: false
+            referencedRelation: "olympic_games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "olympic_events_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      olympic_games: {
+        Row: {
+          ends_on: string | null
+          host_city: string
+          host_country_code: string | null
+          id: string
+          season: string
+          starts_on: string | null
+          year: number
+        }
+        Insert: {
+          ends_on?: string | null
+          host_city: string
+          host_country_code?: string | null
+          id?: string
+          season: string
+          starts_on?: string | null
+          year: number
+        }
+        Update: {
+          ends_on?: string | null
+          host_city?: string
+          host_country_code?: string | null
+          id?: string
+          season?: string
+          starts_on?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
+      olympic_medals: {
+        Row: {
+          athlete_id: string | null
+          event_id: string
+          id: string
+          medal: string
+          nation_code: string
+          source_id: string | null
+          source_record_id: string | null
+          team_name: string | null
+          verification_status: string
+        }
+        Insert: {
+          athlete_id?: string | null
+          event_id: string
+          id?: string
+          medal: string
+          nation_code: string
+          source_id?: string | null
+          source_record_id?: string | null
+          team_name?: string | null
+          verification_status?: string
+        }
+        Update: {
+          athlete_id?: string | null
+          event_id?: string
+          id?: string
+          medal?: string
+          nation_code?: string
+          source_id?: string | null
+          source_record_id?: string | null
+          team_name?: string | null
+          verification_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "olympic_medals_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "olympic_medals_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "olympic_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "olympic_medals_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -848,28 +1133,51 @@ export type Database = {
         Row: {
           accent: string
           enabled: boolean
+          governing_body: string | null
+          historical_from: string
           id: string
+          metadata: Json
           name: string
+          olympic_classification: string | null
+          parent_sport_id: string | null
           slug: string
           sort_order: number
         }
         Insert: {
           accent?: string
           enabled?: boolean
+          governing_body?: string | null
+          historical_from?: string
           id?: string
+          metadata?: Json
           name: string
+          olympic_classification?: string | null
+          parent_sport_id?: string | null
           slug: string
           sort_order?: number
         }
         Update: {
           accent?: string
           enabled?: boolean
+          governing_body?: string | null
+          historical_from?: string
           id?: string
+          metadata?: Json
           name?: string
+          olympic_classification?: string | null
+          parent_sport_id?: string | null
           slug?: string
           sort_order?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "sports_parent_sport_id_fkey"
+            columns: ["parent_sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

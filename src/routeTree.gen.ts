@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as ArcadeRouteImport } from './routes/arcade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CompeteRouteImport } from './routes/compete'
 import { Route as FiltersRouteImport } from './routes/filters'
@@ -18,6 +19,7 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
 import { Route as ClueSportRouteImport } from './routes/clue.$sport'
 import { Route as PlaySportRouteImport } from './routes/play.$sport'
 
@@ -28,6 +30,11 @@ const IndexRoute = IndexRouteImport.update({
 } as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArcadeRoute = ArcadeRouteImport.update({
+  id: '/arcade',
+  path: '/arcade',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -65,6 +72,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ArcadeConnectFourRoute = ArcadeConnectFourRouteImport.update({
+  id: '/arcade_/connect-four',
+  path: '/arcade/connect-four',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClueSportRoute = ClueSportRouteImport.update({
   id: '/clue/$sport',
   path: '/clue/$sport',
@@ -78,6 +90,7 @@ const PlaySportRoute = PlaySportRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
   '/filters': typeof FiltersRoute
@@ -85,11 +98,13 @@ export interface FileRoutesByFullPath {
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/clue/$sport': typeof ClueSportRoute
   '/play/$sport': typeof PlaySportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
   '/filters': typeof FiltersRoute
@@ -97,6 +112,7 @@ export interface FileRoutesByTo {
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/clue/$sport': typeof ClueSportRoute
   '/play/$sport': typeof PlaySportRoute
 }
@@ -104,6 +120,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
   '/filters': typeof FiltersRoute
@@ -111,6 +128,7 @@ export interface FileRoutesById {
   '/upgrade': typeof UpgradeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/arcade_/connect-four': typeof ArcadeConnectFourRoute
   '/clue/$sport': typeof ClueSportRoute
   '/play/$sport': typeof PlaySportRoute
 }
@@ -118,6 +136,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/arcade'
     | '/auth'
     | '/compete'
     | '/filters'
@@ -125,11 +144,13 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/admin'
     | '/profile'
+    | '/arcade/connect-four'
     | '/clue/$sport'
     | '/play/$sport'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/arcade'
     | '/auth'
     | '/compete'
     | '/filters'
@@ -137,12 +158,14 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/admin'
     | '/profile'
+    | '/arcade/connect-four'
     | '/clue/$sport'
     | '/play/$sport'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/arcade'
     | '/auth'
     | '/compete'
     | '/filters'
@@ -150,6 +173,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/_authenticated/admin'
     | '/_authenticated/profile'
+    | '/arcade_/connect-four'
     | '/clue/$sport'
     | '/play/$sport'
   fileRoutesById: FileRoutesById
@@ -157,11 +181,13 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  ArcadeRoute: typeof ArcadeRoute
   AuthRoute: typeof AuthRoute
   CompeteRoute: typeof CompeteRoute
   FiltersRoute: typeof FiltersRoute
   LeaderboardRoute: typeof LeaderboardRoute
   UpgradeRoute: typeof UpgradeRoute
+  ArcadeConnectFourRoute: typeof ArcadeConnectFourRoute
   ClueSportRoute: typeof ClueSportRoute
   PlaySportRoute: typeof PlaySportRoute
 }
@@ -180,6 +206,13 @@ declare module '@tanstack/react-router' {
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/arcade': {
+      id: '/arcade'
+      path: '/arcade'
+      fullPath: '/arcade'
+      preLoaderRoute: typeof ArcadeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -231,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/arcade_/connect-four': {
+      id: '/arcade_/connect-four'
+      path: '/arcade/connect-four'
+      fullPath: '/arcade/connect-four'
+      preLoaderRoute: typeof ArcadeConnectFourRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clue/$sport': {
       id: '/clue/$sport'
       path: '/clue/$sport'
@@ -264,11 +304,13 @@ const AuthenticatedRouteRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  ArcadeRoute: ArcadeRoute,
   AuthRoute: AuthRoute,
   CompeteRoute: CompeteRoute,
   FiltersRoute: FiltersRoute,
   LeaderboardRoute: LeaderboardRoute,
   UpgradeRoute: UpgradeRoute,
+  ArcadeConnectFourRoute: ArcadeConnectFourRoute,
   ClueSportRoute: ClueSportRoute,
   PlaySportRoute: PlaySportRoute,
 }

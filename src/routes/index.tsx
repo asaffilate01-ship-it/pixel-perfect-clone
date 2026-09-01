@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowRight,
   Flame,
+  Gamepad2,
   Gem,
   Grid3x3,
   Infinity as InfinityIcon,
@@ -15,6 +16,7 @@ import {
 import { fetchSports } from "@/lib/fanzeno";
 import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { Button } from "@/components/ui/button";
+import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -54,6 +56,7 @@ function Home() {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10">
+      <SideAdRail placement="home" />
       <section className="panel stadium-line relative overflow-hidden p-6 sm:p-10">
         <p className="eyebrow">The global sports grid</p>
         <h1 className="mt-4 max-w-2xl text-5xl sm:text-7xl">
@@ -103,6 +106,25 @@ function Home() {
         </span>
         <ArrowRight className="size-5 text-muted-foreground" />
       </Link>
+
+      <Link
+        to="/arcade"
+        className="panel mt-4 flex items-center gap-4 p-5 transition-colors hover:border-gold/60"
+      >
+        <span className="grid size-11 place-items-center rounded-xl bg-gold/15">
+          <Gamepad2 className="size-5 text-gold" />
+        </span>
+        <span className="flex-1">
+          <span className="eyebrow block text-gold">Fanzeno arcade</span>
+          <span className="mt-1 block font-display text-2xl">Tactical games</span>
+          <span className="block text-xs text-muted-foreground">
+            Connect Four, Territory, 501, Tower, Draft and more.
+          </span>
+        </span>
+        <ArrowRight className="size-5 text-muted-foreground" />
+      </Link>
+
+      <TopAdBanner placement="home" />
 
       <section className="mt-12">
         <div className="flex flex-wrap items-end justify-between gap-2">

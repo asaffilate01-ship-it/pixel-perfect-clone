@@ -22,10 +22,10 @@ export const Route = createFileRoute("/upgrade")({
 });
 
 const perks = [
-  "No ads, ever — on every sport",
-  "Unlimited practice grids",
-  "Full answer reveals after each game",
-  "Priority seats in ranked rooms",
+  "Removes the discovery banner and the wide-screen side rail — the only ads Fanzeno ever shows",
+  "No interstitials, pop-ups or ads between moves, on any tier",
+  "All current and future sports and arcade modes",
+  "Restore on your other devices — this is not a subscription",
 ];
 
 function Upgrade() {
