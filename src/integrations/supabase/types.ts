@@ -167,6 +167,71 @@ export type Database = {
           },
         ]
       }
+      athlete_criteria: {
+        Row: {
+          athlete_id: string
+          competition_id: string | null
+          criterion_id: string
+          evidence_url: string | null
+          source_id: string
+          valid_from: string | null
+          valid_to: string | null
+          verification_status: string
+          verified_at: string | null
+        }
+        Insert: {
+          athlete_id: string
+          competition_id?: string | null
+          criterion_id: string
+          evidence_url?: string | null
+          source_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          athlete_id?: string
+          competition_id?: string | null
+          criterion_id?: string
+          evidence_url?: string | null
+          source_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
+          verification_status?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_criteria_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_criteria_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_criteria_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_criteria_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       athlete_evidence: {
         Row: {
           athlete_id: string
@@ -217,6 +282,58 @@ export type Database = {
           },
           {
             foreignKeyName: "athlete_evidence_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      athlete_honours: {
+        Row: {
+          athlete_id: string
+          honour_id: string
+          result: string
+          source_id: string | null
+          team_name: string | null
+          verification_status: string
+          year: number
+        }
+        Insert: {
+          athlete_id: string
+          honour_id: string
+          result?: string
+          source_id?: string | null
+          team_name?: string | null
+          verification_status?: string
+          year: number
+        }
+        Update: {
+          athlete_id?: string
+          honour_id?: string
+          result?: string
+          source_id?: string | null
+          team_name?: string | null
+          verification_status?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "athlete_honours_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_honours_honour_id_fkey"
+            columns: ["honour_id"]
+            isOneToOne: false
+            referencedRelation: "honours"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "athlete_honours_source_id_fkey"
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "data_sources"
@@ -389,9 +506,11 @@ export type Database = {
           gender: string
           governing_body: string | null
           id: string
+          lineage_key: string | null
           metadata: Json
           name: string
           name_i18n: Json
+          predecessor_id: string | null
           region: string | null
           short_name: string | null
           slug: string
@@ -407,9 +526,11 @@ export type Database = {
           gender?: string
           governing_body?: string | null
           id?: string
+          lineage_key?: string | null
           metadata?: Json
           name: string
           name_i18n?: Json
+          predecessor_id?: string | null
           region?: string | null
           short_name?: string | null
           slug: string
@@ -425,9 +546,11 @@ export type Database = {
           gender?: string
           governing_body?: string | null
           id?: string
+          lineage_key?: string | null
           metadata?: Json
           name?: string
           name_i18n?: Json
+          predecessor_id?: string | null
           region?: string | null
           short_name?: string | null
           slug?: string
@@ -437,6 +560,13 @@ export type Database = {
           valid_to?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "competitions_predecessor_id_fkey"
+            columns: ["predecessor_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "competitions_sport_id_fkey"
             columns: ["sport_id"]
@@ -474,6 +604,60 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "criteria_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      data_coverage: {
+        Row: {
+          athletes: number
+          competition_id: string | null
+          facts: number
+          id: string
+          refreshed_at: string | null
+          season_from: number | null
+          season_to: number | null
+          sport_id: string
+          status: string
+          verified_facts: number
+        }
+        Insert: {
+          athletes?: number
+          competition_id?: string | null
+          facts?: number
+          id?: string
+          refreshed_at?: string | null
+          season_from?: number | null
+          season_to?: number | null
+          sport_id: string
+          status?: string
+          verified_facts?: number
+        }
+        Update: {
+          athletes?: number
+          competition_id?: string | null
+          facts?: number
+          id?: string
+          refreshed_at?: string | null
+          season_from?: number | null
+          season_to?: number | null
+          sport_id?: string
+          status?: string
+          verified_facts?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_coverage_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_coverage_sport_id_fkey"
             columns: ["sport_id"]
             isOneToOne: false
             referencedRelation: "sports"
@@ -568,30 +752,42 @@ export type Database = {
           athlete_id: string | null
           cell_index: number
           created_at: string
+          difficulty_points: number
           game_id: string
           guess: string
           id: number
           player_id: string
+          rarity_bonus: number
+          speed_bonus: number
+          total_points: number | null
         }
         Insert: {
           accepted: boolean
           athlete_id?: string | null
           cell_index: number
           created_at?: string
+          difficulty_points?: number
           game_id: string
           guess: string
           id?: never
           player_id: string
+          rarity_bonus?: number
+          speed_bonus?: number
+          total_points?: number | null
         }
         Update: {
           accepted?: boolean
           athlete_id?: string | null
           cell_index?: number
           created_at?: string
+          difficulty_points?: number
           game_id?: string
           guess?: string
           id?: never
           player_id?: string
+          rarity_bonus?: number
+          speed_bonus?: number
+          total_points?: number | null
         }
         Relationships: [
           {
@@ -622,6 +818,7 @@ export type Database = {
           outcome: string | null
           player_one: string
           player_two: string | null
+          points: number
           rematch_of: string | null
           room_id: string | null
           score: number
@@ -640,6 +837,7 @@ export type Database = {
           outcome?: string | null
           player_one: string
           player_two?: string | null
+          points?: number
           rematch_of?: string | null
           room_id?: string | null
           score?: number
@@ -658,6 +856,7 @@ export type Database = {
           outcome?: string | null
           player_one?: string
           player_two?: string | null
+          points?: number
           rematch_of?: string | null
           room_id?: string | null
           score?: number
@@ -751,8 +950,55 @@ export type Database = {
           },
         ]
       }
+      grid_exposures: {
+        Row: {
+          completed_at: string | null
+          grid_id: string
+          profile_id: string
+          score: number | null
+          shown_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          grid_id: string
+          profile_id: string
+          score?: number | null
+          shown_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          grid_id?: string
+          profile_id?: string
+          score?: number | null
+          shown_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "grid_exposures_grid_id_fkey"
+            columns: ["grid_id"]
+            isOneToOne: false
+            referencedRelation: "grid_quality"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grid_exposures_grid_id_fkey"
+            columns: ["grid_id"]
+            isOneToOne: false
+            referencedRelation: "grids"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "grid_exposures_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grids: {
         Row: {
+          answer_count: number
           column_criteria: string[]
           competition_ids: string[]
           created_at: string
@@ -760,6 +1006,8 @@ export type Database = {
           difficulty: number
           era_end: number | null
           era_start: number | null
+          generated: boolean
+          generation_fingerprint: string | null
           id: string
           published_at: string | null
           row_criteria: string[]
@@ -768,6 +1016,7 @@ export type Database = {
           validated_at: string | null
         }
         Insert: {
+          answer_count?: number
           column_criteria: string[]
           competition_ids?: string[]
           created_at?: string
@@ -775,6 +1024,8 @@ export type Database = {
           difficulty?: number
           era_end?: number | null
           era_start?: number | null
+          generated?: boolean
+          generation_fingerprint?: string | null
           id?: string
           published_at?: string | null
           row_criteria: string[]
@@ -783,6 +1034,7 @@ export type Database = {
           validated_at?: string | null
         }
         Update: {
+          answer_count?: number
           column_criteria?: string[]
           competition_ids?: string[]
           created_at?: string
@@ -790,6 +1042,8 @@ export type Database = {
           difficulty?: number
           era_end?: number | null
           era_start?: number | null
+          generated?: boolean
+          generation_fingerprint?: string | null
           id?: string
           published_at?: string | null
           row_criteria?: string[]
@@ -841,6 +1095,85 @@ export type Database = {
             columns: ["competition_id"]
             isOneToOne: false
             referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      honours: {
+        Row: {
+          governing_body: string | null
+          honour_type: string
+          id: string
+          metadata: Json
+          name: string
+          slug: string
+          sport_id: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          governing_body?: string | null
+          honour_type: string
+          id?: string
+          metadata?: Json
+          name: string
+          slug: string
+          sport_id: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          governing_body?: string | null
+          honour_type?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          slug?: string
+          sport_id?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "honours_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ingestion_cursors: {
+        Row: {
+          checkpoint: Json
+          cursor_value: string | null
+          last_success_at: string | null
+          source_id: string
+          stream: string
+          updated_at: string
+        }
+        Insert: {
+          checkpoint?: Json
+          cursor_value?: string | null
+          last_success_at?: string | null
+          source_id: string
+          stream: string
+          updated_at?: string
+        }
+        Update: {
+          checkpoint?: Json
+          cursor_value?: string | null
+          last_success_at?: string | null
+          source_id?: string
+          stream?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ingestion_cursors_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
             referencedColumns: ["id"]
           },
         ]
@@ -1087,6 +1420,130 @@ export type Database = {
         }
         Relationships: []
       }
+      provider_records: {
+        Row: {
+          competition_id: string | null
+          id: string
+          import_error: string | null
+          imported_at: string | null
+          observed_at: string
+          payload: Json
+          payload_hash: string
+          provider_kind: string
+          provider_record_id: string
+          source_id: string
+          sport_id: string | null
+        }
+        Insert: {
+          competition_id?: string | null
+          id?: string
+          import_error?: string | null
+          imported_at?: string | null
+          observed_at?: string
+          payload: Json
+          payload_hash: string
+          provider_kind: string
+          provider_record_id: string
+          source_id: string
+          sport_id?: string | null
+        }
+        Update: {
+          competition_id?: string | null
+          id?: string
+          import_error?: string | null
+          imported_at?: string | null
+          observed_at?: string
+          payload?: Json
+          payload_hash?: string
+          provider_kind?: string
+          provider_record_id?: string
+          source_id?: string
+          sport_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_records_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_records_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "data_sources"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provider_records_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quiz_generation_jobs: {
+        Row: {
+          competition_id: string | null
+          completed_at: string | null
+          created_at: string
+          era_from: number | null
+          era_to: number | null
+          error: string | null
+          generated_count: number
+          id: string
+          min_answers_per_cell: number
+          requested_count: number
+          sport_id: string
+          status: string
+        }
+        Insert: {
+          competition_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          era_from?: number | null
+          era_to?: number | null
+          error?: string | null
+          generated_count?: number
+          id?: string
+          min_answers_per_cell?: number
+          requested_count?: number
+          sport_id: string
+          status?: string
+        }
+        Update: {
+          competition_id?: string | null
+          completed_at?: string | null
+          created_at?: string
+          era_from?: number | null
+          era_to?: number | null
+          error?: string | null
+          generated_count?: number
+          id?: string
+          min_answers_per_cell?: number
+          requested_count?: number
+          sport_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_generation_jobs_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quiz_generation_jobs_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       rooms: {
         Row: {
           code: string
@@ -1128,6 +1585,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      scoring_rules: {
+        Row: {
+          active: boolean
+          base_points: number
+          difficulty: number
+          id: string
+          mode_slug: string
+          multiplier: number
+          rarity_bonus_max: number
+          speed_bonus_max: number
+        }
+        Insert: {
+          active?: boolean
+          base_points: number
+          difficulty: number
+          id?: string
+          mode_slug: string
+          multiplier: number
+          rarity_bonus_max?: number
+          speed_bonus_max?: number
+        }
+        Update: {
+          active?: boolean
+          base_points?: number
+          difficulty?: number
+          id?: string
+          mode_slug?: string
+          multiplier?: number
+          rarity_bonus_max?: number
+          speed_bonus_max?: number
+        }
+        Relationships: []
       }
       sports: {
         Row: {
@@ -1253,6 +1743,7 @@ export type Database = {
           p_cell: number
           p_grid: string
           p_guess: string
+          p_mode?: string
           p_room?: string
         }
         Returns: Json
@@ -1263,6 +1754,16 @@ export type Database = {
           answers: string[]
           cell_index: number
         }[]
+      }
+      generate_endless_grid: {
+        Args: {
+          p_competition_id?: string
+          p_difficulty?: number
+          p_era_from?: number
+          p_era_to?: number
+          p_sport_id: string
+        }
+        Returns: string
       }
       has_role: {
         Args: {
