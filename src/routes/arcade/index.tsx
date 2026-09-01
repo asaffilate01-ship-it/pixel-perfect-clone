@@ -43,14 +43,15 @@ async function fetchGameModes() {
   return data ?? [];
 }
 
-const meta: Record<string, { icon: React.ElementType; tone: string; status: string; route?: string }> = {
+type ModeMeta = { icon: React.ElementType; tone: string; status: string; route?: "/arcade/connect-four" | "/compete" | undefined };
+const meta: Record<string, ModeMeta> = {
   "tic-tac-toe": { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Arena", route: "/compete" },
   "connect-four": { icon: LayoutGrid, tone: "text-primary bg-primary/12", status: "Play now", route: "/arcade/connect-four" },
-  territory: { icon: Hexagon, tone: "text-accent bg-accent/12", status: "Tactical" },
+  territory: { icon: Hexagon, tone: "text-gold bg-gold/12", status: "Tactical" },
   "category-tower": { icon: Trophy, tone: "text-gold bg-gold/12", status: "1v1" },
   "sports-501": { icon: Gauge, tone: "text-gold bg-gold/12", status: "Numbers" },
   connections: { icon: Network, tone: "text-primary bg-primary/12", status: "Daily" },
-  "draft-xi": { icon: Users, tone: "text-accent bg-accent/12", status: "Squad" },
+  "draft-xi": { icon: Users, tone: "text-gold bg-gold/12", status: "Squad" },
   bingo: { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Solo" },
   "stat-cards": { icon: Layers, tone: "text-gold bg-gold/12", status: "Survival" },
 };
@@ -80,7 +81,7 @@ function Arcade() {
             <div key={i} className="panel h-44 animate-pulse" aria-hidden />
           ))}
         {(data ?? []).map((mode) => {
-          const m = meta[mode.slug] ?? { icon: Gamepad2, tone: "text-primary bg-primary/12", status: "Soon" };
+          const m: ModeMeta = meta[mode.slug] ?? { icon: Gamepad2, tone: "text-primary bg-primary/12", status: "Soon" };
           const Icon = m.icon;
           const playable = !!m.route;
           const body = (
@@ -106,7 +107,7 @@ function Arcade() {
             playable ? "hover:border-primary/60" : "opacity-70"
           }`;
           return playable ? (
-            <Link key={mode.slug} to={m.route!} className={cls}>
+            <Link key={mode.slug} to={m.route} className={cls}>
               {body}
             </Link>
           ) : (

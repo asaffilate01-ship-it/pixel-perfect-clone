@@ -109,13 +109,13 @@ function Home() {
 
       <Link
         to="/arcade"
-        className="panel mt-4 flex items-center gap-4 border-accent/30 p-5 transition-colors hover:border-accent/70"
+        className="panel mt-4 flex items-center gap-4 p-5 transition-colors hover:border-gold/60"
       >
-        <span className="grid size-11 place-items-center rounded-xl bg-accent/15">
-          <Gamepad2 className="size-5 text-accent" />
+        <span className="grid size-11 place-items-center rounded-xl bg-gold/15">
+          <Gamepad2 className="size-5 text-gold" />
         </span>
         <span className="flex-1">
-          <span className="eyebrow block text-accent">Fanzeno arcade</span>
+          <span className="eyebrow block text-gold">Fanzeno arcade</span>
           <span className="mt-1 block font-display text-2xl">Tactical games</span>
           <span className="block text-xs text-muted-foreground">
             Connect Four, Territory, 501, Tower, Draft and more.
