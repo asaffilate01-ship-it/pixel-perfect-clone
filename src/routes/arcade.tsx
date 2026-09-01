@@ -15,7 +15,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
 
-export const Route = createFileRoute("/arcade/")({
+export const Route = createFileRoute("/arcade")({
   head: () => ({
     meta: [
       { title: "Tactical Arcade — Fanzeno" },

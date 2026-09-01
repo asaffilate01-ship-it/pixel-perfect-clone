@@ -18,7 +18,7 @@ import { COLS, ROWS, connectWinner, dropToken, type MatchResult, type Side } fro
 import { criterionIcon } from "@/lib/fanzeno";
 import { CriterionGlyph } from "@/components/game/CriterionGlyph";
 
-export const Route = createFileRoute("/arcade/connect-four")({
+export const Route = createFileRoute("/arcade_/connect-four")({
   head: () => ({
     meta: [
       { title: "Connect Four — Fanzeno Arcade" },
