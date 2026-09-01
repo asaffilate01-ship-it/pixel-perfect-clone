@@ -28,7 +28,15 @@
   10 new pro sports (snooker, darts, horse racing, F1, NASCAR, IndyCar, MotoGP, superbikes, boxing, UFC),
   `/filters` country chips + category accordions, `ad_events` analytics with impression/click logging
 
+- v0.9 fold-in: Quiz Ludo (Pro) and Quiz Snakes & Ladders (free) at `/arcade/quiz-race`, Sports Mastermind (Pro)
+  at `/arcade/mastermind` with 3-minute chosen-sport + all-sports rounds, arcade room/question/submission schema with
+  realtime + `mastermind_standings`, Pro access tier on game modes, `can_host_game`, Fanzeno Pro upgrade page
+- v0.10 fold-in: question scope hierarchy (`scope_entities` seeded for 11 sports, `question_scope_links`, grid scope
+  paths, profile recent scopes), team/person drill-down pickers + question focus on `/filters`, per-player competition
+  category picker in board-game setup
+
 ## Open
+- Online arcade rooms (host/join, realtime questions) on top of the v0.9 room schema — games are local pass & play today
 - Stripe checkout for the £4.99 lifetime ad-free pass
 - Real-time head-to-head room gameplay (currently code share + solo boards); wire Connect Four to `match_events`
 - Remaining arcade modes: Territory, Category Tower, Sports 501, Connections, Draft XI, Bingo, Stat Cards
@@ -38,5 +46,3 @@
 - Wikidata/licensed-feed import pipeline (schema ready; no ingestion runner yet)
 - Admin UI for honours, verified facts and generation jobs
 - Multi-language copy (mobile app ships i18n; web is English only)
-- v0.9 fold-in (in progress): Quiz Ludo / Snakes & Ladders / Sports Mastermind modes, arcade room schema, Pro tier gating, Pro upgrade page
-- v0.10 fold-in: question scope hierarchy (`scope_entities`, `question_scope_links`, scope paths on grids/packs/profiles), sport + category picker and team/person scope picker in board-game setup and filters
