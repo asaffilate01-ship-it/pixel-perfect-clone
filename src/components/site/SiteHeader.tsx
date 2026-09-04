@@ -24,8 +24,7 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-lg">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4">
         <Link to="/" className="flex items-center" aria-label="Fanzeno home">
-          <img src={logoAsset.url} alt="Fanzeno" className="hidden h-9 w-auto sm:block" width={1820} height={512} />
-          <img src={markAsset.url} alt="Fanzeno" className="h-9 w-9 sm:hidden" width={1024} height={1024} />
+          <img src={logoAsset.url} alt="Fanzeno" className="h-7 w-auto sm:h-9" width={1820} height={512} />
         </Link>
 
         <nav className="ml-4 hidden items-center gap-1 md:flex">
