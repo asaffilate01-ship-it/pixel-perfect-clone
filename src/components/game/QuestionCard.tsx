@@ -197,20 +197,20 @@ export function QuestionCard({
 
       {reveal ? (
         <div
-          className={`mt-4 flex items-center gap-3 rounded-xl border p-3 ${
-            reveal.correct
-              ? "border-primary/60 bg-primary/10"
-              : "border-destructive/60 bg-destructive/10"
+          className={`game-feedback mt-5 w-full justify-center ${
+            reveal.correct ? "game-feedback-success" : "game-feedback-error"
           }`}
         >
           {reveal.correct ? (
-            <Check className="size-5 text-primary" />
+            <Check className="size-5 text-primary-foreground" />
           ) : (
-            <X className="size-5 text-destructive" />
+            <X className="size-5 text-destructive-foreground" />
           )}
           <div>
-            <p className="text-sm font-bold">{reveal.correct ? "Correct!" : "Not this time"}</p>
-            <p className="text-xs text-muted-foreground">Answer: {reveal.answer}</p>
+            <p className="text-sm font-black uppercase tracking-[0.1em]">
+              {reveal.correct ? "Correct" : "Not this time"}
+            </p>
+            <p className="text-xs opacity-90">Answer: {reveal.answer}</p>
           </div>
         </div>
       ) : !canAnswer ? (
