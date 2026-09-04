@@ -283,7 +283,9 @@ export function QuestionCard({
         <>
           <p className="mt-3 text-xs text-muted-foreground">
             {user
-              ? "This round is paused because no verified question matches the exact sport, category and difficulty. Retry or change the setup."
+              ? loading
+                ? "Matching a verified question to your sport, category and difficulty…"
+                : "This round is paused because no verified question matches the exact sport, category and difficulty. Retry or change the setup."
               : "Sign in for server-checked questions. In pass-and-play, type or say the answer and let the players confirm it."}
           </p>
           {!user && (
