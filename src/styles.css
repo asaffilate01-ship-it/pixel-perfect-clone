@@ -339,3 +339,109 @@
     transparent 12px 26px
   );
 }
+
+@utility game-panel {
+  background: var(--board-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(8px);
+  position: relative;
+  overflow: hidden;
+}
+
+@utility game-panel-accent-primary { border-top: 4px solid var(--color-primary); }
+@utility game-panel-accent-gold { border-top: 4px solid var(--color-gold); }
+@utility game-panel-accent-destructive { border-top: 4px solid var(--color-destructive); }
+
+@utility game-token {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  box-shadow: inset 0 -4px 10px color-mix(in oklab, oklch(0 0 0) 25%, transparent), 0 4px 12px color-mix(in oklab, oklch(0 0 0) 30%, transparent);
+  border: 2px solid color-mix(in oklab, var(--foreground) 12%, transparent);
+  transition: transform 220ms ease;
+}
+
+@utility game-token-gold {
+  background: linear-gradient(180deg, var(--token-gold-light), var(--token-gold-dark));
+  color: var(--color-gold-foreground);
+}
+
+@utility game-token-rival {
+  background: linear-gradient(180deg, var(--token-rival-light), var(--token-rival-dark));
+  color: var(--color-destructive-foreground);
+}
+
+@utility game-feedback {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 4px 14px color-mix(in oklab, oklch(0 0 0) 20%, transparent);
+  animation: game-feedback-in 220ms ease-out both;
+}
+
+@utility game-feedback-success {
+  background: color-mix(in oklab, var(--color-primary) 18%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-primary) 50%, transparent);
+  color: var(--color-primary-foreground);
+}
+
+@utility game-feedback-error {
+  background: color-mix(in oklab, var(--color-destructive) 18%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-destructive) 50%, transparent);
+  color: var(--color-destructive-foreground);
+}
+
+@utility game-score-ring {
+  position: relative;
+  border-radius: 9999px;
+  background: conic-gradient(var(--color-gold) var(--progress, 0%), var(--color-surface-strong) 0);
+  display: grid;
+  place-items: center;
+  box-shadow: inset 0 0 0 2px color-mix(in oklab, var(--color-gold) 30%, transparent), 0 4px 20px color-mix(in oklab, var(--color-gold) 20%, transparent);
+}
+
+@utility game-score-ring-inner {
+  border-radius: 9999px;
+  background: var(--color-background);
+  display: grid;
+  place-items: center;
+}
+
+@utility game-tile-pop {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--color-surface-strong) 90%, transparent), color-mix(in oklab, var(--color-surface) 80%, transparent));
+  box-shadow: 0 4px 14px color-mix(in oklab, oklch(0 0 0) 15%, transparent);
+  transition: all 150ms ease;
+}
+
+@utility game-tile-pop:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px color-mix(in oklab, oklch(0 0 0) 25%, transparent);
+}
+
+@utility game-tile-accent {
+  border-top: 4px solid currentColor;
+}
+
+@utility game-star {
+  color: var(--color-gold);
+  fill: currentColor;
+}
+
+@utility game-star-empty {
+  color: color-mix(in oklab, var(--color-gold) 30%, transparent);
+}
+
+@keyframes game-feedback-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
