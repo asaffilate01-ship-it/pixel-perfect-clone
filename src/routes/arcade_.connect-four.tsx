@@ -342,7 +342,7 @@ function ConnectFourPage() {
       )}
 
       <div
-        className="connect-four-board mt-2 grid grid-cols-7 gap-1.5 rounded-[1.4rem] border border-cyan-200/20 bg-gradient-to-br from-blue-500 via-indigo-600 to-violet-700 p-2.5 shadow-2xl shadow-blue-950/50 sm:gap-2 sm:p-3"
+        className="game-card mt-2 grid grid-cols-7 gap-1.5 bg-gradient-to-b from-surface to-background p-2.5 sm:gap-2 sm:p-3"
         role="grid"
         aria-label="Connect Four board"
       >
@@ -351,13 +351,13 @@ function ConnectFourPage() {
             key={i}
             role="gridcell"
             aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
-            className={`connect-four-slot grid aspect-square place-items-center rounded-full border transition-all duration-300 ${
+            className={`grid aspect-square place-items-center rounded-full border transition-all duration-300 ${
               v === "me"
-                ? "border-yellow-200 bg-gradient-to-br from-yellow-200 via-amber-400 to-orange-500 text-amber-950 shadow-lg shadow-amber-950/35"
+                ? "game-tile-reward"
                 : v === "them"
-                  ? "border-rose-200 bg-gradient-to-br from-rose-300 via-pink-500 to-red-600 text-white shadow-lg shadow-red-950/35"
-                  : "border-white/10 bg-slate-950/70 shadow-inner shadow-black/80"
-            } ${lastIndex === i ? "scale-105 ring-2 ring-white/80 ring-offset-2 ring-offset-indigo-600" : ""}`}
+                  ? "border-destructive bg-destructive text-destructive-foreground shadow-lg shadow-destructive/25"
+                  : "border-border bg-background shadow-inner"
+            } ${lastIndex === i ? "scale-105 ring-2 ring-primary/80 ring-offset-2 ring-offset-background" : ""}`}
           >
             {v === "me" && <Trophy className="size-3.5 sm:size-5" />}
             {v === "them" && <Shield className="size-3.5 sm:size-5" />}
