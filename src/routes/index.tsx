@@ -15,7 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { fetchSports } from "@/lib/fanzeno";
-import { SportPicker } from "@/components/game/SportPicker";
+import { SportCascadePicker } from "@/components/game/SportCascadePicker";
 import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
@@ -160,7 +160,16 @@ function Home() {
           </Link>
         </div>
         <div className="mt-4">
-          <SportPicker sports={sports ?? []} value={sport} onChange={setSport} playable={playable} compact />
+          <SportCascadePicker
+            sports={sports ?? []}
+            sport={sport}
+            competitionId={prefs.competitionId}
+            playable={playable}
+            onSportChange={setSport}
+            onCompetitionChange={(competitionId, competitionName) =>
+              void setPrefs({ ...prefs, sport, competitionId, competitionName, team: null, person: null })
+            }
+          />
         </div>
       </section>
 
