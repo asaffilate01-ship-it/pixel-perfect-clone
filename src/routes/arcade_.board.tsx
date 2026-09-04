@@ -742,44 +742,49 @@ function BoardPage() {
                 </span>
               </div>
               <div className="board-stage relative">
-              <div
-                className="board-tilt board-rim board-felt grid grid-cols-4 gap-2 p-3 bingo-stock"
-                role="group"
-                aria-label="Bingo card"
-              >
-                {BINGO.map((label, i) => {
-                  const own = mine.includes(i);
-                  const TileIcon = BINGO_ICONS[label] ?? Star;
-                  const tone = [
-                    "text-chart-1",
-                    "text-chart-2",
-                    "text-chart-3",
-                    "text-chart-4",
-                    "text-chart-5",
-                  ][i % 5];
-                  return (
-                    <button
-                      key={label}
-                      type="button"
-                      disabled={own || target !== null}
-                      onClick={() => setTarget(i)}
-                      aria-pressed={target === i}
-                      className={`bingo-cell game-tile !bg-transparent ${
-                        target === i ? "game-tile-reward" : `game-tile-accent ${tone}`
-                      }`}
-                    >
-                      <TileIcon className="size-5 text-current" />
-                      <span className="leading-none">{label}</span>
-                      {own && <span className="daub-mark" aria-hidden />}
-                      {own && (
-                        <span className="absolute right-1 top-1 z-10">
-                          <Check className="size-3 text-primary" />
+                <div className="board-tilt board-rim board-felt p-4 sm:p-6">
+                  <div className="bingo-stock rounded-xl p-3" role="group" aria-label="Bingo card">
+                    <div className="mb-2 grid grid-cols-4 gap-2">
+                      {["F", "A", "N", "Z"].map((ch) => (
+                        <span
+                          key={ch}
+                          className="rounded-md bg-destructive py-1 text-center font-display text-2xl leading-none text-destructive-foreground"
+                        >
+                          {ch}
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {BINGO.map((label, i) => {
+                        const own = mine.includes(i);
+                        const TileIcon = BINGO_ICONS[label] ?? Star;
+                        const tone = [
+                          "text-chart-1",
+                          "text-chart-2",
+                          "text-chart-3",
+                          "text-chart-4",
+                          "text-chart-5",
+                        ][i % 5];
+                        return (
+                          <button
+                            key={label}
+                            type="button"
+                            disabled={own || target !== null}
+                            onClick={() => setTarget(i)}
+                            aria-pressed={target === i}
+                            className={`bingo-cell flex aspect-square flex-col items-center justify-center gap-1.5 px-1 text-center text-[0.6rem] font-bold uppercase leading-tight tracking-wide transition-transform enabled:hover:-translate-y-0.5 disabled:cursor-default ${
+                              target === i ? "ring-2 ring-gold" : ""
+                            } ${tone}`}
+                          >
+                            <TileIcon className="size-5 text-current" />
+                            <span className="leading-none">{label}</span>
+                            {own && <span className="daub-mark" aria-hidden />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
