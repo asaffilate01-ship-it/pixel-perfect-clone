@@ -160,12 +160,6 @@ const BINGO_ICONS: Record<string, React.ElementType> = {
   "Super Bowl": Trophy,
   "Ryder Cup": Users,
 };
-  { name: "Gianluigi Buffon", role: "GK", rating: 92 },
-  { name: "Paolo Maldini", role: "DEF", rating: 94 },
-  { name: "Zinedine Zidane", role: "MID", rating: 95 },
-  { name: "Marta", role: "FWD", rating: 94 },
-  { name: "Ronaldo Nazário", role: "FWD", rating: 96 },
-];
 // Include a one-point checkout so the 501 start value can always reach exactly zero.
 const LANES = [1, 25, 50, 100] as const;
 
