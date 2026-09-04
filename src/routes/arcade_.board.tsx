@@ -596,11 +596,19 @@ function BoardPage() {
           )}
 
           {mode === "bingo" && (
-            <div className="game-card mt-6 p-4">
-              <div className="grid grid-cols-4 gap-2" role="group" aria-label="Bingo card">
+            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative mb-3 flex items-center justify-between">
+                <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Your card</p>
+                <span className="game-feedback game-feedback-info">
+                  {mine.length}/{BINGO.length} marked
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 relative" role="group" aria-label="Bingo card">
                 {BINGO.map((label, i) => {
                   const own = mine.includes(i);
                   const TileIcon = BINGO_ICONS[label] ?? Star;
+                  const tone = ["text-chart-1", "text-chart-2", "text-chart-3", "text-chart-4", "text-chart-5"][i % 5];
                   return (
                     <button
                       key={label}
@@ -608,17 +616,15 @@ function BoardPage() {
                       disabled={own || target !== null}
                       onClick={() => setTarget(i)}
                       aria-pressed={target === i}
-                      className={`game-tile ${
+                      className={`game-tile game-tile-accent ${tone} ${
                         own
                           ? "game-tile-completed"
                           : target === i
                             ? "game-tile-reward"
-                            : "hover:border-primary/60 hover:text-foreground"
+                            : ""
                       }`}
                     >
-                      <TileIcon
-                        className={`size-5 ${own ? "text-primary-foreground" : target === i ? "text-gold-foreground" : "text-muted-foreground"}`}
-                      />
+                      <TileIcon className="size-5 text-current" />
                       <span className="leading-none">{label}</span>
                       {own && (
                         <span className="absolute right-1 top-1">
