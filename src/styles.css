@@ -254,6 +254,73 @@
   backdrop-filter: blur(8px);
 }
 
+@utility game-card {
+  background-color: color-mix(in oklab, var(--color-surface) 88%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-panel);
+  backdrop-filter: blur(8px);
+}
+
+@utility game-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+  background-color: color-mix(in oklab, var(--color-surface) 60%, transparent);
+  text-align: center;
+  font-size: 0.56rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+  color: var(--color-muted-foreground);
+  transition: all 150ms ease;
+  overflow: hidden;
+  padding: 0.25rem;
+}
+
+@utility game-tile-completed {
+  border-color: color-mix(in oklab, var(--color-primary) 60%, transparent);
+  background-color: var(--color-primary);
+  color: var(--color-primary-foreground);
+  box-shadow: 0 0 18px -3px color-mix(in oklab, var(--color-primary) 35%, transparent);
+}
+
+@utility game-tile-active {
+  border-color: color-mix(in oklab, var(--color-primary) 50%, transparent);
+  background-color: color-mix(in oklab, var(--color-surface-strong) 80%, transparent);
+  color: var(--color-foreground);
+  box-shadow: 0 0 18px -4px color-mix(in oklab, var(--color-primary) 25%, transparent);
+}
+
+@utility game-tile-reward {
+  border-color: color-mix(in oklab, var(--color-gold) 60%, transparent);
+  background-color: var(--color-gold);
+  color: var(--color-gold-foreground);
+  box-shadow: 0 0 18px -3px color-mix(in oklab, var(--color-gold) 35%, transparent);
+}
+
+@utility game-progress {
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background-color: var(--color-surface-strong);
+  overflow: hidden;
+}
+
+@utility game-progress-fill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--color-primary) 80%, white), var(--color-primary));
+  box-shadow: 0 0 10px color-mix(in oklab, var(--color-primary) 40%, transparent);
+}
+
 @utility stadium-line {
   background-image: repeating-linear-gradient(
     115deg,

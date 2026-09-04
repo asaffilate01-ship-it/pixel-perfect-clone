@@ -239,16 +239,20 @@ function QuizRacePage() {
   if (!online && !entLoading && isPro && !pro) {
     return (
       <Shell title={title} onBack={() => void navigate({ to: "/arcade" })}>
-        <div className="panel mt-8 p-7 text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-gold/15">
-            <Gem className="size-7 text-gold" />
+        <div className="game-card mt-8 p-8 text-center">
+          <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-gold/15">
+            <Gem className="size-8 text-gold" />
           </span>
-          <h2 className="mt-4 text-3xl">Quiz Ludo is a Pro game</h2>
+          <p className="eyebrow mt-4">Fanzeno Pro</p>
+          <h2 className="mt-1 text-3xl">Quiz Ludo is a Pro game</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Unlock it with Fanzeno Pro — one payment, lifetime. Snakes &amp; Ladders is free to play
             right now.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <div className="game-progress mx-auto mt-5 max-w-xs">
+            <div className="game-progress-fill w-3/4" />
+          </div>
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button asChild>
               <Link to="/upgrade">Unlock Fanzeno Pro</Link>
             </Button>
@@ -341,7 +345,7 @@ function QuizRacePage() {
     const idx = list.indexOf(winner);
     return (
       <Shell title={title} onBack={reset}>
-        <div className="panel mt-8 p-8 text-center">
+        <div className="game-card mt-8 p-8 text-center">
           <Trophy className="mx-auto size-14 text-gold" />
           <p className="eyebrow mt-4">Winner</p>
           <div className="mt-3 flex justify-center">
@@ -381,8 +385,8 @@ function QuizRacePage() {
           <span className="text-muted-foreground">Round {room?.round_no ?? 1}</span>
         </div>
       )}
-      <div className={`panel flex items-center gap-3 p-4 ${online ? "mt-3" : "mt-6"}`}>
-        <Avatar id={active.avatar} />
+      <div className={`game-card flex items-center gap-3 p-4 ${online ? "mt-3" : "mt-6"}`}>
+        <Avatar id={active.avatar} size={48} />
         <div className="flex-1">
           <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-muted-foreground">
             {active.name}
@@ -393,13 +397,23 @@ function QuizRacePage() {
             {sports?.find((s) => s.id === active.sportId)?.name ?? "All sports"}
           </p>
         </div>
-        <p className="font-display text-2xl">
-          {game === "ludo"
-            ? online
-              ? `${active.position}/${LUDO_HOME}`
-              : `${active.tokens.filter((t) => t === LUDO_HOME).length}/4 home`
-            : `${active.position}/100`}
-        </p>
+        <div className="text-right">
+          <p className="font-display text-3xl">
+            {game === "ludo"
+              ? online
+                ? `${active.position}/${LUDO_HOME}`
+                : `${active.tokens.filter((t) => t === LUDO_HOME).length}/4 home`
+              : `${active.position}/100`}
+          </p>
+          <div className="game-progress mt-1 w-20">
+            <div
+              className="game-progress-fill"
+              style={{
+                width: `${game === "ludo" ? (online ? (active.position / LUDO_HOME) * 100 : (active.tokens.filter((t) => t === LUDO_HOME).length / 4) * 100) : (active.position / 100) * 100}%`,
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {online && (
@@ -410,9 +424,11 @@ function QuizRacePage() {
           {list.map((p, i) => (
             <div
               key={i}
-              className={`panel flex items-center gap-2 p-2 ${i === activeIdx ? "border-primary" : ""}`}
+              className={`game-card p-2 text-center ${i === activeIdx ? "border-primary" : ""}`}
             >
-              <Avatar id={p.avatar} size={28} />
+              <div className="flex justify-center">
+                <Avatar id={p.avatar} size={28} />
+              </div>
               <span className="min-w-0">
                 <span
                   className={`block truncate text-[0.58rem] font-black uppercase tracking-[0.12em] ${SEAT_TEXT[i % 4]}`}
@@ -426,11 +442,12 @@ function QuizRacePage() {
         </div>
       )}
 
-      <div
-        className="mt-4 grid gap-1 overflow-hidden rounded-2xl"
-        style={{ gridTemplateColumns: `repeat(${game === "ludo" ? 13 : 10}, minmax(0, 1fr))` }}
-        aria-label={`${title} board`}
-      >
+      <div className="game-card mt-4 p-3">
+        <div
+          className="grid gap-1 overflow-hidden rounded-2xl"
+          style={{ gridTemplateColumns: `repeat(${game === "ludo" ? 13 : 10}, minmax(0, 1fr))` }}
+          aria-label={`${title} board`}
+        >
         {cells.map((c) => {
           const ladder = game === "snakes" && LADDERS[c];
           const snake = game === "snakes" && SNAKES[c];
@@ -481,6 +498,7 @@ function QuizRacePage() {
             </div>
           );
         })}
+        </div>
       </div>
 
       <QuestionCard

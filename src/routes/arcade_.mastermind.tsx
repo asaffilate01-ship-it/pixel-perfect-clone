@@ -239,16 +239,20 @@ function MastermindPage() {
   if (!online && !entLoading && !pro) {
     return (
       <Shell onBack={() => void navigate({ to: "/arcade" })}>
-        <div className="panel mt-8 p-7 text-center">
-          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-gold/15">
-            <Gem className="size-7 text-gold" />
+        <div className="game-card mt-8 p-8 text-center">
+          <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-gold/15">
+            <Gem className="size-8 text-gold" />
           </span>
-          <h2 className="mt-4 text-3xl">Sports Mastermind is a Pro game</h2>
+          <p className="eyebrow mt-4">Fanzeno Pro</p>
+          <h2 className="mt-1 text-3xl">Sports Mastermind is a Pro game</h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Unlock it with Fanzeno Pro — one payment, lifetime. Free guests can still join a Pro
             host&apos;s private room.
           </p>
-          <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <div className="game-progress mx-auto mt-5 max-w-xs">
+            <div className="game-progress-fill w-3/4" />
+          </div>
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button asChild>
               <Link to="/upgrade">Unlock Fanzeno Pro</Link>
             </Button>
@@ -336,7 +340,7 @@ function MastermindPage() {
     const w = standings[0];
     return (
       <Shell onBack={reset}>
-        <div className="panel mt-8 p-8 text-center">
+        <div className="game-card mt-8 p-8 text-center">
           <Trophy className="mx-auto size-14 text-gold" />
           <p className="eyebrow mt-4">Winner</p>
           <div className="mt-3 flex justify-center">
@@ -347,7 +351,7 @@ function MastermindPage() {
             {w.points} points · {w.passes} passes
           </p>
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="game-card mt-4 space-y-2 p-3">
           {standings.map((p, i) => (
             <div key={p.seat} className="panel flex items-center gap-3 px-4 py-3">
               <span className="w-6 font-display text-2xl text-muted-foreground">{i + 1}</span>
@@ -395,7 +399,7 @@ function MastermindPage() {
         {list.slice(0, n).map((x, i) => (
           <div
             key={i}
-            className={`panel p-3 text-center ${i === activeIdx ? "border-primary" : ""}`}
+            className={`game-card p-3 text-center ${i === activeIdx ? "border-primary" : ""}`}
           >
             <div className="flex justify-center">
               <Avatar id={x.avatar} size={30} />
@@ -411,7 +415,7 @@ function MastermindPage() {
         ))}
       </div>
 
-      <div className={`panel mt-4 p-6 text-center ${shown <= 10 ? "border-destructive" : ""}`}>
+      <div className={`game-card mt-4 p-6 text-center ${shown <= 10 ? "border-destructive" : ""}`}>
         <p className="font-display text-7xl tabular-nums">
           {Math.floor(shown / 60)}:{String(shown % 60).padStart(2, "0")}
         </p>
