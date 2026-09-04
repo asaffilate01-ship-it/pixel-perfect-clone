@@ -1090,32 +1090,49 @@ export type Database = {
       entitlements: {
         Row: {
           active: boolean
+          grant_reason: string | null
           granted_at: string
+          granted_by: string | null
           key: Database["public"]["Enums"]["entitlement_key"]
           lifetime: boolean
           revoked_at: string | null
+          source_purchase_id: string | null
           tier: string
           user_id: string
         }
         Insert: {
           active?: boolean
+          grant_reason?: string | null
           granted_at?: string
+          granted_by?: string | null
           key: Database["public"]["Enums"]["entitlement_key"]
           lifetime?: boolean
           revoked_at?: string | null
+          source_purchase_id?: string | null
           tier?: string
           user_id: string
         }
         Update: {
           active?: boolean
+          grant_reason?: string | null
           granted_at?: string
+          granted_by?: string | null
           key?: Database["public"]["Enums"]["entitlement_key"]
           lifetime?: boolean
           revoked_at?: string | null
+          source_purchase_id?: string | null
           tier?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "entitlements_source_purchase_id_fkey"
+            columns: ["source_purchase_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       game_modes: {
         Row: {
@@ -1629,6 +1646,152 @@ export type Database = {
           },
         ]
       }
+      monthly_competition_scores: {
+        Row: {
+          competition_id: string
+          integrity_status: string
+          tie_break_ms: number
+          updated_at: string
+          user_id: string
+          verified_games: number
+          verified_points: number
+          verified_wins: number
+        }
+        Insert: {
+          competition_id: string
+          integrity_status?: string
+          tie_break_ms?: number
+          updated_at?: string
+          user_id: string
+          verified_games?: number
+          verified_points?: number
+          verified_wins?: number
+        }
+        Update: {
+          competition_id?: string
+          integrity_status?: string
+          tie_break_ms?: number
+          updated_at?: string
+          user_id?: string
+          verified_games?: number
+          verified_points?: number
+          verified_wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_competition_scores_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_competitions: {
+        Row: {
+          created_at: string
+          division: string
+          eligible_countries: string[]
+          ends_at: string
+          free_entry_available: boolean
+          id: string
+          minimum_age: number
+          name: string
+          official_rules_url: string
+          prize_description: string
+          prize_type: string
+          purchase_required: boolean
+          scoring_rules: Json
+          slug: string
+          starts_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          division: string
+          eligible_countries?: string[]
+          ends_at: string
+          free_entry_available?: boolean
+          id?: string
+          minimum_age?: number
+          name: string
+          official_rules_url: string
+          prize_description: string
+          prize_type?: string
+          purchase_required?: boolean
+          scoring_rules: Json
+          slug: string
+          starts_at: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          division?: string
+          eligible_countries?: string[]
+          ends_at?: string
+          free_entry_available?: boolean
+          id?: string
+          minimum_age?: number
+          name?: string
+          official_rules_url?: string
+          prize_description?: string
+          prize_type?: string
+          purchase_required?: boolean
+          scoring_rules?: Json
+          slug?: string
+          starts_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          daily_challenge: boolean
+          match_turns: boolean
+          product_news: boolean
+          quiet_end: string
+          quiet_hours: boolean
+          quiet_start: string
+          room_invites: boolean
+          sound: boolean
+          streak_risk: boolean
+          timezone: string
+          tournaments: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          daily_challenge?: boolean
+          match_turns?: boolean
+          product_news?: boolean
+          quiet_end?: string
+          quiet_hours?: boolean
+          quiet_start?: string
+          room_invites?: boolean
+          sound?: boolean
+          streak_risk?: boolean
+          timezone?: string
+          tournaments?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          daily_challenge?: boolean
+          match_turns?: boolean
+          product_news?: boolean
+          quiet_end?: string
+          quiet_hours?: boolean
+          quiet_start?: string
+          room_invites?: boolean
+          sound?: boolean
+          streak_risk?: boolean
+          timezone?: string
+          tournaments?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       olympic_events: {
         Row: {
           event_name: string
@@ -1838,6 +2001,44 @@ export type Database = {
           },
         ]
       }
+      prize_awards: {
+        Row: {
+          awarded_at: string | null
+          competition_id: string
+          eligibility_evidence: Json
+          id: string
+          rank: number
+          status: string
+          user_id: string
+        }
+        Insert: {
+          awarded_at?: string | null
+          competition_id: string
+          eligibility_evidence?: Json
+          id?: string
+          rank: number
+          status?: string
+          user_id: string
+        }
+        Update: {
+          awarded_at?: string | null
+          competition_id?: string
+          eligibility_evidence?: Json
+          id?: string
+          rank?: number
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prize_awards_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_competitions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_preset: string
@@ -1845,9 +2046,11 @@ export type Database = {
           avatar_url: string | null
           country_code: string | null
           created_at: string
+          difficulty_preference: string
           display_name: string | null
           id: string
           locale: string
+          onboarded_at: string | null
           preferred_sports: string[]
           quiz_preferences: Json
           recent_scope_paths: Json
@@ -1858,9 +2061,11 @@ export type Database = {
           avatar_url?: string | null
           country_code?: string | null
           created_at?: string
+          difficulty_preference?: string
           display_name?: string | null
           id: string
           locale?: string
+          onboarded_at?: string | null
           preferred_sports?: string[]
           quiz_preferences?: Json
           recent_scope_paths?: Json
@@ -1871,9 +2076,11 @@ export type Database = {
           avatar_url?: string | null
           country_code?: string | null
           created_at?: string
+          difficulty_preference?: string
           display_name?: string | null
           id?: string
           locale?: string
+          onboarded_at?: string | null
           preferred_sports?: string[]
           quiz_preferences?: Json
           recent_scope_paths?: Json
@@ -1944,6 +2151,78 @@ export type Database = {
           },
         ]
       }
+      purchases: {
+        Row: {
+          amount_minor: number | null
+          created_at: string
+          currency: string | null
+          external_ref: string | null
+          id: string
+          product_id: string
+          provider: string
+          status: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          amount_minor?: number | null
+          created_at?: string
+          currency?: string | null
+          external_ref?: string | null
+          id?: string
+          product_id?: string
+          provider: string
+          status?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          amount_minor?: number | null
+          created_at?: string
+          currency?: string | null
+          external_ref?: string | null
+          id?: string
+          product_id?: string
+          provider?: string
+          status?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      push_devices: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          expo_token: string
+          id: string
+          last_seen_at: string
+          locale: string
+          platform: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          expo_token: string
+          id?: string
+          last_seen_at?: string
+          locale?: string
+          platform: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          expo_token?: string
+          id?: string
+          last_seen_at?: string
+          locale?: string
+          platform?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       question_attempts: {
         Row: {
           ability_before: number | null
@@ -2011,18 +2290,27 @@ export type Database = {
           category_key: string | null
           clue_i18n: Json
           competition_id: string | null
+          content_hash: string | null
           created_at: string
           difficulty_b: number
           difficulty_percentile: number
           discrimination_a: number
           entity_ids: string[]
+          format_key: string
           id: string
+          max_answers: number
+          media_assets: Json
           median_response_ms: number | null
           prompt_i18n: Json
           quality_score: number
           question_type: string
+          reviewed_at: string | null
+          reviewed_by: string | null
           source_id: string | null
+          source_title: string | null
+          source_url: string | null
           sport_id: string
+          time_limit_seconds: number | null
           updated_at: string
           valid_from: string | null
           valid_to: string | null
@@ -2037,18 +2325,27 @@ export type Database = {
           category_key?: string | null
           clue_i18n?: Json
           competition_id?: string | null
+          content_hash?: string | null
           created_at?: string
           difficulty_b?: number
           difficulty_percentile?: number
           discrimination_a?: number
           entity_ids?: string[]
+          format_key?: string
           id?: string
+          max_answers?: number
+          media_assets?: Json
           median_response_ms?: number | null
           prompt_i18n: Json
           quality_score?: number
           question_type: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_id?: string | null
+          source_title?: string | null
+          source_url?: string | null
           sport_id: string
+          time_limit_seconds?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
@@ -2063,18 +2360,27 @@ export type Database = {
           category_key?: string | null
           clue_i18n?: Json
           competition_id?: string | null
+          content_hash?: string | null
           created_at?: string
           difficulty_b?: number
           difficulty_percentile?: number
           discrimination_a?: number
           entity_ids?: string[]
+          format_key?: string
           id?: string
+          max_answers?: number
+          media_assets?: Json
           median_response_ms?: number | null
           prompt_i18n?: Json
           quality_score?: number
           question_type?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           source_id?: string | null
+          source_title?: string | null
+          source_url?: string | null
           sport_id?: string
+          time_limit_seconds?: number | null
           updated_at?: string
           valid_from?: string | null
           valid_to?: string | null
@@ -2087,6 +2393,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "competitions"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_format_key_fkey"
+            columns: ["format_key"]
+            isOneToOne: false
+            referencedRelation: "quiz_formats"
+            referencedColumns: ["key"]
           },
           {
             foreignKeyName: "question_bank_source_id_fkey"
@@ -2225,6 +2538,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      quiz_formats: {
+        Row: {
+          active: boolean
+          default_time_seconds: number | null
+          interaction: string
+          key: string
+          scoring_rule: Json
+          title: string
+        }
+        Insert: {
+          active?: boolean
+          default_time_seconds?: number | null
+          interaction: string
+          key: string
+          scoring_rule?: Json
+          title: string
+        }
+        Update: {
+          active?: boolean
+          default_time_seconds?: number | null
+          interaction?: string
+          key?: string
+          scoring_rule?: Json
+          title?: string
+        }
+        Relationships: []
       }
       quiz_generation_jobs: {
         Row: {
@@ -2451,6 +2791,39 @@ export type Database = {
         }
         Relationships: []
       }
+      security_events: {
+        Row: {
+          created_at: string
+          device_hash: string | null
+          event_type: string
+          evidence: Json
+          id: number
+          ip_hash: string | null
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_hash?: string | null
+          event_type: string
+          evidence?: Json
+          id?: never
+          ip_hash?: string | null
+          severity: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_hash?: string | null
+          event_type?: string
+          evidence?: Json
+          id?: never
+          ip_hash?: string | null
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sports: {
         Row: {
           accent: string
@@ -2500,6 +2873,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_notifications: {
+        Row: {
+          body: string
+          created_at: string
+          delivery_status: string
+          expires_at: string | null
+          id: string
+          kind: string
+          payload: Json
+          read_at: string | null
+          route: string | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          delivery_status?: string
+          expires_at?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          read_at?: string | null
+          route?: string | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          delivery_status?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          read_at?: string | null
+          route?: string | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
@@ -2565,6 +2980,7 @@ export type Database = {
         Args: { p_mode_slug: string; p_user_id: string }
         Returns: boolean
       }
+      entitlement_verified: { Args: { p_user_id: string }; Returns: boolean }
       fz_check_answer: {
         Args: { p_cell: number; p_grid: string; p_guess: string }
         Returns: {
@@ -2621,6 +3037,10 @@ export type Database = {
         }
         Returns: string
       }
+      grant_pro_lifetime: {
+        Args: { p_reason?: string; p_user_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2630,6 +3050,15 @@ export type Database = {
       }
       has_staff_role: { Args: never; Returns: boolean }
       is_arcade_member: { Args: { p_room: string }; Returns: boolean }
+      my_entitlement_status: {
+        Args: never
+        Returns: {
+          ad_free: boolean
+          pro_active: boolean
+          verified_at: string
+        }[]
+      }
+      publish_question: { Args: { p_question_id: string }; Returns: undefined }
       record_question_attempt: {
         Args: {
           p_correct: boolean
@@ -2664,6 +3093,10 @@ export type Database = {
           score: number
           verified: boolean
         }[]
+      }
+      unpublish_question: {
+        Args: { p_question_id: string }
+        Returns: undefined
       }
     }
     Enums: {
