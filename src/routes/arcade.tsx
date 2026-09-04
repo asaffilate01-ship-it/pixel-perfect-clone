@@ -16,7 +16,13 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
 import { useEntitlements } from "@/lib/entitlements";
-import { GAME_ART, GAME_FILTERS, type GameArt } from "@/lib/gameCatalog";
+import {
+  GAME_ART,
+  GAME_FILTERS,
+  TONE_GRADIENT,
+  TONE_TEXT,
+  type GameArt,
+} from "@/lib/gameCatalog";
 import statCards from "@/assets/games/stat-cards.jpg";
 
 export const Route = createFileRoute("/arcade")({
