@@ -165,7 +165,7 @@ export function QuestionCard({
         )}
       </div>
       <p
-        className={`relative mt-2 font-display text-2xl leading-tight ${loading ? "text-muted-foreground" : ""}`}
+        className={`relative mt-3 font-display text-3xl leading-tight sm:text-4xl ${loading ? "text-muted-foreground" : "text-foreground"}`}
       >
         {loading ? (
           <span className="inline-flex items-center gap-2">
