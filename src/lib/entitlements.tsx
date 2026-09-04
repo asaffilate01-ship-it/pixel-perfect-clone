@@ -27,20 +27,14 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
       return;
     }
     let cancelled = false;
-    supabase
-      .from("entitlements")
-      .select("key, active, tier, revoked_at")
-      .eq("user_id", user.id)
-      .eq("active", true)
-      .is("revoked_at", null)
-      .then(({ data }) => {
-        if (cancelled) return;
-        const rows = data ?? [];
-        const lifetime = rows.some((r) => r.key === "ad_free_lifetime");
-        setAdFree(lifetime);
-        setPro(lifetime || rows.some((r) => r.tier === "pro"));
-        setLoading(false);
-      });
+    // Server-verified: only entitlements backed by a verified purchase (or an explicit staff grant) count.
+    supabase.rpc("my_entitlement_status").then(({ data }) => {
+      if (cancelled) return;
+      const row = Array.isArray(data) ? data[0] : data;
+      setAdFree(Boolean(row?.ad_free));
+      setPro(Boolean(row?.pro_active));
+      setLoading(false);
+    });
     return () => {
       cancelled = true;
     };

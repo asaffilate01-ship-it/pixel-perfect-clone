@@ -54,7 +54,8 @@ type ModeRoute =
   | { to: "/compete" }
   | { to: "/arcade/mastermind" }
   | { to: "/arcade/rooms" }
-  | { to: "/arcade/quiz-race"; search: { game: "ludo" | "snakes" } };
+  | { to: "/arcade/quiz-race"; search: { game: "ludo" | "snakes" } }
+  | { to: "/arcade/board"; search: { mode: "territory" | "501" | "connections" | "draft" | "bingo" } };
 
 type ModeMeta = { icon: React.ElementType; tone: string; status: string; route?: ModeRoute | undefined };
 const meta: Record<string, ModeMeta> = {
@@ -63,12 +64,12 @@ const meta: Record<string, ModeMeta> = {
   "quiz-ludo": { icon: Dices, tone: "text-gold bg-gold/12", status: "Local + online", route: { to: "/arcade/quiz-race", search: { game: "ludo" } } },
   "quiz-snakes-ladders": { icon: TrendingUp, tone: "text-primary bg-primary/12", status: "Local + online", route: { to: "/arcade/quiz-race", search: { game: "snakes" } } },
   "sports-mastermind": { icon: Brain, tone: "text-gold bg-gold/12", status: "Local + online", route: { to: "/arcade/mastermind" } },
-  territory: { icon: Hexagon, tone: "text-gold bg-gold/12", status: "Tactical" },
+  territory: { icon: Hexagon, tone: "text-gold bg-gold/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "territory" } } },
   "category-tower": { icon: Trophy, tone: "text-gold bg-gold/12", status: "1v1" },
-  "sports-501": { icon: Gauge, tone: "text-gold bg-gold/12", status: "Numbers" },
-  connections: { icon: Network, tone: "text-primary bg-primary/12", status: "Daily" },
-  "draft-xi": { icon: Users, tone: "text-gold bg-gold/12", status: "Squad" },
-  bingo: { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Solo" },
+  "sports-501": { icon: Gauge, tone: "text-gold bg-gold/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "501" } } },
+  connections: { icon: Network, tone: "text-primary bg-primary/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "connections" } } },
+  "draft-xi": { icon: Users, tone: "text-gold bg-gold/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "draft" } } },
+  bingo: { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "bingo" } } },
   "stat-cards": { icon: Layers, tone: "text-gold bg-gold/12", status: "Survival" },
 };
 
@@ -163,7 +164,7 @@ function Arcade() {
             );
           }
           return "search" in route ? (
-            <Link key={mode.slug} to={route.to} search={route.search} className={cls}>
+            <Link key={mode.slug} to={route.to} search={route.search as never} className={cls}>
               {body}
             </Link>
           ) : (

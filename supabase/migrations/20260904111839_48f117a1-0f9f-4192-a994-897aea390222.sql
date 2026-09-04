@@ -1,0 +1,11 @@
+REVOKE EXECUTE ON FUNCTION public.enforce_avatar_access() FROM public, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.queue_arcade_turn_alert() FROM public, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.queue_room_invite_alert() FROM public, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.grant_pro_lifetime(uuid, text) FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.publish_question(uuid) FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.unpublish_question(uuid) FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.entitlement_verified(uuid) FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.my_entitlement_status() FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.has_role(uuid, app_role) FROM public, anon;
+REVOKE EXECUTE ON FUNCTION public.has_staff_role() FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.grant_pro_lifetime(uuid, text), public.publish_question(uuid), public.unpublish_question(uuid), public.entitlement_verified(uuid), public.my_entitlement_status(), public.has_role(uuid, app_role), public.has_staff_role() TO authenticated;

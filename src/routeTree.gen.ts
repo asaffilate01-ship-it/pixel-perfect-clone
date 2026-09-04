@@ -14,11 +14,15 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as ArcadeRouteImport } from './routes/arcade'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as CompeteRouteImport } from './routes/compete'
+import { Route as CompetitionsRouteImport } from './routes/competitions'
 import { Route as FiltersRouteImport } from './routes/filters'
 import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as ArcadeBoardRouteImport } from './routes/arcade_.board'
 import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
 import { Route as ArcadeMastermindRouteImport } from './routes/arcade_.mastermind'
 import { Route as ArcadeQuizRaceRouteImport } from './routes/arcade_.quiz-race'
@@ -53,6 +57,11 @@ const CompeteRoute = CompeteRouteImport.update({
   path: '/compete',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CompetitionsRoute = CompetitionsRouteImport.update({
+  id: '/competitions',
+  path: '/competitions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const FiltersRoute = FiltersRouteImport.update({
   id: '/filters',
   path: '/filters',
@@ -73,10 +82,26 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedNotificationsRoute =
+  AuthenticatedNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const ArcadeBoardRoute = ArcadeBoardRouteImport.update({
+  id: '/arcade_/board',
+  path: '/arcade/board',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ArcadeConnectFourRoute = ArcadeConnectFourRouteImport.update({
   id: '/arcade_/connect-four',
@@ -129,11 +154,15 @@ export interface FileRoutesByFullPath {
   '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
+  '/competitions': typeof CompetitionsRoute
   '/filters': typeof FiltersRoute
   '/leaderboard': typeof LeaderboardRoute
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/arcade/board': typeof ArcadeBoardRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
@@ -149,11 +178,15 @@ export interface FileRoutesByTo {
   '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
+  '/competitions': typeof CompetitionsRoute
   '/filters': typeof FiltersRoute
   '/leaderboard': typeof LeaderboardRoute
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/notifications': typeof AuthenticatedNotificationsRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/arcade/board': typeof ArcadeBoardRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
@@ -171,11 +204,15 @@ export interface FileRoutesById {
   '/arcade': typeof ArcadeRoute
   '/auth': typeof AuthRoute
   '/compete': typeof CompeteRoute
+  '/competitions': typeof CompetitionsRoute
   '/filters': typeof FiltersRoute
   '/leaderboard': typeof LeaderboardRoute
   '/upgrade': typeof UpgradeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/arcade_/board': typeof ArcadeBoardRoute
   '/arcade_/connect-four': typeof ArcadeConnectFourRoute
   '/arcade_/mastermind': typeof ArcadeMastermindRoute
   '/arcade_/quiz-race': typeof ArcadeQuizRaceRoute
@@ -193,11 +230,15 @@ export interface FileRouteTypes {
     | '/arcade'
     | '/auth'
     | '/compete'
+    | '/competitions'
     | '/filters'
     | '/leaderboard'
     | '/upgrade'
     | '/admin'
+    | '/notifications'
+    | '/onboarding'
     | '/profile'
+    | '/arcade/board'
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
@@ -213,11 +254,15 @@ export interface FileRouteTypes {
     | '/arcade'
     | '/auth'
     | '/compete'
+    | '/competitions'
     | '/filters'
     | '/leaderboard'
     | '/upgrade'
     | '/admin'
+    | '/notifications'
+    | '/onboarding'
     | '/profile'
+    | '/arcade/board'
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
@@ -234,11 +279,15 @@ export interface FileRouteTypes {
     | '/arcade'
     | '/auth'
     | '/compete'
+    | '/competitions'
     | '/filters'
     | '/leaderboard'
     | '/upgrade'
     | '/_authenticated/admin'
+    | '/_authenticated/notifications'
+    | '/_authenticated/onboarding'
     | '/_authenticated/profile'
+    | '/arcade_/board'
     | '/arcade_/connect-four'
     | '/arcade_/mastermind'
     | '/arcade_/quiz-race'
@@ -256,9 +305,11 @@ export interface RootRouteChildren {
   ArcadeRoute: typeof ArcadeRoute
   AuthRoute: typeof AuthRoute
   CompeteRoute: typeof CompeteRoute
+  CompetitionsRoute: typeof CompetitionsRoute
   FiltersRoute: typeof FiltersRoute
   LeaderboardRoute: typeof LeaderboardRoute
   UpgradeRoute: typeof UpgradeRoute
+  ArcadeBoardRoute: typeof ArcadeBoardRoute
   ArcadeConnectFourRoute: typeof ArcadeConnectFourRoute
   ArcadeMastermindRoute: typeof ArcadeMastermindRoute
   ArcadeQuizRaceRoute: typeof ArcadeQuizRaceRoute
@@ -307,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CompeteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/competitions': {
+      id: '/competitions'
+      path: '/competitions'
+      fullPath: '/competitions'
+      preLoaderRoute: typeof CompetitionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/filters': {
       id: '/filters'
       path: '/filters'
@@ -335,12 +393,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/notifications': {
+      id: '/_authenticated/notifications'
+      path: '/notifications'
+      fullPath: '/notifications'
+      preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/arcade_/board': {
+      id: '/arcade_/board'
+      path: '/arcade/board'
+      fullPath: '/arcade/board'
+      preLoaderRoute: typeof ArcadeBoardRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/arcade_/connect-four': {
       id: '/arcade_/connect-four'
@@ -410,11 +489,15 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
 }
 
@@ -427,9 +510,11 @@ const rootRouteChildren: RootRouteChildren = {
   ArcadeRoute: ArcadeRoute,
   AuthRoute: AuthRoute,
   CompeteRoute: CompeteRoute,
+  CompetitionsRoute: CompetitionsRoute,
   FiltersRoute: FiltersRoute,
   LeaderboardRoute: LeaderboardRoute,
   UpgradeRoute: UpgradeRoute,
+  ArcadeBoardRoute: ArcadeBoardRoute,
   ArcadeConnectFourRoute: ArcadeConnectFourRoute,
   ArcadeMastermindRoute: ArcadeMastermindRoute,
   ArcadeQuizRaceRoute: ArcadeQuizRaceRoute,

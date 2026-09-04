@@ -9,6 +9,7 @@ import { fetchCompetitions, fetchSports } from "@/lib/fanzeno";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { QuestionReviewPanel } from "@/components/admin/QuestionReviewPanel";
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -99,6 +100,7 @@ function AdminPage() {
           <TabsTrigger value="athletes">Athletes</TabsTrigger>
           <TabsTrigger value="criteria">Criteria</TabsTrigger>
           <TabsTrigger value="sports">Sports</TabsTrigger>
+          <TabsTrigger value="questions">Questions</TabsTrigger>
         </TabsList>
 
         <TabsContent value="grids">
@@ -112,6 +114,9 @@ function AdminPage() {
         </TabsContent>
         <TabsContent value="sports">
           <SportsPanel />
+        </TabsContent>
+        <TabsContent value="questions">
+          <QuestionReviewPanel />
         </TabsContent>
       </Tabs>
     </div>
