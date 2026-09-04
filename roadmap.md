@@ -75,6 +75,6 @@
 ## Done (Sep 4 data/account)
 - Unlocked Fanzeno Pro for the testfan account only so every game can be tested; all other accounts keep the normal Pro gates.
 
-- [ ] Home page: replace full sport grid with cascading dropdown selection (sport -> category -> sub-category)
+- [x] Home page: replace full sport grid with cascading dropdown selection (sport -> category -> sub-category)
 - [x] Apply migration 20260904183000_answer_challenge_workflow.sql to live DB
 - [x] Fix editDistance strict-index typecheck errors
