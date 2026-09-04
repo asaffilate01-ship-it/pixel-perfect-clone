@@ -80,7 +80,14 @@ const ROUTES: Record<string, ModeRoute> = {
   bingo: { to: "/arcade/board", search: { mode: "bingo" } },
 };
 
-const FALLBACK_ART: GameArt = { art: statCards, kind: "solo", kindLabel: "Soon", time: "—" };
+const FALLBACK_ART: GameArt = {
+  art: statCards,
+  icon: Gamepad2,
+  tone: "secondary",
+  kind: "solo",
+  kindLabel: "Soon",
+  time: "—",
+};
 
 function Arcade() {
   const { data, isLoading } = useQuery({ queryKey: ["game-modes"], queryFn: fetchGameModes });
