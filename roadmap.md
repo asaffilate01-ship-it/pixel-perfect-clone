@@ -42,7 +42,6 @@
   `nextFairQuestion` / `submitArcadeAnswer`, 18 seeded verified questions; "Quiz form" on profile
 
 ## Open
-- Arcade presence heartbeat + reconnect UI (table + realtime exist; no client heartbeat yet)
 - Online Quiz Ludo races a single token per player (local mode keeps four tokens + captures)
 - Question bank authoring/calibration review in admin (18 starter questions only)
 - Stripe checkout for the £4.99 lifetime ad-free pass
@@ -81,4 +80,9 @@
 - [x] Fix editDistance strict-index typecheck errors
 
 - [ ] 3D-look, realistic game boards for all arcade games (Ludo, Connect 4, 501 darts, tic-tac-toe, Snakes, Mastermind, boards)
-- [ ] Investigate: rooms cannot be opened/set up; confirm testfan has Pro access to all games
+- [x] Investigate: rooms cannot be opened/set up; confirm testfan has Pro access to all games
+
+## Done (Sep 4 evening snapshot fold-in)
+- Atomic create/join/leave room RPCs (`create_arcade_room`, `join_arcade_room`, `leave_arcade_room`) applied live; fixed `gen_random_bytes` schema + unbound `rpc` call
+- Arcade presence heartbeat (`useArcadePresence`) with online dots + reconnect banner in lobby, Quiz Race and Mastermind
+- `/auth?next=` redirect back to rooms after sign-in

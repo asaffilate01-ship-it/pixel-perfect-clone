@@ -3214,6 +3214,38 @@ export type Database = {
         Args: { p_mode_slug: string; p_user_id: string }
         Returns: boolean
       }
+      create_arcade_room: {
+        Args: {
+          p_category_key?: string
+          p_difficulty: number
+          p_max_players?: number
+          p_mode_slug: string
+          p_sport_id?: string
+          p_user_id: string
+        }
+        Returns: {
+          active_seat: number | null
+          code: string
+          created_at: string
+          difficulty: number
+          host_id: string
+          id: string
+          mode_slug: string
+          round_no: number
+          settings: Json
+          status: string
+          turn_ends_at: string | null
+          turn_started_at: string | null
+          version: number
+          visibility: Database["public"]["Enums"]["match_visibility"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "arcade_rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       entitlement_verified: { Args: { p_user_id: string }; Returns: boolean }
       fill_verified_question_pools: {
         Args: { p_limit_each?: number }
@@ -3296,6 +3328,35 @@ export type Database = {
       }
       has_staff_role: { Args: never; Returns: boolean }
       is_arcade_member: { Args: { p_room: string }; Returns: boolean }
+      join_arcade_room: {
+        Args: { p_code: string; p_user_id: string }
+        Returns: {
+          active_seat: number | null
+          code: string
+          created_at: string
+          difficulty: number
+          host_id: string
+          id: string
+          mode_slug: string
+          round_no: number
+          settings: Json
+          status: string
+          turn_ends_at: string | null
+          turn_started_at: string | null
+          version: number
+          visibility: Database["public"]["Enums"]["match_visibility"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "arcade_rooms"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      leave_arcade_room: {
+        Args: { p_room_id: string; p_user_id: string }
+        Returns: boolean
+      }
       list_answer_challenges: { Args: { p_limit?: number }; Returns: Json }
       matchmake_arcade_player: {
         Args: {
