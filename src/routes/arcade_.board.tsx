@@ -466,12 +466,28 @@ function BoardPage() {
           )}
 
           {mode === "501" && (
-            <div className="game-card mt-6 p-6 text-center">
-              <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                Remaining
-              </p>
-              <p className="font-display text-7xl text-gold">{remaining}</p>
-              <div className="mt-4 grid grid-cols-4 gap-2">
+            <div className={`game-panel relative mt-6 p-6 text-center border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative inline-flex flex-col items-center">
+                <div
+                  className="game-score-ring"
+                  style={{
+                    ["--progress" as string]: `${Math.max(0, Math.min(100, ((501 - remaining) / 501) * 100))}%`,
+                    width: "8rem",
+                    height: "8rem",
+                  }}
+                >
+                  <div className="game-score-ring-inner" style={{ width: "6.5rem", height: "6.5rem" }}>
+                    <div>
+                      <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                        Remaining
+                      </p>
+                      <p className="font-display text-6xl text-gold">{remaining}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-4 gap-2">
                 {LANES.map((x, i) => (
                   <button
                     key={x}
