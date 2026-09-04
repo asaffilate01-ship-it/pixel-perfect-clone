@@ -195,21 +195,26 @@ function Arcade() {
             mode.min_players === mode.max_players
               ? `${mode.min_players} player${mode.min_players === 1 ? "" : "s"}`
               : `${mode.min_players}–${mode.max_players} players`;
+          const GameIcon = art.icon;
 
           const body = (
             <>
-              <span className="relative block aspect-[3/2] overflow-hidden">
+              <span className="relative block aspect-[3/2] overflow-hidden bg-gradient-to-br bg-surface-strong">
+                <span className={`absolute inset-0 bg-gradient-to-br ${TONE_GRADIENT[art.tone]}`} />
                 <img
                   src={art.art}
                   alt=""
                   width={768}
                   height={512}
                   loading="lazy"
-                  className={`size-full object-cover transition-transform duration-500 ${
+                  className={`absolute inset-0 size-full object-cover opacity-20 mix-blend-overlay transition-transform duration-500 ${
                     playable ? "group-hover:scale-105" : "saturate-50"
                   }`}
                 />
-                <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-card to-transparent" />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <GameIcon className={`size-20 ${TONE_TEXT[art.tone]}`} />
+                </span>
+                <span className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-card to-transparent" />
                 <span className="absolute left-3 top-3 flex gap-1.5">
                   {art.isNew && (
                     <Badge tone="primary">
@@ -268,7 +273,7 @@ function Arcade() {
             </>
           );
 
-          const cls = `game-launch-card group panel relative flex flex-col overflow-hidden p-0 text-left transition-all ${
+          const cls = `game-card group relative flex flex-col overflow-hidden p-0 text-left transition-all ${
             playable
               ? "hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/40 active:scale-[0.99]"
               : "opacity-75"
