@@ -61,6 +61,59 @@ export type Database = {
           },
         ]
       }
+      answer_challenges: {
+        Row: {
+          created_at: string
+          id: string
+          normalised_answer: string
+          occurrence_count: number
+          question_id: string
+          reviewed_at: string | null
+          reviewer_id: string | null
+          reviewer_note: string | null
+          status: string
+          submitted_answer: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          normalised_answer: string
+          occurrence_count?: number
+          question_id: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          status?: string
+          submitted_answer: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          normalised_answer?: string
+          occurrence_count?: number
+          question_id?: string
+          reviewed_at?: string | null
+          reviewer_id?: string | null
+          reviewer_note?: string | null
+          status?: string
+          submitted_answer?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "answer_challenges_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       answer_import_jobs: {
         Row: {
           competition_id: string | null
@@ -3243,6 +3296,7 @@ export type Database = {
       }
       has_staff_role: { Args: never; Returns: boolean }
       is_arcade_member: { Args: { p_room: string }; Returns: boolean }
+      list_answer_challenges: { Args: { p_limit?: number }; Returns: Json }
       matchmake_arcade_player: {
         Args: {
           p_category_key?: string
@@ -3302,6 +3356,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      resolve_answer_challenge: {
+        Args: { p_accept: boolean; p_challenge_id: string; p_note?: string }
+        Returns: undefined
       }
       search_athletes: {
         Args: { p_limit?: number; p_query: string; p_sport_id?: string }
