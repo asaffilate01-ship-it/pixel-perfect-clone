@@ -15,7 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { fetchSports } from "@/lib/fanzeno";
-import { SportPicker } from "@/components/game/SportPicker";
+import { SportCascadePicker } from "@/components/game/SportCascadePicker";
 import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
