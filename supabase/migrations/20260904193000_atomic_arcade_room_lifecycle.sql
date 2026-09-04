@@ -28,7 +28,7 @@ begin
   select * into profile_row from public.profiles where id = p_user_id;
 
   for attempt in 1..5 loop
-    generated_code := 'FZ-' || upper(substr(encode(gen_random_bytes(4), 'hex'), 1, 4));
+    generated_code := 'FZ-' || upper(substr(encode(extensions.gen_random_bytes(4), 'hex'), 1, 4));
     begin
       insert into public.arcade_rooms(
         code, host_id, mode_slug, difficulty, visibility, settings
