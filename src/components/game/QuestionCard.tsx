@@ -148,9 +148,10 @@ export function QuestionCard({
   };
 
   const prompt = question?.prompt ?? fallback;
+  const borderAccent = accentClass.replace("text-", "border-");
   return (
-    <div className="panel relative mt-4 overflow-hidden border-cyan-400/25 bg-gradient-to-br from-cyan-400/10 via-surface/95 to-violet-500/10 p-5 shadow-xl shadow-black/20">
-      <div className="pointer-events-none absolute -right-12 -top-16 size-36 rounded-full bg-cyan-400/10 blur-3xl" />
+    <div className={`game-card relative mt-4 overflow-hidden border-t-4 ${borderAccent} p-5`}>
+      <div className="pointer-events-none absolute -right-12 -top-16 size-36 rounded-full bg-gradient-to-br from-primary/10 to-gold/10 blur-3xl" />
       <div className="flex items-center justify-between gap-3">
         <p
           className={`text-[0.62rem] font-black uppercase tracking-[0.16em] ${clue ? "text-gold" : accentClass}`}
