@@ -78,3 +78,5 @@
 - [x] Home page: replace full sport grid with cascading dropdown selection (sport -> category -> sub-category)
 - [x] Apply migration 20260904183000_answer_challenge_workflow.sql to live DB
 - [x] Fix editDistance strict-index typecheck errors
+
+- [ ] 3D-look, realistic game boards for all arcade games (Ludo, Connect 4, 501 darts, tic-tac-toe, Snakes, Mastermind, boards)
