@@ -341,28 +341,26 @@ function ConnectFourPage() {
         />
       )}
 
-      <div
-        className="game-card mt-2 grid grid-cols-7 gap-1.5 bg-gradient-to-b from-surface to-background p-2.5 sm:gap-2 sm:p-3"
-        role="grid"
-        aria-label="Connect Four board"
-      >
-        {board.map((v, i) => (
-          <div
-            key={i}
-            role="gridcell"
-            aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
-            className={`grid aspect-square place-items-center rounded-full border transition-all duration-300 ${
-              v === "me"
-                ? "game-tile-reward"
-                : v === "them"
-                  ? "border-destructive bg-destructive text-destructive-foreground shadow-lg shadow-destructive/25"
-                  : "border-border bg-background shadow-inner"
-            } ${lastIndex === i ? "scale-105 ring-2 ring-primary/80 ring-offset-2 ring-offset-background" : ""}`}
-          >
-            {v === "me" && <Trophy className="size-3.5 sm:size-5" />}
-            {v === "them" && <Shield className="size-3.5 sm:size-5" />}
-          </div>
-        ))}
+      <div className="game-panel game-panel-accent-gold mt-3 p-3 sm:p-4">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2" role="grid" aria-label="Connect Four board">
+          {board.map((v, i) => (
+            <div
+              key={i}
+              role="gridcell"
+              aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
+              className={`grid aspect-square place-items-center rounded-full border-2 transition-all duration-300 ${
+                v === "me"
+                  ? "game-token game-token-gold scale-105"
+                  : v === "them"
+                    ? "game-token game-token-rival"
+                    : "border-border bg-surface-strong/60 shadow-inner"
+              } ${lastIndex === i ? "ring-2 ring-primary/80 ring-offset-2 ring-offset-background" : ""}`}
+            >
+              {v === "me" && <Trophy className="size-3.5 sm:size-5" />}
+              {v === "them" && <Shield className="size-3.5 sm:size-5" />}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
