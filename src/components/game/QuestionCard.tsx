@@ -148,9 +148,10 @@ export function QuestionCard({
   };
 
   const prompt = question?.prompt ?? fallback;
+  const borderAccent = accentClass.replace("text-", "border-");
   return (
-    <div className="panel relative mt-4 overflow-hidden border-cyan-400/25 bg-gradient-to-br from-cyan-400/10 via-surface/95 to-violet-500/10 p-5 shadow-xl shadow-black/20">
-      <div className="pointer-events-none absolute -right-12 -top-16 size-36 rounded-full bg-cyan-400/10 blur-3xl" />
+    <div className={`game-card relative mt-4 overflow-hidden border-t-4 ${borderAccent} p-5`}>
+      <div className="pointer-events-none absolute -right-12 -top-16 size-36 rounded-full bg-gradient-to-br from-primary/10 to-gold/10 blur-3xl" />
       <div className="flex items-center justify-between gap-3">
         <p
           className={`text-[0.62rem] font-black uppercase tracking-[0.16em] ${clue ? "text-gold" : accentClass}`}
@@ -164,7 +165,7 @@ export function QuestionCard({
         )}
       </div>
       <p
-        className={`relative mt-2 font-display text-2xl leading-tight ${loading ? "text-muted-foreground" : ""}`}
+        className={`relative mt-3 font-display text-3xl leading-tight sm:text-4xl ${loading ? "text-muted-foreground" : "text-foreground"}`}
       >
         {loading ? (
           <span className="inline-flex items-center gap-2">
@@ -196,20 +197,20 @@ export function QuestionCard({
 
       {reveal ? (
         <div
-          className={`mt-4 flex items-center gap-3 rounded-xl border p-3 ${
-            reveal.correct
-              ? "border-primary/60 bg-primary/10"
-              : "border-destructive/60 bg-destructive/10"
+          className={`game-feedback mt-5 w-full justify-center ${
+            reveal.correct ? "game-feedback-success" : "game-feedback-error"
           }`}
         >
           {reveal.correct ? (
-            <Check className="size-5 text-primary" />
+            <Check className="size-5 text-primary-foreground" />
           ) : (
-            <X className="size-5 text-destructive" />
+            <X className="size-5 text-destructive-foreground" />
           )}
           <div>
-            <p className="text-sm font-bold">{reveal.correct ? "Correct!" : "Not this time"}</p>
-            <p className="text-xs text-muted-foreground">Answer: {reveal.answer}</p>
+            <p className="text-sm font-black uppercase tracking-[0.1em]">
+              {reveal.correct ? "Correct" : "Not this time"}
+            </p>
+            <p className="text-xs opacity-90">Answer: {reveal.answer}</p>
           </div>
         </div>
       ) : !canAnswer ? (

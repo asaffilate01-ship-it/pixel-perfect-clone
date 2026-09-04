@@ -281,18 +281,20 @@ function ConnectFourPage() {
         </div>
       )}
 
-      <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+      <p className="game-feedback game-feedback-info mt-4 w-full justify-center">
         <Sparkles className="size-4 text-gold" />
-        {result
-          ? "Match over."
-          : turn === "me"
-            ? selectedCol === null
-              ? "Tap an open column to reveal your question"
-              : `Column ${selectedCol + 1} selected — answer to drop your token`
-            : "Your rival is choosing…"}
+        <span>
+          {result
+            ? "Match over."
+            : turn === "me"
+              ? selectedCol === null
+                ? "Tap an open column to reveal your question"
+                : `Column ${selectedCol + 1} selected — answer to drop your token`
+              : "Your rival is choosing…"}
+        </span>
       </p>
 
-      <div className="game-card mt-4 p-3 sm:p-4">
+      <div className="game-panel game-panel-accent-primary mt-4 p-3 sm:p-4">
         <div
           className="grid grid-cols-7 gap-1.5"
           role="group"
@@ -311,15 +313,15 @@ function ConnectFourPage() {
                 selectedCol !== null ||
                 !dropToken(board, i, "me")
               }
-              className={`game-tile min-h-12 text-[0.55rem] ${
+              className={`game-tile-pop min-h-12 text-[0.55rem] ${
                 selectedCol === i
                   ? "game-tile-reward"
-                  : "border-primary/20 text-primary hover:border-primary/50 hover:bg-primary/10"
+                  : "border-t-4 border-primary/30 text-primary hover:border-primary/60 hover:bg-primary/5"
               }`}
               aria-label={`Choose column ${i + 1}`}
               aria-pressed={selectedCol === i}
             >
-              <ChevronDown className="size-4 text-primary" aria-hidden />
+              <ChevronDown className={`size-4 ${selectedCol === i ? "text-gold-foreground" : "text-primary"}`} aria-hidden />
               <span>Drop {i + 1}</span>
             </button>
           ))}
@@ -341,43 +343,48 @@ function ConnectFourPage() {
         />
       )}
 
-      <div
-        className="game-card mt-2 grid grid-cols-7 gap-1.5 bg-gradient-to-b from-surface to-background p-2.5 sm:gap-2 sm:p-3"
-        role="grid"
-        aria-label="Connect Four board"
-      >
-        {board.map((v, i) => (
-          <div
-            key={i}
-            role="gridcell"
-            aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
-            className={`grid aspect-square place-items-center rounded-full border transition-all duration-300 ${
-              v === "me"
-                ? "game-tile-reward"
-                : v === "them"
-                  ? "border-destructive bg-destructive text-destructive-foreground shadow-lg shadow-destructive/25"
-                  : "border-border bg-background shadow-inner"
-            } ${lastIndex === i ? "scale-105 ring-2 ring-primary/80 ring-offset-2 ring-offset-background" : ""}`}
-          >
-            {v === "me" && <Trophy className="size-3.5 sm:size-5" />}
-            {v === "them" && <Shield className="size-3.5 sm:size-5" />}
-          </div>
-        ))}
+      <div className="game-panel game-panel-accent-gold mt-3 p-3 sm:p-4">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2" role="grid" aria-label="Connect Four board">
+          {board.map((v, i) => (
+            <div
+              key={i}
+              role="gridcell"
+              aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
+              className={`grid aspect-square place-items-center rounded-full border-2 transition-all duration-300 ${
+                v === "me"
+                  ? "game-token game-token-gold scale-105"
+                  : v === "them"
+                    ? "game-token game-token-rival"
+                    : "border-border bg-surface-strong/60 shadow-inner"
+              } ${lastIndex === i ? "ring-2 ring-primary/80 ring-offset-2 ring-offset-background" : ""}`}
+            >
+              {v === "me" && <Trophy className="size-3.5 sm:size-5" />}
+              {v === "them" && <Shield className="size-3.5 sm:size-5" />}
+            </div>
+          ))}
+        </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-        <Button variant="outline" size="sm" onClick={pass} disabled={turn !== "me" || !!result}>
+      <div className="game-panel mt-5 flex flex-wrap items-center justify-center gap-2 p-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+          onClick={pass}
+          disabled={turn !== "me" || !!result}
+        >
           <SkipForward className="size-4" /> Pass turn
         </Button>
         <Button
           variant="outline"
           size="sm"
+          className="rounded-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
           onClick={offerDraw}
           disabled={turn !== "me" || !!result || drawOffered}
         >
           <Handshake className="size-4" /> {drawOffered ? "Draw offered" : "Offer draw"}
         </Button>
-        <span className="text-xs text-muted-foreground">
+        <span className="game-feedback game-feedback-info">
           {filled}/{COLS * ROWS} tokens
         </span>
       </div>
@@ -433,10 +440,8 @@ function PlayerChip({ label, me, active }: { label: string; me?: boolean; active
       }`}
     >
       <span
-        className={`grid size-6 place-items-center rounded-full ${
-          me
-            ? "bg-gradient-to-br from-yellow-200 to-orange-500 text-amber-950"
-            : "bg-gradient-to-br from-rose-400 to-red-600 text-white"
+        className={`game-token grid size-6 place-items-center ${
+          me ? "game-token-gold" : "game-token-rival"
         }`}
       >
         {me ? <ShieldCheck className="size-3.5" /> : <Shield className="size-3.5" />}

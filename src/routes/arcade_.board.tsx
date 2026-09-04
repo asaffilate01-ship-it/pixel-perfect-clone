@@ -339,13 +339,14 @@ function BoardPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <SideAdRail placement="arcade" />
-      <div className="game-card flex items-center gap-4 p-4">
+      <div className={`game-card relative overflow-hidden flex items-center gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+        <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
         <Button variant="ghost" size="icon" aria-label="Back" asChild>
           <Link to="/arcade">
             <ChevronLeft className="size-5" />
           </Link>
         </Button>
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <p className="eyebrow">Fanzeno arcade</p>
           <h1 className="mt-1 text-3xl sm:text-4xl">{c.title}</h1>
         </div>
@@ -354,7 +355,8 @@ function BoardPage() {
         </span>
       </div>
 
-      <div className="game-card mt-5 flex items-center justify-between gap-4 p-4">
+      <div className={`game-panel relative mt-5 flex items-center justify-between gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+        <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
         <div>
           <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
             Progress
@@ -427,8 +429,9 @@ function BoardPage() {
       ) : (
         <>
           {mode === "territory" && (
-            <div className="game-card mt-6 p-4">
-              <div className="grid grid-cols-5 gap-2" role="group" aria-label="Territory zones">
+            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="grid grid-cols-5 gap-2 relative" role="group" aria-label="Territory zones">
                 {Array.from({ length: 19 }, (_, i) => {
                   const own = mine.includes(i),
                     theirs = rival.includes(i);
@@ -463,12 +466,28 @@ function BoardPage() {
           )}
 
           {mode === "501" && (
-            <div className="game-card mt-6 p-6 text-center">
-              <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                Remaining
-              </p>
-              <p className="font-display text-7xl text-gold">{remaining}</p>
-              <div className="mt-4 grid grid-cols-4 gap-2">
+            <div className={`game-panel relative mt-6 p-6 text-center border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative inline-flex flex-col items-center">
+                <div
+                  className="game-score-ring"
+                  style={{
+                    ["--progress" as string]: `${Math.max(0, Math.min(100, ((501 - remaining) / 501) * 100))}%`,
+                    width: "8rem",
+                    height: "8rem",
+                  }}
+                >
+                  <div className="game-score-ring-inner" style={{ width: "6.5rem", height: "6.5rem" }}>
+                    <div>
+                      <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                        Remaining
+                      </p>
+                      <p className="font-display text-6xl text-gold">{remaining}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6 grid grid-cols-4 gap-2">
                 {LANES.map((x, i) => (
                   <button
                     key={x}
@@ -495,8 +514,9 @@ function BoardPage() {
           )}
 
           {mode === "connections" && (
-            <div className="game-card mt-6 p-4">
-              <div className="grid grid-cols-4 gap-2">
+            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="grid grid-cols-4 gap-2 relative">
                 {allConnections.map((x) => {
                   const done = solvedItems.has(x),
                     on = selected.includes(x);
@@ -533,7 +553,7 @@ function BoardPage() {
                 Check connection
               </Button>
               {solved.map((x) => (
-                <p key={x} className="mt-2 flex items-center justify-center gap-2 text-xs text-primary">
+                <p key={x} className="game-feedback game-feedback-success mt-2 w-full justify-center">
                   <Check className="size-3.5" /> {x}
                 </p>
               ))}
@@ -541,43 +561,54 @@ function BoardPage() {
           )}
 
           {mode === "draft" && (
-            <div className="game-card mt-6 p-4 space-y-2">
-              {DRAFT.map((x, i) => {
-                const signed = squad.includes(i);
-                return (
-                  <button
-                    key={x.name}
-                    type="button"
-                    disabled={signed || target !== null}
-                    onClick={() => setTarget(i)}
-                    className={`panel flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "border-primary/60 bg-primary/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
-                  >
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
-                      <span className="font-display text-xl text-gold">{x.rating}</span>
-                    </span>
-                    <span className="flex-1">
-                      <span className="block font-display text-xl">{x.name}</span>
-                      <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                        {x.role}
+            <div className={`game-panel relative mt-6 p-4 space-y-2 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative space-y-2">
+                {DRAFT.map((x, i) => {
+                  const signed = squad.includes(i);
+                  return (
+                    <button
+                      key={x.name}
+                      type="button"
+                      disabled={signed || target !== null}
+                      onClick={() => setTarget(i)}
+                      className={`panel flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "border-gold/60 bg-gold/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
+                    >
+                      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
+                        <span className="font-display text-xl text-gold">{x.rating}</span>
                       </span>
-                    </span>
-                    {signed && (
-                      <span className="grid size-8 place-items-center rounded-full bg-primary/20">
-                        <Check className="size-5 text-primary" />
+                      <span className="flex-1">
+                        <span className="block font-display text-xl">{x.name}</span>
+                        <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                          {x.role}
+                        </span>
                       </span>
-                    )}
-                  </button>
-                );
-              })}
+                      {signed && (
+                        <span className="game-feedback game-feedback-success">
+                          <Check className="size-4" /> Signed
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {mode === "bingo" && (
-            <div className="game-card mt-6 p-4">
-              <div className="grid grid-cols-4 gap-2" role="group" aria-label="Bingo card">
+            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative mb-3 flex items-center justify-between">
+                <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Your card</p>
+                <span className="game-feedback game-feedback-info">
+                  {mine.length}/{BINGO.length} marked
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-2 relative" role="group" aria-label="Bingo card">
                 {BINGO.map((label, i) => {
                   const own = mine.includes(i);
                   const TileIcon = BINGO_ICONS[label] ?? Star;
+                  const tone = ["text-chart-1", "text-chart-2", "text-chart-3", "text-chart-4", "text-chart-5"][i % 5];
                   return (
                     <button
                       key={label}
@@ -590,12 +621,10 @@ function BoardPage() {
                           ? "game-tile-completed"
                           : target === i
                             ? "game-tile-reward"
-                            : "hover:border-primary/60 hover:text-foreground"
+                            : `game-tile-accent ${tone}`
                       }`}
                     >
-                      <TileIcon
-                        className={`size-5 ${own ? "text-primary-foreground" : target === i ? "text-gold-foreground" : "text-muted-foreground"}`}
-                      />
+                      <TileIcon className="size-5 text-current" />
                       <span className="leading-none">{label}</span>
                       {own && (
                         <span className="absolute right-1 top-1">
