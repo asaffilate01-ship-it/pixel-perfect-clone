@@ -9,6 +9,7 @@ import {
   Grid3x3,
   Infinity as InfinityIcon,
   SlidersHorizontal,
+  Sparkles,
   Thermometer,
   Users,
   Zap,
@@ -17,6 +18,7 @@ import { fetchSports } from "@/lib/fanzeno";
 import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -41,6 +43,7 @@ function Home() {
   const navigate = useNavigate();
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { prefs, hydrated, setPrefs } = useQuizPrefs();
+  const { user, onboarded } = useAuth();
   const [sport, setSportLocal] = useState("football");
   useEffect(() => {
     if (hydrated) setSportLocal(prefs.sport);
@@ -57,6 +60,21 @@ function Home() {
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10">
       <SideAdRail placement="home" />
+      {user && onboarded === false && (
+        <Link
+          to="/onboarding"
+          className="mb-4 flex items-center gap-4 rounded-2xl border border-primary/40 bg-primary/8 p-4 transition-colors hover:border-primary"
+        >
+          <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/15">
+            <Sparkles className="size-5 text-primary" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-xl">Finish setting up your arena</span>
+            <span className="block text-xs text-muted-foreground">Name, avatar, sports and difficulty — four quick steps.</span>
+          </span>
+          <ArrowRight className="size-4 shrink-0 text-primary" />
+        </Link>
+      )}
       <section className="panel stadium-line relative overflow-hidden p-6 sm:p-10">
         <p className="eyebrow">The global sports grid</p>
         <h1 className="mt-4 max-w-2xl text-5xl sm:text-7xl">
