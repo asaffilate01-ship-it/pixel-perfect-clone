@@ -54,3 +54,8 @@
 - Wikidata/licensed-feed import pipeline (schema ready; no ingestion runner yet)
 - Admin UI for honours, verified facts and generation jobs
 - Multi-language copy (mobile app ships i18n; web is English only)
+
+## In progress
+- v0.12–v0.20 fold-in (archive of nine releases; latest v0.20)
+- Brand: Fanzeno logo in header + app-icon favicon
+- Test sign-in account (testfan@gmail.com) for live room verification
