@@ -145,6 +145,20 @@
 }
 
 @layer components {
+  .connect-four-arena {
+    background-image:
+      radial-gradient(circle at 12% 18%, oklch(0.75 0.16 220 / 0.14), transparent 27%),
+      radial-gradient(circle at 88% 35%, oklch(0.7 0.2 325 / 0.13), transparent 30%);
+  }
+
+  .connect-four-board {
+    transform: translateZ(0);
+  }
+
+  .connect-four-slot {
+    animation: connect-four-slot-in 220ms ease-out both;
+  }
+
   .mobile-tab-bar {
     position: fixed;
     z-index: 60;
@@ -188,6 +202,17 @@
   .mobile-tab-active {
     color: var(--color-primary);
     background: color-mix(in oklab, var(--color-primary) 13%, transparent);
+  }
+}
+
+@keyframes connect-four-slot-in {
+  from {
+    opacity: 0.72;
+    transform: translateY(-5px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
