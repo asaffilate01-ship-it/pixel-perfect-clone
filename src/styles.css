@@ -427,11 +427,11 @@
   background: linear-gradient(180deg, color-mix(in oklab, var(--color-surface-strong) 90%, transparent), color-mix(in oklab, var(--color-surface) 80%, transparent));
   box-shadow: 0 4px 14px color-mix(in oklab, oklch(0 0 0) 15%, transparent);
   transition: all 150ms ease;
-}
 
-@utility game-tile-pop:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px color-mix(in oklab, oklch(0 0 0) 25%, transparent);
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px color-mix(in oklab, oklch(0 0 0) 25%, transparent);
+  }
 }
 
 @utility game-tile-accent {
