@@ -8,8 +8,6 @@ import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
  * controlled server-side; clients only ever see prompts and clues, never answer sets.
  */
 
-const roomCode = () => `FZ-${crypto.randomUUID().replaceAll("-", "").slice(0, 4).toUpperCase()}`;
-
 const normalise = (x: string) =>
   x
     .normalize("NFD")
@@ -170,70 +168,35 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     }
 
     if (data.action === "create") {
-      const { data: allowed } = await admin.rpc("can_host_game", {
+      const createRoom = admin.rpc as unknown as (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: ArcadeRoomRow | null; error: { message: string } | null }>;
+      const { data: room, error } = await createRoom("create_arcade_room", {
         p_user_id: userId,
         p_mode_slug: data.mode,
+        p_difficulty: data.difficulty,
+        p_max_players: data.maxPlayers,
+        p_sport_id: data.sportId ?? null,
+        p_category_key: data.categoryKey ?? null,
       });
-      if (!allowed) throw new Error("Fanzeno Pro is required to host this game");
-      const { data: room, error } = await admin
-        .from("arcade_rooms")
-        .insert({
-          code: roomCode(),
-          host_id: userId,
-          mode_slug: data.mode,
-          difficulty: data.difficulty,
-          visibility: "private",
-          settings: { max_players: data.maxPlayers },
-        })
-        .select("id, code, host_id, mode_slug, difficulty, status, settings")
-        .single();
       if (error) throw new Error(error.message);
-      const { error: seatErr } = await admin.from("arcade_room_players").insert({
-        room_id: room.id,
-        user_id: userId,
-        seat: 0,
-        display_name: profile?.display_name ?? "Host",
-        status: "ready",
-        sport_id: data.sportId ?? null,
-        category_key: data.categoryKey ?? null,
-        settings: seatSettings({
-          sport_id: data.sportId ?? null,
-          category_key: data.categoryKey ?? null,
-        }),
-      });
-      if (seatErr) throw new Error(seatErr.message);
-      return { room: room as ArcadeRoomRow };
+      if (!room) throw new Error("Could not create room");
+      return { room };
     }
 
     if (data.action === "join") {
-      const { data: room } = await admin
-        .from("arcade_rooms")
-        .select("id, code, host_id, mode_slug, difficulty, status, settings")
-        .eq("code", data.code.trim().toUpperCase())
-        .eq("status", "lobby")
-        .maybeSingle();
-      if (!room) throw new Error("Room not found or already started");
-      const { data: members } = await admin
-        .from("arcade_room_players")
-        .select("seat, user_id")
-        .eq("room_id", room.id)
-        .order("seat");
-      if (members?.some((m) => m.user_id === userId)) return { room: room as ArcadeRoomRow };
-      const max = Number((room.settings as { max_players?: number } | null)?.max_players ?? 4);
-      if ((members?.length ?? 0) >= max) throw new Error("Room is full");
-      const used = new Set((members ?? []).map((m) => m.seat));
-      const seat = [0, 1, 2, 3].find((s) => !used.has(s));
-      if (seat === undefined) throw new Error("Room is full");
-      const { error } = await admin.from("arcade_room_players").insert({
-        room_id: room.id,
-        user_id: userId,
-        seat,
-        display_name: profile?.display_name ?? "Player",
-        status: "active",
-        settings: seatSettings(),
+      const joinRoom = admin.rpc as unknown as (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: ArcadeRoomRow | null; error: { message: string } | null }>;
+      const { data: room, error } = await joinRoom("join_arcade_room", {
+        p_user_id: userId,
+        p_code: data.code.trim().toUpperCase(),
       });
       if (error) throw new Error(error.message);
-      return { room: room as ArcadeRoomRow };
+      if (!room) throw new Error("Room not found or already started");
+      return { room };
     }
 
     const { data: room } = await admin
@@ -335,7 +298,15 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     }
 
     // leave
-    await admin.from("arcade_room_players").delete().eq("room_id", room.id).eq("user_id", userId);
+    const leaveRoom = admin.rpc as unknown as (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+    const { error: leaveError } = await leaveRoom("leave_arcade_room", {
+      p_user_id: userId,
+      p_room_id: room.id,
+    });
+    if (leaveError) throw new Error(leaveError.message);
     return { left: true };
   });
 
