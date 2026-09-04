@@ -616,12 +616,12 @@ function BoardPage() {
                       disabled={own || target !== null}
                       onClick={() => setTarget(i)}
                       aria-pressed={target === i}
-                      className={`game-tile game-tile-accent ${tone} ${
+                      className={`game-tile ${
                         own
                           ? "game-tile-completed"
                           : target === i
                             ? "game-tile-reward"
-                            : ""
+                            : `game-tile-accent ${tone}`
                       }`}
                     >
                       <TileIcon className="size-5 text-current" />
