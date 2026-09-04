@@ -129,7 +129,8 @@ export async function fetchDailyGrid(
       .order("scheduled_for", { ascending: false })
       .limit(1);
 
-  let data: Awaited<ReturnType<typeof base>>["data"] extends (infer R)[] | null ? R | null : never = null;
+  let data: Awaited<ReturnType<typeof base>>["data"] extends (infer R)[] | null ? R | null : never =
+    null;
   let scopeFallback = false;
 
   if (scope.competitionId) {
@@ -178,7 +179,10 @@ export type AthleteOption = {
  * Fuzzy, typo-tolerant athlete search (accents, nicknames and transliterations).
  * Only verified athletes are returned, so a picked option is always a real answer key entry.
  */
-export async function searchAthletes(query: string, sportId?: string | null): Promise<AthleteOption[]> {
+export async function searchAthletes(
+  query: string,
+  sportId?: string | null,
+): Promise<AthleteOption[]> {
   if (query.trim().length < 2) return [];
   const { data, error } = await supabase.rpc("search_athletes", {
     p_query: query.trim(),
@@ -202,10 +206,15 @@ export type CriterionIcon = "trophy" | "flag" | "people" | "stats" | "hand" | "s
 export function criterionIcon(label: string): CriterionIcon {
   const x = label.toLowerCase();
   if (/champion|cup|trophy|winner|title|medal|ashes|series/.test(x)) return "trophy";
-  if (/represent|international|national|caps|\b(france|england|spain|pakistan|india|australia|brazil|argentina|usa)\b/.test(x))
+  if (
+    /represent|international|national|caps|\b(france|england|spain|pakistan|india|australia|brazil|argentina|usa)\b/.test(
+      x,
+    )
+  )
     return "flag";
   if (/managed|captain|coach/.test(x)) return "people";
-  if (/appearance|runs|goals|points|wickets|assists|rebounds|\d+\+|\bavg\b|average/.test(x)) return "stats";
+  if (/appearance|runs|goals|points|wickets|assists|rebounds|\d+\+|\bavg\b|average/.test(x))
+    return "stats";
   if (/left-handed|left handed|left-arm/.test(x)) return "hand";
   return "shield";
 }
@@ -223,10 +232,28 @@ export type PersistedMode = "daily" | "endless";
 
 /** Difficulty ladder shared by Endless, Pass & Play and CPU battles (mirrors `scoring_rules`). */
 export const DIFFICULTIES = [
-  { level: 1, label: "Easy", multiplier: 1 },
-  { level: 2, label: "Medium", multiplier: 2 },
-  { level: 3, label: "Hard", multiplier: 3 },
-  { level: 4, label: "Expert", multiplier: 5 },
+  {
+    level: 1,
+    label: "Easy",
+    multiplier: 1,
+    range: "0–25%",
+    description: "Well-known facts and names",
+  },
+  {
+    level: 2,
+    label: "Medium",
+    multiplier: 2,
+    range: "25–50%",
+    description: "Regular fan knowledge",
+  },
+  { level: 3, label: "Hard", multiplier: 3, range: "50–75%", description: "Deep sport knowledge" },
+  {
+    level: 4,
+    label: "Expert",
+    multiplier: 5,
+    range: "75–100%",
+    description: "Specialist and historic facts",
+  },
 ] as const;
 export type DifficultyLevel = (typeof DIFFICULTIES)[number]["level"];
 export const difficultyMeta = (level: number) =>
@@ -262,7 +289,11 @@ export async function submitGuess(args: {
 }
 
 /** Stateless validation against the answer key (used for guests and local battles). */
-export async function checkGuess(args: { gridId: string; cell: number; guess: string }): Promise<MoveResult> {
+export async function checkGuess(args: {
+  gridId: string;
+  cell: number;
+  guess: string;
+}): Promise<MoveResult> {
   const { data, error } = await supabase.rpc("fz_check_answer", {
     p_grid: args.gridId,
     p_cell: args.cell,
@@ -277,14 +308,19 @@ export async function checkGuess(args: { gridId: string; cell: number; guess: st
 export async function fetchGridById(id: string): Promise<GridPuzzle | null> {
   const { data, error } = await supabase
     .from("grids")
-    .select("id, difficulty, scheduled_for, row_criteria, column_criteria, sports!inner(id, slug, name, accent)")
+    .select(
+      "id, difficulty, scheduled_for, row_criteria, column_criteria, sports!inner(id, slug, name, accent)",
+    )
     .eq("id", id)
     .not("published_at", "is", null)
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
   const ids = [...data.row_criteria, ...data.column_criteria];
-  const { data: criteria, error: cErr } = await supabase.from("criteria").select("id, label").in("id", ids);
+  const { data: criteria, error: cErr } = await supabase
+    .from("criteria")
+    .select("id, label")
+    .in("id", ids);
   if (cErr) throw cErr;
   const byId = new Map((criteria ?? []).map((c) => [c.id, c.label]));
   return {
@@ -314,9 +350,14 @@ export async function generateEndlessGrid(args: {
 
 export type Owner = "p1" | "p2";
 const LINES = [
-  [0, 1, 2], [3, 4, 5], [6, 7, 8],
-  [0, 3, 6], [1, 4, 7], [2, 5, 8],
-  [0, 4, 8], [2, 4, 6],
+  [0, 1, 2],
+  [3, 4, 5],
+  [6, 7, 8],
+  [0, 3, 6],
+  [1, 4, 7],
+  [2, 5, 8],
+  [0, 4, 8],
+  [2, 4, 6],
 ];
 /** Grid Battle win check: three claimed squares in a row, column or diagonal. */
 export function hasLine(owners: (Owner | undefined)[], who: Owner): boolean {
@@ -431,11 +472,32 @@ export type ScopeEntity = {
 };
 
 type ScopeKind = Database["public"]["Enums"]["scope_entity_kind"];
-const TEAM_KINDS: ScopeKind[] = ["team", "constructor", "manufacturer", "stable", "nation", "discipline", "country", "venue"];
-const PERSON_KINDS: ScopeKind[] = ["person", "player", "driver", "rider", "boxer", "fighter", "horse", "jockey"];
+const TEAM_KINDS: ScopeKind[] = [
+  "team",
+  "constructor",
+  "manufacturer",
+  "stable",
+  "nation",
+  "discipline",
+  "country",
+  "venue",
+];
+const PERSON_KINDS: ScopeKind[] = [
+  "person",
+  "player",
+  "driver",
+  "rider",
+  "boxer",
+  "fighter",
+  "horse",
+  "jockey",
+];
 
 /** Verified team-like or person-like scope entities for a sport (RLS hides unverified rows). */
-export async function fetchScopeEntities(sportId: string, kind: "team" | "person"): Promise<ScopeEntity[]> {
+export async function fetchScopeEntities(
+  sportId: string,
+  kind: "team" | "person",
+): Promise<ScopeEntity[]> {
   const { data, error } = await supabase
     .from("scope_entities")
     .select("id, kind, name, country_code")
@@ -443,17 +505,26 @@ export async function fetchScopeEntities(sportId: string, kind: "team" | "person
     .in("kind", kind === "team" ? TEAM_KINDS : PERSON_KINDS)
     .order("name");
   if (error) throw error;
-  return (data ?? []).map((r) => ({ id: r.id, kind: r.kind, name: r.name, countryCode: r.country_code }));
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    name: r.name,
+    countryCode: r.country_code,
+  }));
 }
 
 /** Sport-aware wording for the two scope pickers (F1 → drivers, horse racing → horses…). */
 export function entityLabels(sportSlug: string): { team: string; person: string } {
-  if (["f1", "nascar", "indycar"].includes(sportSlug)) return { team: "Team or constructor", person: "Driver" };
-  if (["motogp", "superbikes"].includes(sportSlug)) return { team: "Team or manufacturer", person: "Rider" };
-  if (sportSlug === "horse-racing") return { team: "Stable, trainer or nation", person: "Horse or jockey" };
+  if (["f1", "nascar", "indycar"].includes(sportSlug))
+    return { team: "Team or constructor", person: "Driver" };
+  if (["motogp", "superbikes"].includes(sportSlug))
+    return { team: "Team or manufacturer", person: "Rider" };
+  if (sportSlug === "horse-racing")
+    return { team: "Stable, trainer or nation", person: "Horse or jockey" };
   if (sportSlug === "boxing-pro") return { team: "Governing body or nation", person: "Boxer" };
   if (sportSlug === "ufc") return { team: "Division or nation", person: "Fighter" };
-  if (["golf", "tennis", "snooker", "darts"].includes(sportSlug)) return { team: "Tour, nation or event", person: "Player" };
+  if (["golf", "tennis", "snooker", "darts"].includes(sportSlug))
+    return { team: "Tour, nation or event", person: "Player" };
   if (sportSlug === "cricket") return { team: "Team, county or franchise", person: "Player" };
   return { team: "Team, club or nation", person: "Player" };
 }
