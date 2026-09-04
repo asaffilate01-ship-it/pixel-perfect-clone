@@ -60,7 +60,8 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --shadow-glow: 0 0 0 1px oklch(0.83 0.17 158 / 0.35), 0 18px 60px -25px oklch(0.83 0.17 158 / 0.45);
+  --shadow-glow:
+    0 0 0 1px oklch(0.83 0.17 158 / 0.35), 0 18px 60px -25px oklch(0.83 0.17 158 / 0.45);
   --shadow-panel: 0 24px 60px -30px oklch(0 0 0 / 0.85);
 }
 
@@ -122,6 +123,15 @@
       radial-gradient(ellipse 90% 55% at 50% -10%, oklch(0.83 0.168 158 / 0.13), transparent 70%),
       radial-gradient(ellipse 70% 50% at 100% 100%, oklch(0.85 0.125 86 / 0.07), transparent 70%);
     background-attachment: fixed;
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  button,
+  a,
+  input,
+  select {
+    touch-action: manipulation;
   }
 
   h1,
@@ -131,6 +141,76 @@
     letter-spacing: 0.01em;
     text-transform: uppercase;
     line-height: 0.95;
+  }
+}
+
+@layer components {
+  .mobile-tab-bar {
+    position: fixed;
+    z-index: 60;
+    right: 0.75rem;
+    bottom: max(0.65rem, env(safe-area-inset-bottom));
+    left: 0.75rem;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    min-height: 4.25rem;
+    padding: 0.4rem;
+    border: 1px solid color-mix(in oklab, var(--color-border) 88%, white 12%);
+    border-radius: 1.35rem;
+    background: color-mix(in oklab, var(--color-background) 91%, transparent);
+    box-shadow: 0 22px 55px -18px oklch(0 0 0 / 0.95);
+    backdrop-filter: blur(20px) saturate(145%);
+  }
+
+  .mobile-tab {
+    display: flex;
+    min-width: 0;
+    min-height: 3.35rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    border-radius: 1rem;
+    color: var(--color-muted-foreground);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    transition:
+      color 160ms ease,
+      background-color 160ms ease,
+      transform 120ms ease;
+  }
+
+  .mobile-tab:active {
+    transform: scale(0.94);
+  }
+
+  .mobile-tab-active {
+    color: var(--color-primary);
+    background: color-mix(in oklab, var(--color-primary) 13%, transparent);
+  }
+}
+
+@media (max-width: 639px) {
+  .panel {
+    backdrop-filter: blur(14px);
+  }
+
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
