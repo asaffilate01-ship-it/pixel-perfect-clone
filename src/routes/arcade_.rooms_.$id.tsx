@@ -13,6 +13,8 @@ import { FairnessNote } from "@/components/game/ArcadeSetup";
 import { fetchRoom, fetchRoomPlayers, modeName } from "@/lib/arcadeQuiz";
 import { arcadeRoomAction, type ArcadeRoomInput } from "@/lib/arcadeRooms.functions";
 import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
+import { ConnectionBanner, PresenceDot } from "@/components/game/RoomPresence";
+import { useArcadePresence } from "@/hooks/useArcadePresence";
 
 export const Route = createFileRoute("/arcade_/rooms_/$id")({
   head: () => ({
@@ -55,6 +57,7 @@ function RoomLobby() {
     queryFn: fetchCompetitions,
   });
   const [busy, setBusy] = useState(false);
+  const presence = useArcadePresence(user ? id : undefined, user?.id);
 
   const me = players.find((p) => p.user_id === user?.id);
   const isHost = room?.host_id === user?.id;
@@ -150,6 +153,7 @@ function RoomLobby() {
 
   return (
     <Shell title={room ? modeName(room.mode_slug) : "Private room"}>
+      <ConnectionBanner status={presence.myStatus} />
       <div className="panel mt-6 flex items-center justify-between gap-3 p-4">
         <div>
           <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
@@ -198,6 +202,7 @@ function RoomLobby() {
               <Avatar id={p.avatar_id} />
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-2 text-sm font-bold">
+                  <PresenceDot status={presence.byUser.get(p.user_id)} />
                   <span className="truncate">{p.display_name}</span>
                   {p.user_id === room?.host_id && (
                     <span className="rounded-full bg-gold/15 px-1.5 py-0.5 text-[0.5rem] font-black uppercase tracking-[0.16em] text-gold">
