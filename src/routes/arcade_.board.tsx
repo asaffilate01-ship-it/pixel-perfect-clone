@@ -339,13 +339,14 @@ function BoardPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <SideAdRail placement="arcade" />
-      <div className="game-card flex items-center gap-4 p-4">
+      <div className={`game-card relative overflow-hidden flex items-center gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+        <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
         <Button variant="ghost" size="icon" aria-label="Back" asChild>
           <Link to="/arcade">
             <ChevronLeft className="size-5" />
           </Link>
         </Button>
-        <div className="flex-1">
+        <div className="flex-1 relative">
           <p className="eyebrow">Fanzeno arcade</p>
           <h1 className="mt-1 text-3xl sm:text-4xl">{c.title}</h1>
         </div>
@@ -354,7 +355,8 @@ function BoardPage() {
         </span>
       </div>
 
-      <div className="game-card mt-5 flex items-center justify-between gap-4 p-4">
+      <div className={`game-panel relative mt-5 flex items-center justify-between gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+        <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
         <div>
           <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
             Progress
