@@ -1,6 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ChevronLeft, Flag, Handshake, Shield, ShieldCheck, SkipForward, Timer } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  Flag,
+  Handshake,
+  Shield,
+  ShieldCheck,
+  SkipForward,
+  Sparkles,
+  Timer,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +25,18 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { EndGameSheet } from "@/components/game/EndGameSheet";
-import { COLS, ROWS, connectWinner, dropToken, type MatchResult, type Side } from "@/lib/matchEngine";
-import { criterionIcon } from "@/lib/fanzeno";
-import { CriterionGlyph } from "@/components/game/CriterionGlyph";
+import {
+  COLS,
+  ROWS,
+  connectWinner,
+  dropToken,
+  type MatchResult,
+  type Side,
+} from "@/lib/matchEngine";
+import { DIFFICULTIES, fetchSports } from "@/lib/fanzeno";
+import { fetchClueBank } from "@/lib/arcadeQuiz";
+import { QuestionCard, type QuestionOutcome } from "@/components/game/QuestionCard";
+import { Chip, Label } from "@/components/game/ArcadeSetup";
 
 export const Route = createFileRoute("/arcade_/connect-four")({
   head: () => ({
@@ -24,10 +44,14 @@ export const Route = createFileRoute("/arcade_/connect-four")({
       { title: "Connect Four — Fanzeno Arcade" },
       {
         name: "description",
-        content: "Pick a column, answer its sports clue, drop your token. Connect four to win the match.",
+        content:
+          "Pick a column, answer its sports clue, drop your token. Connect four to win the match.",
       },
       { property: "og:title", content: "Connect Four — Fanzeno Arcade" },
-      { property: "og:description", content: "Answer, drop and connect four. Tactical sports trivia." },
+      {
+        property: "og:description",
+        content: "Answer, drop and connect four. Tactical sports trivia.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -35,39 +59,37 @@ export const Route = createFileRoute("/arcade_/connect-four")({
   component: ConnectFourPage,
 });
 
-const CLUES = [
-  "Premier League",
-  "Champions League",
-  "World Cup",
-  "Played in Spain",
-  "International captain",
-  "Major trophy",
-  "100+ appearances",
-];
-
 const TURN_SECONDS = 30;
 
 function ConnectFourPage() {
   const navigate = useNavigate();
   const [board, setBoard] = useState<(Side | null)[]>(() => Array(COLS * ROWS).fill(null));
   const [turn, setTurn] = useState<Side>("me");
-  const [passes, setPasses] = useState(0);
   const [result, setResult] = useState<MatchResult | null>(null);
   const [drawOffered, setDrawOffered] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
   const [seconds, setSeconds] = useState(TURN_SECONDS);
   const [lastIndex, setLastIndex] = useState<number | null>(null);
+  const [selectedCol, setSelectedCol] = useState<number | null>(null);
+  const [sportId, setSportId] = useState<string | null>(null);
+  const [difficulty, setDifficulty] = useState(2);
   const botTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
+  const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
+
+  useEffect(() => {
+    if (!sportId && sports?.length) setSportId(sports[0]!.id);
+  }, [sportId, sports]);
 
   const reset = () => {
     if (botTimer.current) clearTimeout(botTimer.current);
     setBoard(Array(COLS * ROWS).fill(null));
     setTurn("me");
-    setPasses(0);
     setResult(null);
     setDrawOffered(false);
     setSeconds(TURN_SECONDS);
     setLastIndex(null);
+    setSelectedCol(null);
   };
 
   // Turn timer: running out forfeits the match (timeout end reason).
@@ -87,20 +109,27 @@ function ConnectFourPage() {
     return () => clearInterval(id);
   }, [turn, result]);
 
-  useEffect(() => () => {
-    if (botTimer.current) clearTimeout(botTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (botTimer.current) clearTimeout(botTimer.current);
+    },
+    [],
+  );
 
   const botReply = (from: (Side | null)[]) => {
     setTurn("them");
     botTimer.current = setTimeout(() => {
-      const options = Array.from({ length: COLS }, (_, c) => c).filter((c) => dropToken(from, c, "them"));
+      const options = Array.from({ length: COLS }, (_, c) => c).filter((c) =>
+        dropToken(from, c, "them"),
+      );
       if (!options.length) {
         setResult({ outcome: "draw", reason: "board_full" });
         return;
       }
       // Greedy bot: win if possible, block if needed, else random.
-      const winning = options.find((c) => connectWinner(dropToken(from, c, "them")!.board) === "them");
+      const winning = options.find(
+        (c) => connectWinner(dropToken(from, c, "them")!.board) === "them",
+      );
       const blocking = options.find((c) => connectWinner(dropToken(from, c, "me")!.board) === "me");
       const col = winning ?? blocking ?? options[Math.floor(Math.random() * options.length)]!;
       const reply = dropToken(from, col, "them")!;
@@ -112,16 +141,23 @@ function ConnectFourPage() {
     }, 650);
   };
 
-  const play = (col: number) => {
+  const chooseColumn = (col: number) => {
     if (turn !== "me" || result) return;
     const move = dropToken(board, col, "me");
     if (!move) {
       toast("That column is full.");
       return;
     }
+    setSelectedCol(col);
+  };
+
+  const play = (col: number) => {
+    if (turn !== "me" || result) return;
+    const move = dropToken(board, col, "me");
+    if (!move) return;
     setBoard(move.board);
     setLastIndex(move.index);
-    setPasses(0);
+    setSelectedCol(null);
     setDrawOffered(false);
     if (connectWinner(move.board) === "me") {
       setResult({ outcome: "win", reason: "line" });
@@ -134,17 +170,23 @@ function ConnectFourPage() {
     botReply(move.board);
   };
 
-  const pass = () => {
-    if (turn !== "me" || result) return;
-    const n = passes + 1;
-    if (n >= 2) {
-      setResult({ outcome: "draw", reason: "passes" });
+  const resolveQuestion = ({ correct, passed }: QuestionOutcome) => {
+    if (selectedCol === null || result) return;
+    const col = selectedCol;
+    setSelectedCol(null);
+    if (correct) {
+      play(col);
       return;
     }
-    setPasses(n);
-    toast("You passed. Rival passes too and the match is drawn.");
-    setTurn("them");
-    botTimer.current = setTimeout(() => setTurn("me"), 500);
+    toast(passed ? "Question passed — rival turn." : "Incorrect — rival turn.");
+    botReply(board);
+  };
+
+  const pass = () => {
+    if (turn !== "me" || result) return;
+    setSelectedCol(null);
+    toast("Turn passed — your rival will play.");
+    botReply(board);
   };
 
   const offerDraw = () => {
@@ -154,7 +196,8 @@ function ConnectFourPage() {
     const mine = board.filter((v) => v === "me").length;
     const theirs = board.filter((v) => v === "them").length;
     botTimer.current = setTimeout(() => {
-      if (theirs <= mine && Math.random() < 0.5) setResult({ outcome: "draw", reason: "agreed_draw" });
+      if (theirs <= mine && Math.random() < 0.5)
+        setResult({ outcome: "draw", reason: "agreed_draw" });
       else toast("Draw declined — play on.");
     }, 700);
   };
@@ -173,7 +216,12 @@ function ConnectFourPage() {
           <p className="eyebrow">Tactical arena</p>
           <h1 className="mt-1 text-3xl">Connect Four</h1>
         </div>
-        <Button variant="outline" size="sm" onClick={() => setConfirmResign(true)} disabled={!!result}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setConfirmResign(true)}
+          disabled={!!result}
+        >
           <Flag className="size-4" /> Resign
         </Button>
       </div>
@@ -194,29 +242,74 @@ function ConnectFourPage() {
         <PlayerChip label="Rival" active={turn === "them" && !result} />
       </div>
 
-      <p className="mt-4 text-center text-sm text-muted-foreground">
+      <div className="mt-5">
+        <Label>Question setup</Label>
+        <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none]">
+          {(sports ?? []).map((sport) => (
+            <Chip key={sport.id} on={sportId === sport.id} onClick={() => setSportId(sport.id)}>
+              {sport.name}
+            </Chip>
+          ))}
+        </div>
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          {DIFFICULTIES.map((d) => (
+            <Chip key={d.level} on={difficulty === d.level} onClick={() => setDifficulty(d.level)}>
+              {d.label}
+            </Chip>
+          ))}
+        </div>
+      </div>
+
+      <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+        <Sparkles className="size-4 text-gold" />
         {result
           ? "Match over."
           : turn === "me"
-            ? "Choose a column, then answer its sports clue"
+            ? selectedCol === null
+              ? "Tap an open column to reveal your question"
+              : `Column ${selectedCol + 1} selected — answer to drop your token`
             : "Your rival is choosing…"}
       </p>
 
-      <div className="mt-4 grid grid-cols-7 gap-1.5" role="group" aria-label="Column clues">
-        {CLUES.map((clue, i) => (
+      <div
+        className="mt-4 grid grid-cols-7 gap-1.5"
+        role="group"
+        aria-label="Choose a Connect Four column"
+      >
+        {Array.from({ length: COLS }, (_, i) => i).map((i) => (
           <button
-            key={clue}
+            key={i}
             type="button"
-            onClick={() => play(i)}
-            disabled={turn !== "me" || !!result}
-            className="panel flex min-h-16 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[0.6rem] font-bold uppercase leading-tight tracking-wide transition-colors hover:border-primary/60 disabled:opacity-60"
-            aria-label={`Drop in column ${i + 1}: ${clue}`}
+            onClick={() => chooseColumn(i)}
+            disabled={
+              turn !== "me" || !!result || selectedCol !== null || !dropToken(board, i, "me")
+            }
+            className={`panel flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[0.6rem] font-bold uppercase leading-tight tracking-wide transition-all hover:border-primary/60 active:scale-95 disabled:opacity-45 ${
+              selectedCol === i ? "border-gold bg-gold/12 text-gold ring-2 ring-gold/20" : ""
+            }`}
+            aria-label={`Choose column ${i + 1}`}
+            aria-pressed={selectedCol === i}
           >
-            <CriterionGlyph icon={criterionIcon(clue)} className="size-3.5 text-primary" />
-            <span className="line-clamp-2">{clue}</span>
+            <ChevronDown className="size-4 text-primary" aria-hidden />
+            <span>Column {i + 1}</span>
           </button>
         ))}
       </div>
+
+      {selectedCol !== null && turn === "me" && !result && (
+        <QuestionCard
+          turnKey={`connect-four-${filled}-${selectedCol}`}
+          sportId={sportId}
+          categoryKey={null}
+          difficulty={difficulty}
+          bank={bank}
+          accentClass="text-primary"
+          onResolved={resolveQuestion}
+          rewardLabel={(clue) =>
+            `Column ${selectedCol + 1} · ${clue ? "hint used" : "answer to drop"}`
+          }
+        />
+      )}
 
       <div
         className="mt-2 grid grid-cols-7 gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-2"
@@ -244,7 +337,7 @@ function ConnectFourPage() {
 
       <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
         <Button variant="outline" size="sm" onClick={pass} disabled={turn !== "me" || !!result}>
-          <SkipForward className="size-4" /> Pass {passes > 0 && `(${passes}/2)`}
+          <SkipForward className="size-4" /> Pass turn
         </Button>
         <Button
           variant="outline"
@@ -263,7 +356,9 @@ function ConnectFourPage() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Resign this match?</AlertDialogTitle>
-            <AlertDialogDescription>Your rival takes the win and the rating change applies.</AlertDialogDescription>
+            <AlertDialogDescription>
+              Your rival takes the win and the rating change applies.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -300,7 +395,9 @@ function PlayerChip({ label, me, active }: { label: string; me?: boolean; active
   return (
     <div
       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] ${
-        active ? "border-primary bg-primary/12 text-foreground" : "border-border text-muted-foreground"
+        active
+          ? "border-primary bg-primary/12 text-foreground"
+          : "border-border text-muted-foreground"
       }`}
     >
       <span
