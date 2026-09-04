@@ -50,6 +50,13 @@ type PlaySearch = {
 
 const MODES: PlayMode[] = ["daily", "endless", "pass", "cpu"];
 
+const normaliseAttempt = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
 export const Route = createFileRoute("/play/$sport")({
   validateSearch: (raw: Record<string, unknown>): PlaySearch => {
     const out: PlaySearch = {};
@@ -95,6 +102,7 @@ function PlayPage() {
   const [points, setPoints] = useState(0);
   const [generating, setGenerating] = useState(false);
   const [revealed, setRevealed] = useState<Record<number, string[]> | null>(null);
+  const [failedAnswers, setFailedAnswers] = useState<Record<number, string[]>>({});
   const answerBank = useRef<Record<number, string[]> | null>(null);
 
   const competitionId = prefs.sport === sport ? prefs.competitionId : null;
@@ -118,6 +126,7 @@ function PlayPage() {
     setTurn("p1");
     setWinner(null);
     setRevealed(null);
+    setFailedAnswers({});
     setPoints(0);
     answerBank.current = null;
   };
@@ -197,21 +206,31 @@ function PlayPage() {
 
   const send = async () => {
     if (!grid || active === null || !guess.trim()) return;
+    const attempt = guess.trim();
+    if (
+      battle &&
+      (failedAnswers[active] ?? []).some(
+        (failed) => normaliseAttempt(failed) === normaliseAttempt(attempt),
+      )
+    ) {
+      toast.error("That answer was already rejected for this square. Try a new name.");
+      return;
+    }
     setPending(true);
     try {
       const result = battle
-        ? await checkGuess({ gridId: grid.id, cell: active, guess: guess.trim() })
+        ? await checkGuess({ gridId: grid.id, cell: active, guess: attempt })
         : await submitGuess({
             gridId: grid.id,
             cell: active,
-            guess: guess.trim(),
+            guess: attempt,
             signedIn: !!user,
             mode: mode === "endless" ? "endless" : "daily",
           });
 
       const nextBoard = [...board];
       nextBoard[active] = {
-        guess: guess.trim(),
+        guess: attempt,
         athlete: result.athlete_name ?? undefined,
         status: result.accepted ? "correct" : "wrong",
       };
@@ -225,7 +244,11 @@ function PlayPage() {
           setOwners(nextOwners);
           toast.success(`${result.athlete_name} — square claimed.`);
         } else {
-          toast.error("Wrong answer — the square stays open.");
+          setFailedAnswers((current) => ({
+            ...current,
+            [active]: [...(current[active] ?? []), attempt],
+          }));
+          toast.error("Wrong answer — the square stays open for a fresh answer.");
           // A wrong guess frees the cell again for either player.
           nextBoard[active] = { status: "empty" };
           setBoard(nextBoard);
@@ -332,8 +355,17 @@ function PlayPage() {
         </div>
         {battle ? (
           <div className="flex items-end gap-4 text-right">
-            <Score label={mode === "cpu" ? "You" : "Player 1"} value={p1Count} on={turn === "p1" && !winner} />
-            <Score label={mode === "cpu" ? "CPU" : "Player 2"} value={p2Count} on={turn === "p2" && !winner} tone="gold" />
+            <Score
+              label={mode === "cpu" ? "You" : "Player 1"}
+              value={p1Count}
+              on={turn === "p1" && !winner}
+            />
+            <Score
+              label={mode === "cpu" ? "CPU" : "Player 2"}
+              value={p2Count}
+              on={turn === "p2" && !winner}
+              tone="gold"
+            />
           </div>
         ) : (
           <div className="text-right">
@@ -364,8 +396,12 @@ function PlayPage() {
             {winner === "draw"
               ? "Board full — it's a draw"
               : winner === "p1"
-                ? mode === "cpu" ? "You beat the CPU!" : "Player 1 takes the line!"
-                : mode === "cpu" ? "The CPU got three in a row." : "Player 2 takes the line!"}
+                ? mode === "cpu"
+                  ? "You beat the CPU!"
+                  : "Player 1 takes the line!"
+                : mode === "cpu"
+                  ? "The CPU got three in a row."
+                  : "Player 2 takes the line!"}
           </p>
           <Button className="ml-auto" onClick={resetLocal}>
             <RotateCcw className="size-4" /> Rematch
@@ -397,7 +433,8 @@ function PlayPage() {
                 const cell = board[index]!;
                 const owner = owners[index];
                 const locked =
-                  cell.status !== "empty" || (battle && (winner !== null || (mode === "cpu" && turn === "p2")));
+                  cell.status !== "empty" ||
+                  (battle && (winner !== null || (mode === "cpu" && turn === "p2")));
                 return (
                   <button
                     key={index}
@@ -422,11 +459,15 @@ function PlayPage() {
                     ) : (
                       <span className="flex h-full flex-col items-center justify-center gap-1">
                         {cell.status === "correct" ? (
-                          <Check className={`size-4 ${owner === "p2" ? "text-gold" : "text-primary"}`} />
+                          <Check
+                            className={`size-4 ${owner === "p2" ? "text-gold" : "text-primary"}`}
+                          />
                         ) : (
                           <X className="size-4 text-destructive" />
                         )}
-                        <span className="line-clamp-3 break-words">{cell.athlete ?? cell.guess}</span>
+                        <span className="line-clamp-3 break-words">
+                          {cell.athlete ?? cell.guess}
+                        </span>
                       </span>
                     )}
                   </button>
@@ -443,7 +484,8 @@ function PlayPage() {
         </Button>
         {mode === "endless" && (
           <Button onClick={() => void nextEndless()} disabled={generating || !user}>
-            <InfinityIcon className="size-4" /> {generating ? "Generating…" : "Generate another grid"}
+            <InfinityIcon className="size-4" />{" "}
+            {generating ? "Generating…" : "Generate another grid"}
           </Button>
         )}
         {finished && (
@@ -452,7 +494,9 @@ function PlayPage() {
           </Button>
         )}
         <Button asChild variant="ghost" className="ml-auto">
-          <Link to="/modes/$sport" params={{ sport }}>Change mode</Link>
+          <Link to="/modes/$sport" params={{ sport }}>
+            Change mode
+          </Link>
         </Button>
       </div>
 
@@ -480,10 +524,17 @@ function PlayPage() {
             </DialogTitle>
             <DialogDescription>
               {battle
-                ? `${turn === "p1" ? (mode === "cpu" ? "Your" : "Player 1's") : "Player 2's"} turn. A correct answer claims the square; a wrong one passes the turn.`
+                ? `${turn === "p1" ? (mode === "cpu" ? "Your" : "Player 1's") : "Player 2's"} turn. A correct answer claims the square; a wrong one passes the turn and leaves it open for a new answer.`
                 : "Name an athlete who satisfies both criteria. Suggestions come from the verified athlete index — typos, accents and nicknames are fine."}
             </DialogDescription>
           </DialogHeader>
+          {battle && active !== null && (failedAnswers[active]?.length ?? 0) > 0 && (
+            <p className="rounded-xl border border-gold/30 bg-gold/10 px-3 py-2 text-xs text-gold">
+              {failedAnswers[active]!.length} previous incorrect
+              {failedAnswers[active]!.length === 1 ? " answer" : " answers"}. Choose a different
+              player for this attempt.
+            </p>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -511,11 +562,27 @@ function PlayPage() {
   );
 }
 
-function Score({ label, value, on, tone = "primary" }: { label: string; value: number; on: boolean; tone?: "primary" | "gold" }) {
+function Score({
+  label,
+  value,
+  on,
+  tone = "primary",
+}: {
+  label: string;
+  value: number;
+  on: boolean;
+  tone?: "primary" | "gold";
+}) {
   return (
-    <div className={`rounded-xl border px-3 py-2 ${on ? (tone === "gold" ? "border-gold/70" : "border-primary/70") : "border-border/60"}`}>
-      <span className={`font-display text-3xl ${tone === "gold" ? "text-gold" : "text-primary"}`}>{value}</span>
-      <p className="text-[0.6rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
+    <div
+      className={`rounded-xl border px-3 py-2 ${on ? (tone === "gold" ? "border-gold/70" : "border-primary/70") : "border-border/60"}`}
+    >
+      <span className={`font-display text-3xl ${tone === "gold" ? "text-gold" : "text-primary"}`}>
+        {value}
+      </span>
+      <p className="text-[0.6rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        {label}
+      </p>
     </div>
   );
 }
