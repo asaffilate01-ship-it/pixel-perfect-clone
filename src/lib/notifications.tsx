@@ -66,7 +66,7 @@ export function useNotifications(limit = 40) {
     void load();
     if (!user) return;
     const channel = supabase
-      .channel(`inbox:${user.id}`)
+      .channel(`inbox:${user.id}:${Math.random().toString(36).slice(2)}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "user_notifications", filter: `user_id=eq.${user.id}` },
