@@ -8,7 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+type AuthSearch = { next?: string };
+
+const safeNext = (value: unknown) =>
+  typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : undefined;
+
 export const Route = createFileRoute("/auth")({
+  validateSearch: (raw: Record<string, unknown>): AuthSearch => ({ next: safeNext(raw["next"]) }),
   head: () => ({
     meta: [
       { title: "Sign in — Fanzeno" },
@@ -28,6 +34,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const { next } = Route.useSearch();
   const { user } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
@@ -36,8 +43,8 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (user) void navigate({ to: "/" });
-  }, [user, navigate]);
+    if (user) void navigate({ to: next || "/" });
+  }, [user, navigate, next]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +65,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      await navigate({ to: "/" });
+      await navigate({ to: next || "/" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Authentication failed.");
     } finally {
@@ -68,14 +75,14 @@ function AuthPage() {
 
   const google = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}/auth${next ? `?next=${encodeURIComponent(next)}` : ""}`,
     });
     if (result.error) {
       toast.error("Google sign-in failed.");
       return;
     }
     if (result.redirected) return;
-    await navigate({ to: "/" });
+    await navigate({ to: next || "/" });
   };
 
   return (
@@ -88,7 +95,8 @@ function AuthPage() {
           Continue with Google
         </Button>
         <div className="my-5 flex items-center gap-3 text-[0.62rem] font-bold uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="h-px flex-1 bg-border" /> or email <span className="h-px flex-1 bg-border" />
+          <span className="h-px flex-1 bg-border" /> or email{" "}
+          <span className="h-px flex-1 bg-border" />
         </div>
         <form className="space-y-4" onSubmit={submit}>
           {mode === "signup" && (
