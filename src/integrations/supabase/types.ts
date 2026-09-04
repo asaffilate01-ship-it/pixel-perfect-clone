@@ -2559,6 +2559,41 @@ export type Database = {
           },
         ]
       }
+      question_pool_targets: {
+        Row: {
+          category_key: string
+          difficulty: number
+          priority: number
+          sport_id: string
+          target_count: number
+          updated_at: string
+        }
+        Insert: {
+          category_key: string
+          difficulty: number
+          priority?: number
+          sport_id: string
+          target_count?: number
+          updated_at?: string
+        }
+        Update: {
+          category_key?: string
+          difficulty?: number
+          priority?: number
+          sport_id?: string
+          target_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_pool_targets_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       question_scope_links: {
         Row: {
           criterion_id: string
@@ -3074,6 +3109,52 @@ export type Database = {
           },
         ]
       }
+      question_pool_coverage: {
+        Row: {
+          category_key: string | null
+          competition_id: string | null
+          difficulty: number | null
+          playable_questions: number | null
+          sport_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_pool_target_status: {
+        Row: {
+          category_key: string | null
+          difficulty: number | null
+          playable_count: number | null
+          questions_needed: number | null
+          sport_id: string | null
+          sport_slug: string | null
+          status: string | null
+          target_count: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_pool_targets_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_host_game: {
@@ -3081,6 +3162,10 @@ export type Database = {
         Returns: boolean
       }
       entitlement_verified: { Args: { p_user_id: string }; Returns: boolean }
+      fill_verified_question_pools: {
+        Args: { p_limit_each?: number }
+        Returns: Json
+      }
       fz_check_answer: {
         Args: { p_cell: number; p_grid: string; p_guess: string }
         Returns: {
@@ -3137,6 +3222,14 @@ export type Database = {
         }
         Returns: string
       }
+      generate_verified_honour_questions: {
+        Args: { p_limit?: number; p_sport_id?: string }
+        Returns: number
+      }
+      generate_verified_intersection_questions: {
+        Args: { p_category_key?: string; p_limit?: number; p_sport_id?: string }
+        Returns: number
+      }
       grant_pro_lifetime: {
         Args: { p_reason?: string; p_user_id: string }
         Returns: undefined
@@ -3169,6 +3262,10 @@ export type Database = {
         }[]
       }
       publish_question: { Args: { p_question_id: string }; Returns: undefined }
+      question_difficulty_band: {
+        Args: { p_percentile: number }
+        Returns: number
+      }
       record_question_attempt: {
         Args: {
           p_correct: boolean
