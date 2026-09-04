@@ -60,9 +60,13 @@
 
 - Question bank fairness + starter pack migration applied live (78 verified questions, scoring/streaks, random matchmaking)
 
-## In progress
+## Done (Sep 4 UI pass)
 - Games UI/UX overhaul: consistent game cards with proper icons across Arcade hub, modes and boards
   (refs: National Lottery instant-win games grid, Dribbble sport-quiz UI). No team logos or player photos (copyright).
 - Simpler sport / sport-category filtering UX (home sport picker + /filters page): clear chips, search, grouped categories
 - Sport hierarchy: Sport (American Football, Basketball…) → League/competition (NFL, CFL, NCAA / NBA, NCAA, EuroBasket, FIBA Worlds, Olympics) → categories
-- Remote games: each player picks their own sport (A cricket, B football) for the same game; difficulty bands must stay fair across sports
+- Remote games: each player picks their own sport (A cricket, B football) for the same game; difficulty bands must stay fair across sports (icon picker + fairness note in lobbies/setup; percentile bands in reserve_fair_question)
+- Fixed guest data loading: RLS helper functions re-granted to anon
+
+## In progress
+- (none)
