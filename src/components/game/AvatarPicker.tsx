@@ -1,21 +1,33 @@
 import { useState } from "react";
 import { Gem, Palette } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import captainImg from "@/assets/avatars/captain.jpg.asset.json";
+import playmakerImg from "@/assets/avatars/playmaker.jpg.asset.json";
+import strikerImg from "@/assets/avatars/striker.jpg.asset.json";
+import championImg from "@/assets/avatars/champion.jpg.asset.json";
+import aceImg from "@/assets/avatars/ace.jpg.asset.json";
+import racerImg from "@/assets/avatars/racer.jpg.asset.json";
+import legendImg from "@/assets/avatars/legend.jpg.asset.json";
+import challengerImg from "@/assets/avatars/challenger.jpg.asset.json";
+import veteranImg from "@/assets/avatars/veteran.jpg.asset.json";
+import maverickImg from "@/assets/avatars/maverick.jpg.asset.json";
+import rookieImg from "@/assets/avatars/rookie.jpg.asset.json";
+import allstarImg from "@/assets/avatars/allstar.jpg.asset.json";
 
 /** Avatar collection v2 — mirrors the `avatar_presets` atlas (12 characters, four Pro). */
 export const AVATARS = [
-  { id: "captain", face: "🧢", color: "#45E6A0", pro: false },
-  { id: "playmaker", face: "🎯", color: "#49C6E5", pro: false },
-  { id: "striker", face: "⚽", color: "#FF6B5C", pro: false },
-  { id: "champion", face: "🏆", color: "#FFD84A", pro: false },
-  { id: "ace", face: "🎾", color: "#45E6A0", pro: false },
-  { id: "racer", face: "🏎️", color: "#4D8DFF", pro: false },
-  { id: "legend", face: "👑", color: "#9A7BFF", pro: false },
-  { id: "challenger", face: "🥊", color: "#FF6B5C", pro: false },
-  { id: "veteran", face: "🦁", color: "#E9A83D", pro: true },
-  { id: "maverick", face: "🚀", color: "#9A7BFF", pro: true },
-  { id: "rookie", face: "⭐", color: "#45E6A0", pro: true },
-  { id: "allstar", face: "🦅", color: "#49C6E5", pro: true },
+  { id: "captain", label: "Captain", img: captainImg.url, color: "#1E9E63", pro: false },
+  { id: "playmaker", label: "Playmaker", img: playmakerImg.url, color: "#1FA9D6", pro: false },
+  { id: "striker", label: "Striker", img: strikerImg.url, color: "#F0533F", pro: false },
+  { id: "champion", label: "Champion", img: championImg.url, color: "#F0B400", pro: false },
+  { id: "ace", label: "Ace", img: aceImg.url, color: "#1E9E63", pro: false },
+  { id: "racer", label: "Racer", img: racerImg.url, color: "#2B5FE0", pro: false },
+  { id: "legend", label: "Legend", img: legendImg.url, color: "#7C4DD1", pro: false },
+  { id: "challenger", label: "Challenger", img: challengerImg.url, color: "#F0533F", pro: false },
+  { id: "veteran", label: "Veteran", img: veteranImg.url, color: "#E9A83D", pro: true },
+  { id: "maverick", label: "Maverick", img: maverickImg.url, color: "#7C4DD1", pro: true },
+  { id: "rookie", label: "Rookie", img: rookieImg.url, color: "#1E9E63", pro: true },
+  { id: "allstar", label: "All-Star", img: allstarImg.url, color: "#1FA9D6", pro: true },
 ] as const;
 
 export type AvatarId = (typeof AVATARS)[number]["id"];
@@ -32,24 +44,25 @@ export function Avatar({ id, size = 44, className = "" }: { id: string | null | 
   const a = avatarFor(id);
   return (
     <span
-      aria-label={`${a.id} avatar`}
-      className={`relative grid shrink-0 place-items-center overflow-hidden ${className}`}
+      className={`relative block shrink-0 overflow-hidden ${className}`}
       style={{
         width: size,
         height: size,
         borderRadius: size * 0.32,
-        background: `linear-gradient(160deg, ${a.color} 0%, ${a.color}AA 100%)`,
+        background: a.color,
         boxShadow: `0 6px 18px -8px ${a.color}`,
       }}
     >
-      <span
-        className="pointer-events-none absolute -top-1/4 left-0 right-0 h-1/2 rounded-full bg-background/20"
-        aria-hidden
+      <img
+        src={a.img}
+        alt={`${a.label} avatar`}
+        loading="lazy"
+        className="size-full object-cover"
       />
-      <span style={{ fontSize: size * 0.48, lineHeight: 1 }}>{a.face}</span>
     </span>
   );
 }
+
 
 export function AvatarPicker({
   value,
@@ -101,8 +114,8 @@ export function AvatarPicker({
                     on ? "border-primary bg-primary/10" : "border-border hover:border-primary/50"
                   } ${locked ? "opacity-45" : ""}`}
                 >
-                  <Avatar id={a.id} size={48} />
-                  <span className="text-[0.58rem] font-black uppercase tracking-[0.12em]">{a.id}</span>
+                  <Avatar id={a.id} size={56} />
+                  <span className="text-[0.58rem] font-black uppercase tracking-[0.12em]">{a.label}</span>
                   {a.pro && (
                     <span className="absolute right-1 top-1 inline-flex items-center gap-0.5 rounded-full bg-gold/15 px-1.5 py-0.5 text-[0.5rem] font-black uppercase text-gold">
                       <Gem className="size-2.5" /> Pro
@@ -114,9 +127,10 @@ export function AvatarPicker({
           </div>
           {!pro && (
             <p className="text-xs text-muted-foreground">
-              Rocket, Lion, Eagle and Legend unlock with Fanzeno Pro.
+              Veteran, Maverick, Rookie and All-Star unlock with Fanzeno Pro.
             </p>
           )}
+
         </DialogContent>
       </Dialog>
     </>
