@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchCompetitions, groupCompetitions, type Sport } from "@/lib/fanzeno";
 import { SEAT_COLORS } from "@/lib/arcadeQuiz";
 import { Avatar } from "@/components/game/AvatarPicker";
+import { SportPicker } from "@/components/game/SportPicker";
+import { Scale } from "lucide-react";
 
 export function Label({ children }: { children: React.ReactNode }) {
   return (
@@ -71,22 +73,18 @@ export function PlayerCard({
           aria-label={`Player ${seat + 1} name`}
           className="w-full bg-transparent text-sm font-bold outline-none placeholder:text-muted-foreground"
         />
-        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-          {sports.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => {
-                onSport(s.id);
-                onCategory?.(null);
-              }}
-              className={`shrink-0 rounded-full border px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-[0.1em] ${
-                player.sportId === s.id ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground"
-              }`}
-            >
-              {s.name}
-            </button>
-          ))}
+        <div className="mt-2">
+          <SportPicker
+            sports={sports}
+            value={sports.find((s) => s.id === player.sportId)?.slug ?? ""}
+            onChange={(slug) => {
+              const picked = sports.find((s) => s.slug === slug);
+              if (!picked) return;
+              onSport(picked.id);
+              onCategory?.(null);
+            }}
+            compact
+          />
         </div>
         {onCategory && categories.length > 0 && (
           <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
@@ -116,5 +114,17 @@ export function PlayerCard({
         {children}
       </div>
     </div>
+  );
+}
+
+/** Reassures mixed-sport lobbies: levels are percentile bands, so Easy cricket ≈ Easy football. */
+export function FairnessNote() {
+  return (
+    <p className="mt-3 flex items-start gap-2 rounded-xl border border-border bg-surface/40 p-3 text-xs text-muted-foreground">
+      <Scale className="mt-0.5 size-4 shrink-0 text-primary" />
+      Every player can pick a different sport. Easy, Medium, Hard and Expert are difficulty bands
+      that mean the same thing in every sport, so a cricket fan and a football fan get an equally
+      tough question at the same level.
+    </p>
   );
 }

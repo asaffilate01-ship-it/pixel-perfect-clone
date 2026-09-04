@@ -179,6 +179,61 @@ export type Database = {
           },
         ]
       }
+      arcade_matchmaking_queue: {
+        Row: {
+          category_key: string | null
+          difficulty: number
+          joined_at: string
+          matched_room_id: string | null
+          mode_slug: string
+          sport_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category_key?: string | null
+          difficulty: number
+          joined_at?: string
+          matched_room_id?: string | null
+          mode_slug: string
+          sport_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category_key?: string | null
+          difficulty?: number
+          joined_at?: string
+          matched_room_id?: string | null
+          mode_slug?: string
+          sport_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arcade_matchmaking_queue_matched_room_id_fkey"
+            columns: ["matched_room_id"]
+            isOneToOne: false
+            referencedRelation: "arcade_rooms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "arcade_matchmaking_queue_mode_slug_fkey"
+            columns: ["mode_slug"]
+            isOneToOne: false
+            referencedRelation: "game_modes"
+            referencedColumns: ["slug"]
+          },
+          {
+            foreignKeyName: "arcade_matchmaking_queue_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       arcade_presence: {
         Row: {
           connection_id: string
@@ -1960,6 +2015,48 @@ export type Database = {
           },
         ]
       }
+      player_arcade_progress: {
+        Row: {
+          answered: number
+          best_answer_streak: number
+          best_daily_streak: number
+          correct_answers: number
+          current_answer_streak: number
+          daily_streak: number
+          last_correct_date: string | null
+          rank_points: number
+          updated_at: string
+          user_id: string
+          xp: number
+        }
+        Insert: {
+          answered?: number
+          best_answer_streak?: number
+          best_daily_streak?: number
+          correct_answers?: number
+          current_answer_streak?: number
+          daily_streak?: number
+          last_correct_date?: string | null
+          rank_points?: number
+          updated_at?: string
+          user_id: string
+          xp?: number
+        }
+        Update: {
+          answered?: number
+          best_answer_streak?: number
+          best_daily_streak?: number
+          correct_answers?: number
+          current_answer_streak?: number
+          daily_streak?: number
+          last_correct_date?: string | null
+          rank_points?: number
+          updated_at?: string
+          user_id?: string
+          xp?: number
+        }
+        Relationships: []
+      }
       player_ratings: {
         Row: {
           best_score: number
@@ -2226,6 +2323,7 @@ export type Database = {
       question_attempts: {
         Row: {
           ability_before: number | null
+          awarded_points: number
           correct: boolean
           created_at: string
           difficulty_selected: number
@@ -2239,6 +2337,7 @@ export type Database = {
         }
         Insert: {
           ability_before?: number | null
+          awarded_points?: number
           correct: boolean
           created_at?: string
           difficulty_selected: number
@@ -2252,6 +2351,7 @@ export type Database = {
         }
         Update: {
           ability_before?: number | null
+          awarded_points?: number
           correct?: boolean
           created_at?: string
           difficulty_selected?: number
@@ -3050,6 +3150,16 @@ export type Database = {
       }
       has_staff_role: { Args: never; Returns: boolean }
       is_arcade_member: { Args: { p_room: string }; Returns: boolean }
+      matchmake_arcade_player: {
+        Args: {
+          p_category_key?: string
+          p_difficulty: number
+          p_mode_slug: string
+          p_sport_id?: string
+          p_user_id: string
+        }
+        Returns: string
+      }
       my_entitlement_status: {
         Args: never
         Returns: {
@@ -3068,6 +3178,19 @@ export type Database = {
           p_response_ms: number
           p_room_id: string
           p_used_clue: boolean
+        }
+        Returns: undefined
+      }
+      record_verified_question_attempt: {
+        Args: {
+          p_correct: boolean
+          p_difficulty: number
+          p_passed: boolean
+          p_question_id: string
+          p_response_ms: number
+          p_room_id: string
+          p_used_clue: boolean
+          p_user_id: string
         }
         Returns: undefined
       }

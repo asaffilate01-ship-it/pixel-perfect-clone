@@ -15,6 +15,7 @@ import {
   Zap,
 } from "lucide-react";
 import { fetchSports } from "@/lib/fanzeno";
+import { SportPicker } from "@/components/game/SportPicker";
 import { scopeLabel, useQuizPrefs } from "@/lib/quizPrefs";
 import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
@@ -158,27 +159,8 @@ function Home() {
             </span>
           </Link>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {(sports ?? []).map((s) => {
-            const selected = s.slug === sport;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => setSport(s.slug)}
-                className={`rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-[0.12em] transition-colors ${
-                  selected
-                    ? "border-primary bg-primary/15 text-foreground"
-                    : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {s.name}
-                {!playable.has(s.slug) && (
-                  <span className="ml-2 text-[0.6rem] text-muted-foreground">soon</span>
-                )}
-              </button>
-            );
-          })}
+        <div className="mt-4">
+          <SportPicker sports={sports ?? []} value={sport} onChange={setSport} playable={playable} compact />
         </div>
       </section>
 

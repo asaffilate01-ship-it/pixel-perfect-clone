@@ -8,6 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEntitlements } from "@/lib/entitlements";
 import { fetchCompetitions, fetchSports, groupCompetitions } from "@/lib/fanzeno";
+import { SportPicker } from "@/components/game/SportPicker";
+import { FairnessNote } from "@/components/game/ArcadeSetup";
 import { fetchRoom, fetchRoomPlayers, modeName } from "@/lib/arcadeQuiz";
 import { arcadeRoomAction, type ArcadeRoomInput } from "@/lib/arcadeRooms.functions";
 import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
@@ -176,19 +178,16 @@ function RoomLobby() {
           <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Your seat</p>
           <AvatarPicker value={me.avatar_id} pro={pro} onChange={(avatarId) => void act({ action: "settings", roomId: id, avatarId })} />
           <p className="mt-3 text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Your subject</p>
-          <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-            {sports.map((s) => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => void act({ action: "settings", roomId: id, sportId: s.id, categoryKey: null })}
-                className={`shrink-0 rounded-full border px-2.5 py-1 text-[0.6rem] font-black uppercase tracking-[0.1em] ${
-                  me.sport_id === s.id ? "border-primary bg-primary/15 text-foreground" : "border-border text-muted-foreground"
-                }`}
-              >
-                {s.name}
-              </button>
-            ))}
+          <div className="mt-2">
+            <SportPicker
+              sports={sports}
+              value={sports.find((s) => s.id === me.sport_id)?.slug ?? ""}
+              onChange={(slug) => {
+                const picked = sports.find((s) => s.slug === slug);
+                if (picked) void act({ action: "settings", roomId: id, sportId: picked.id, categoryKey: null });
+              }}
+              compact
+            />
           </div>
           {myCategories.length > 0 && (
             <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
@@ -215,6 +214,7 @@ function RoomLobby() {
               ))}
             </div>
           )}
+          <FairnessNote />
         </div>
       )}
 

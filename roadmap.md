@@ -58,7 +58,11 @@
 ## Done (v0.12–v0.20 fold-in)
 - Branding, notifications, onboarding + home nudge, 5 arcade boards, Monthly page, Ops question review, security-definer grants tightened
 
+- Question bank fairness + starter pack migration applied live (78 verified questions, scoring/streaks, random matchmaking)
+
 ## In progress
-- v0.12–v0.20 fold-in (archive of nine releases; latest v0.20)
-- Brand: Fanzeno logo in header + app-icon favicon
-- Test sign-in account (testfan@gmail.com) for live room verification
+- Games UI/UX overhaul: consistent game cards with proper icons across Arcade hub, modes and boards
+  (refs: National Lottery instant-win games grid, Dribbble sport-quiz UI). No team logos or player photos (copyright).
+- Simpler sport / sport-category filtering UX (home sport picker + /filters page): clear chips, search, grouped categories
+- Sport hierarchy: Sport (American Football, Basketball…) → League/competition (NFL, CFL, NCAA / NBA, NCAA, EuroBasket, FIBA Worlds, Olympics) → categories
+- Remote games: each player picks their own sport (A cricket, B football) for the same game; difficulty bands must stay fair across sports
