@@ -159,7 +159,9 @@ function RoomsPage() {
             in.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/auth">Sign in to play online</Link>
+            <Link to="/auth" search={{ next: "/arcade/rooms" }}>
+              Sign in to play online
+            </Link>
           </Button>
         </div>
       )}
@@ -275,7 +277,13 @@ function RoomsPage() {
         )}
       </div>
 
-      {hostLocked ? (
+      {!loading && !user ? (
+        <Button asChild size="lg" className="mt-6 w-full font-bold uppercase tracking-[0.14em]">
+          <Link to="/auth" search={{ next: "/arcade/rooms" }}>
+            Sign in to host a room <ArrowRight className="size-4" />
+          </Link>
+        </Button>
+      ) : hostLocked ? (
         <Button
           asChild
           size="lg"
