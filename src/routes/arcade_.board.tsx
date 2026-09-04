@@ -2,15 +2,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Award,
+  BarChart3,
   Check,
   ChevronLeft,
+  Flame,
+  Flag,
   Gauge,
   Gem,
   Grid2x2,
   Hexagon,
+  Medal,
   Network,
   RotateCcw,
+  Shield,
+  Sparkles,
+  Star,
+  Target,
+  Trophy,
   Users,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, Label } from "@/components/game/ArcadeSetup";
@@ -131,6 +142,25 @@ const BINGO = [
   "Super Bowl",
   "Ryder Cup",
 ];
+const BINGO_ICONS: Record<string, React.ElementType> = {
+  "World champion": Trophy,
+  "Olympic medallist": Medal,
+  "Premier League": Flag,
+  "Grand Slam": Sparkles,
+  "Test captain": Shield,
+  "European champion": Star,
+  "100+ caps": BarChart3,
+  "Major winner": Trophy,
+  "T20 champion": Zap,
+  "Formula 1 winner": Gauge,
+  "NBA champion": Target,
+  "Rugby World Cup": Award,
+  "Ballon d'Or": Award,
+  "Ashes winner": Flame,
+  "Super Bowl": Trophy,
+  "Ryder Cup": Users,
+};
+
 const DRAFT = [
   { name: "Gianluigi Buffon", role: "GK", rating: 92 },
   { name: "Paolo Maldini", role: "DEF", rating: 94 },
@@ -278,23 +308,29 @@ function BoardPage() {
   if (c.pro && !pro) {
     return (
       <div className="mx-auto w-full max-w-2xl px-4 py-10">
-        <div className="panel p-6 text-center">
-          <span className={`mx-auto grid size-12 place-items-center rounded-xl ${c.tone}`}>
-            <Icon className="size-6" />
+        <div className="game-card p-8 text-center">
+          <span className={`mx-auto grid size-16 place-items-center rounded-2xl ${c.tone}`}>
+            <Icon className="size-8" />
           </span>
-          <h1 className="mt-4 text-4xl">{c.title}</h1>
+          <p className="eyebrow mt-4">Fanzeno Pro</p>
+          <h1 className="mt-1 text-4xl">{c.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{c.rule}</p>
+          <div className="game-progress mt-6">
+            <div className="game-progress-fill w-3/4" />
+          </div>
           <p className="mt-4 text-xs text-muted-foreground">
             This is a Fanzeno Pro table. Free players can still join a Pro host's private room.
           </p>
-          <Button asChild size="lg" className="mt-5 font-bold uppercase tracking-[0.14em]">
-            <Link to="/upgrade">
-              <Gem className="size-4" /> Unlock Fanzeno Pro
-            </Link>
-          </Button>
-          <Button asChild variant="ghost" className="mt-2">
-            <Link to="/arcade">Back to arcade</Link>
-          </Button>
+          <div className="mt-6 flex flex-col gap-2">
+            <Button asChild size="lg" className="font-bold uppercase tracking-[0.14em]">
+              <Link to="/upgrade">
+                <Gem className="size-4" /> Unlock Fanzeno Pro
+              </Link>
+            </Button>
+            <Button asChild variant="ghost">
+              <Link to="/arcade">Back to arcade</Link>
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -303,7 +339,7 @@ function BoardPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <SideAdRail placement="arcade" />
-      <div className="flex items-center gap-3">
+      <div className="game-card flex items-center gap-4 p-4">
         <Button variant="ghost" size="icon" aria-label="Back" asChild>
           <Link to="/arcade">
             <ChevronLeft className="size-5" />
@@ -311,21 +347,31 @@ function BoardPage() {
         </Button>
         <div className="flex-1">
           <p className="eyebrow">Fanzeno arcade</p>
-          <h1 className="mt-1 text-3xl">{c.title}</h1>
+          <h1 className="mt-1 text-3xl sm:text-4xl">{c.title}</h1>
         </div>
-        <span className={`grid size-11 place-items-center rounded-xl ${c.tone}`}>
-          <Icon className="size-5" />
+        <span className={`grid size-12 place-items-center rounded-xl ${c.tone}`}>
+          <Icon className="size-6" />
         </span>
       </div>
 
-      <div className="panel mt-5 flex items-center gap-4 p-4">
+      <div className="game-card mt-5 flex items-center justify-between gap-4 p-4">
         <div>
           <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
             Progress
           </p>
-          <p className={`font-display text-3xl ${c.accent}`}>{progress}</p>
+          <p className={`font-display text-4xl leading-none ${c.accent}`}>{progress}</p>
         </div>
-        <p className="flex-1 text-xs text-muted-foreground">{c.rule}</p>
+        <div className="flex-1 text-right">
+          <p className="text-xs text-muted-foreground">{c.rule}</p>
+          <div className="game-progress mt-3">
+            <div
+              className="game-progress-fill"
+              style={{
+                width: `${mode === "501" ? Math.max(0, Math.min(100, ((501 - remaining) / 501) * 100)) : mode === "connections" ? (solved.length / 4) * 100 : mode === "draft" ? (squad.length / DRAFT.length) * 100 : mode === "territory" ? Math.min(100, (mine.length / 10) * 100) : Math.min(100, (mine.length / 16) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
       </div>
 
       {mode !== "connections" && (
@@ -347,9 +393,12 @@ function BoardPage() {
 
       {finished ? (
         <div
-          className={`panel mt-6 p-6 text-center ${won ? "border-primary/60" : "border-destructive/60"}`}
+          className={`game-card mt-6 p-6 text-center ${won ? "border-primary/60" : "border-destructive/60"}`}
         >
-          <p className="eyebrow">{won ? "Victory" : "Defeat"}</p>
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-gold/10">
+            <Trophy className="size-8 text-gold" />
+          </span>
+          <p className="eyebrow mt-4">{won ? "Victory" : "Defeat"}</p>
           <p className="mt-2 font-display text-4xl">
             {mode === "territory"
               ? won
@@ -366,7 +415,7 @@ function BoardPage() {
           <p className="mt-2 text-xs text-muted-foreground">
             {round} question{round === 1 ? "" : "s"} · {misses} miss{misses === 1 ? "" : "es"}
           </p>
-          <div className="mt-5 flex justify-center gap-2">
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Button onClick={reset} className="font-bold uppercase tracking-[0.14em]">
               <RotateCcw className="size-4" /> Play again
             </Button>
@@ -378,41 +427,43 @@ function BoardPage() {
       ) : (
         <>
           {mode === "territory" && (
-            <div className="mt-6 grid grid-cols-5 gap-2" role="group" aria-label="Territory zones">
-              {Array.from({ length: 19 }, (_, i) => {
-                const own = mine.includes(i),
-                  theirs = rival.includes(i);
-                return (
-                  <button
-                    key={i}
-                    type="button"
-                    disabled={own || theirs || target !== null}
-                    onClick={() => setTarget(i)}
-                    aria-label={`Zone ${i + 1}${own ? ", yours" : theirs ? ", rival" : ""}`}
-                    className={`relative grid aspect-square place-items-center rounded-xl border transition-colors ${
-                      own
-                        ? "border-primary bg-primary/25"
-                        : theirs
-                          ? "border-destructive bg-destructive/25"
-                          : target === i
-                            ? "border-gold bg-gold/15"
-                            : "border-border bg-surface/60 hover:border-gold/60"
-                    } ${i === 15 ? "col-start-2" : ""}`}
-                  >
-                    <Hexagon
-                      className={`size-7 ${own ? "text-primary" : theirs ? "text-destructive" : "text-muted-foreground/50"}`}
-                    />
-                    <span className="absolute bottom-1 right-1.5 text-[0.55rem] font-bold text-muted-foreground">
-                      {i + 1}
-                    </span>
-                  </button>
-                );
-              })}
+            <div className="game-card mt-6 p-4">
+              <div className="grid grid-cols-5 gap-2" role="group" aria-label="Territory zones">
+                {Array.from({ length: 19 }, (_, i) => {
+                  const own = mine.includes(i),
+                    theirs = rival.includes(i);
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      disabled={own || theirs || target !== null}
+                      onClick={() => setTarget(i)}
+                      aria-label={`Zone ${i + 1}${own ? ", yours" : theirs ? ", rival" : ""}`}
+                      className={`game-tile ${
+                        own
+                          ? "game-tile-completed"
+                          : theirs
+                            ? "border-destructive bg-destructive text-destructive-foreground"
+                            : target === i
+                              ? "game-tile-reward"
+                              : "hover:border-primary/60"
+                      } ${i === 15 ? "col-start-2" : ""}`}
+                    >
+                      <Hexagon
+                        className={`size-6 ${own ? "text-primary-foreground" : theirs ? "text-destructive-foreground" : "text-muted-foreground"}`}
+                      />
+                      <span className="absolute bottom-1 right-1.5 text-[0.55rem] font-bold text-inherit opacity-70">
+                        {i + 1}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {mode === "501" && (
-            <div className="panel mt-6 p-6 text-center">
+            <div className="game-card mt-6 p-6 text-center">
               <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
                 Remaining
               </p>
@@ -425,15 +476,15 @@ function BoardPage() {
                     disabled={target !== null}
                     onClick={() => setTarget(i)}
                     aria-pressed={target === i}
-                    className={`rounded-xl border py-3 font-display text-2xl transition-colors ${
+                    className={`game-tile text-xs ${
                       x > remaining
                         ? "border-border text-muted-foreground/50"
                         : target === i
-                          ? "border-gold bg-gold text-background"
-                          : "border-border bg-surface/60 hover:border-gold"
+                          ? "game-tile-reward"
+                          : "hover:border-gold/60 hover:text-gold"
                     }`}
                   >
-                    {x}
+                    <span className="font-display text-2xl leading-none">{x}</span>
                   </button>
                 ))}
               </div>
@@ -444,8 +495,8 @@ function BoardPage() {
           )}
 
           {mode === "connections" && (
-            <>
-              <div className="mt-6 grid grid-cols-4 gap-2">
+            <div className="game-card mt-6 p-4">
+              <div className="grid grid-cols-4 gap-2">
                 {allConnections.map((x) => {
                   const done = solvedItems.has(x),
                     on = selected.includes(x);
@@ -460,14 +511,15 @@ function BoardPage() {
                           v.includes(x) ? v.filter((y) => y !== x) : v.length < 4 ? [...v, x] : v,
                         )
                       }
-                      className={`rounded-xl border px-1 py-3 text-xs font-bold transition-colors ${
+                      className={`game-tile text-xs ${
                         done
-                          ? "border-primary/40 bg-primary/10 text-muted-foreground"
+                          ? "border-primary/40 bg-primary/10 text-primary"
                           : on
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-surface/60 hover:border-primary/60"
+                            ? "game-tile-completed"
+                            : "hover:border-primary/60"
                       }`}
                     >
+                      {done && <Check className="size-3 text-primary" />}
                       {x}
                     </button>
                   );
@@ -481,15 +533,15 @@ function BoardPage() {
                 Check connection
               </Button>
               {solved.map((x) => (
-                <p key={x} className="mt-2 flex items-center gap-2 text-xs text-primary">
+                <p key={x} className="mt-2 flex items-center justify-center gap-2 text-xs text-primary">
                   <Check className="size-3.5" /> {x}
                 </p>
               ))}
-            </>
+            </div>
           )}
 
           {mode === "draft" && (
-            <div className="mt-6 space-y-2">
+            <div className="game-card mt-6 p-4 space-y-2">
               {DRAFT.map((x, i) => {
                 const signed = squad.includes(i);
                 return (
@@ -498,7 +550,7 @@ function BoardPage() {
                     type="button"
                     disabled={signed || target !== null}
                     onClick={() => setTarget(i)}
-                    className={`panel flex w-full items-center gap-3 p-3 text-left transition-colors ${signed ? "border-primary/60 bg-primary/10" : target === i ? "border-gold" : "hover:border-gold/60"}`}
+                    className={`panel flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "border-primary/60 bg-primary/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
                   >
                     <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
                       <span className="font-display text-xl text-gold">{x.rating}</span>
@@ -509,7 +561,11 @@ function BoardPage() {
                         {x.role}
                       </span>
                     </span>
-                    {signed && <Check className="size-5 text-primary" />}
+                    {signed && (
+                      <span className="grid size-8 place-items-center rounded-full bg-primary/20">
+                        <Check className="size-5 text-primary" />
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -517,28 +573,39 @@ function BoardPage() {
           )}
 
           {mode === "bingo" && (
-            <div className="mt-6 grid grid-cols-4 gap-2" role="group" aria-label="Bingo card">
-              {BINGO.map((label, i) => {
-                const own = mine.includes(i);
-                return (
-                  <button
-                    key={label}
-                    type="button"
-                    disabled={own || target !== null}
-                    onClick={() => setTarget(i)}
-                    aria-pressed={target === i}
-                    className={`aspect-square rounded-xl border p-1 text-[0.62rem] font-bold leading-tight transition-colors ${
-                      own
-                        ? "border-primary bg-primary/25 text-primary"
-                        : target === i
-                          ? "border-gold bg-gold/15"
-                          : "border-border bg-surface/60 hover:border-primary/60"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+            <div className="game-card mt-6 p-4">
+              <div className="grid grid-cols-4 gap-2" role="group" aria-label="Bingo card">
+                {BINGO.map((label, i) => {
+                  const own = mine.includes(i);
+                  const TileIcon = BINGO_ICONS[label] ?? Star;
+                  return (
+                    <button
+                      key={label}
+                      type="button"
+                      disabled={own || target !== null}
+                      onClick={() => setTarget(i)}
+                      aria-pressed={target === i}
+                      className={`game-tile ${
+                        own
+                          ? "game-tile-completed"
+                          : target === i
+                            ? "game-tile-reward"
+                            : "hover:border-primary/60 hover:text-foreground"
+                      }`}
+                    >
+                      <TileIcon
+                        className={`size-5 ${own ? "text-primary-foreground" : target === i ? "text-gold-foreground" : "text-muted-foreground"}`}
+                      />
+                      <span className="leading-none">{label}</span>
+                      {own && (
+                        <span className="absolute right-1 top-1">
+                          <Check className="size-3 text-primary-foreground" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
