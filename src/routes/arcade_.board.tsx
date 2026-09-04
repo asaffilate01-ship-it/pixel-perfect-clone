@@ -514,8 +514,9 @@ function BoardPage() {
           )}
 
           {mode === "connections" && (
-            <div className="game-card mt-6 p-4">
-              <div className="grid grid-cols-4 gap-2">
+            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="grid grid-cols-4 gap-2 relative">
                 {allConnections.map((x) => {
                   const done = solvedItems.has(x),
                     on = selected.includes(x);
@@ -552,7 +553,7 @@ function BoardPage() {
                 Check connection
               </Button>
               {solved.map((x) => (
-                <p key={x} className="mt-2 flex items-center justify-center gap-2 text-xs text-primary">
+                <p key={x} className="game-feedback game-feedback-success mt-2 w-full justify-center">
                   <Check className="size-3.5" /> {x}
                 </p>
               ))}
