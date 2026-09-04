@@ -292,7 +292,7 @@ function ConnectFourPage() {
             : "Your rival is choosing…"}
       </p>
 
-      <div className="game-card mt-4 p-3 sm:p-4">
+      <div className="game-panel game-panel-accent-primary mt-4 p-3 sm:p-4">
         <div
           className="grid grid-cols-7 gap-1.5"
           role="group"
@@ -311,15 +311,15 @@ function ConnectFourPage() {
                 selectedCol !== null ||
                 !dropToken(board, i, "me")
               }
-              className={`game-tile min-h-12 text-[0.55rem] ${
+              className={`game-tile-pop min-h-12 text-[0.55rem] ${
                 selectedCol === i
                   ? "game-tile-reward"
-                  : "border-primary/20 text-primary hover:border-primary/50 hover:bg-primary/10"
+                  : "border-t-4 border-primary/30 text-primary hover:border-primary/60 hover:bg-primary/5"
               }`}
               aria-label={`Choose column ${i + 1}`}
               aria-pressed={selectedCol === i}
             >
-              <ChevronDown className="size-4 text-primary" aria-hidden />
+              <ChevronDown className={`size-4 ${selectedCol === i ? "text-gold-foreground" : "text-primary"}`} aria-hidden />
               <span>Drop {i + 1}</span>
             </button>
           ))}
