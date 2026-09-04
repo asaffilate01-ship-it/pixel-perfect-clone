@@ -2,26 +2,30 @@ import { useState } from "react";
 import { Gem, Palette } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-/** Avatar presets mirror the `avatar_presets` catalogue (accent colours are brand-fixed per preset). */
+/** Avatar collection v2 — mirrors the `avatar_presets` atlas (12 characters, four Pro). */
 export const AVATARS = [
-  { id: "captain", face: "🧢", color: "#49C6E5", pro: false },
+  { id: "captain", face: "🧢", color: "#45E6A0", pro: false },
+  { id: "playmaker", face: "🎯", color: "#49C6E5", pro: false },
+  { id: "striker", face: "⚽", color: "#FF6B5C", pro: false },
   { id: "champion", face: "🏆", color: "#FFD84A", pro: false },
-  { id: "striker", face: "⚽", color: "#45E6A0", pro: false },
-  { id: "batter", face: "🏏", color: "#FF8A5C", pro: false },
-  { id: "racer", face: "🏎️", color: "#FF5B71", pro: false },
-  { id: "fighter", face: "🥊", color: "#9A7BFF", pro: false },
-  { id: "ace", face: "🎾", color: "#D7EF55", pro: false },
-  { id: "hoops", face: "🏀", color: "#F39A46", pro: false },
-  { id: "rocket", face: "🚀", color: "#5CB7FF", pro: true },
-  { id: "lion", face: "🦁", color: "#E9A83D", pro: true },
-  { id: "eagle", face: "🦅", color: "#7AC9DB", pro: true },
-  { id: "legend", face: "👑", color: "#D59BFF", pro: true },
+  { id: "ace", face: "🎾", color: "#45E6A0", pro: false },
+  { id: "racer", face: "🏎️", color: "#4D8DFF", pro: false },
+  { id: "legend", face: "👑", color: "#9A7BFF", pro: false },
+  { id: "challenger", face: "🥊", color: "#FF6B5C", pro: false },
+  { id: "veteran", face: "🦁", color: "#E9A83D", pro: true },
+  { id: "maverick", face: "🚀", color: "#9A7BFF", pro: true },
+  { id: "rookie", face: "⭐", color: "#45E6A0", pro: true },
+  { id: "allstar", face: "🦅", color: "#49C6E5", pro: true },
 ] as const;
 
 export type AvatarId = (typeof AVATARS)[number]["id"];
 
+/** Retired v1 ids still stored on some profiles map onto their closest v2 character. */
+const LEGACY: Record<string, AvatarId> = { batter: "playmaker", fighter: "challenger", hoops: "playmaker", rocket: "maverick", lion: "veteran", eagle: "allstar" };
+
 export function avatarFor(id: string | null | undefined) {
-  return AVATARS.find((a) => a.id === id) ?? AVATARS[0];
+  const key = id && LEGACY[id] ? LEGACY[id] : id;
+  return AVATARS.find((a) => a.id === key) ?? AVATARS[0];
 }
 
 export function Avatar({ id, size = 44, className = "" }: { id: string | null | undefined; size?: number; className?: string }) {
