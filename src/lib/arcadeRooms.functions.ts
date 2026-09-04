@@ -28,17 +28,17 @@ const words = (value: string) =>
     .filter(Boolean);
 
 function editDistance(a: string, b: string): number {
-  const row: number[] = Array.from({ length: b.length + 1 }, (_, index) => index);
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index);
   for (let i = 1; i <= a.length; i += 1) {
-    let diagonal = row[0] ?? 0;
+    let diagonal = row[0];
     row[0] = i;
     for (let j = 1; j <= b.length; j += 1) {
-      const above = row[j] ?? 0;
-      row[j] = Math.min(above + 1, (row[j - 1] ?? 0) + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      const above = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
       diagonal = above;
     }
   }
-  return row[b.length] ?? 0;
+  return row[b.length];
 }
 
 /** Accept authoritative aliases and limited typos without exposing possible answers. */
@@ -415,6 +415,51 @@ const answerSchema = z.object({
   inputMethod: z.enum(["typed", "voice"]).default("typed"),
   transcriptConfidence: z.number().min(0).max(1).nullable().optional(),
 });
+
+const challengeSchema = z.object({
+  questionId: z.string().uuid(),
+  answer: z.string().trim().min(1).max(200),
+});
+
+/** Save a recent rejected answer for editorial review; this never changes the game score. */
+export const challengeArcadeAnswer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => challengeSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { data: recentAttempt } = await admin
+      .from("question_attempts")
+      .select("id")
+      .eq("question_id", data.questionId)
+      .eq("user_id", context.userId)
+      .eq("correct", false)
+      .gte("created_at", new Date(Date.now() - 10 * 60_000).toISOString())
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!recentAttempt) throw new Error("Only a recent rejected answer can be challenged");
+
+    const normalised = normalise(data.answer);
+    const db = admin as unknown as {
+      from: (table: "answer_challenges") => {
+        upsert: (
+          row: Record<string, unknown>,
+          options: Record<string, unknown>,
+        ) => Promise<{ error: { message: string } | null }>;
+      };
+    };
+    const { error } = await db.from("answer_challenges").upsert(
+      {
+        question_id: data.questionId,
+        user_id: context.userId,
+        submitted_answer: data.answer,
+        normalised_answer: normalised,
+      },
+      { onConflict: "question_id,user_id,normalised_answer", ignoreDuplicates: true },
+    );
+    if (error) throw new Error(error.message);
+    return { saved: true };
+  });
 
 /** Server-checks an answer, records the attempt for calibration, then reveals the canonical answer. */
 export const submitArcadeAnswer = createServerFn({ method: "POST" })

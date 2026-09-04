@@ -1,9 +1,20 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Lightbulb, LoaderCircle, RefreshCw, ShieldCheck, WifiOff, X } from "lucide-react";
+import {
+  Check,
+  Flag,
+  Lightbulb,
+  LoaderCircle,
+  RefreshCw,
+  ShieldCheck,
+  WifiOff,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
   nextFairQuestion,
+  challengeArcadeAnswer,
   submitArcadeAnswer,
   type FairQuestion,
 } from "@/lib/arcadeRooms.functions";
@@ -55,6 +66,8 @@ export function QuestionCard({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const [reveal, setReveal] = useState<{ correct: boolean; answer: string } | null>(null);
+  const [submittedAnswer, setSubmittedAnswer] = useState("");
+  const [challenged, setChallenged] = useState(false);
   const started = useRef(Date.now());
   const loadedFor = useRef<string | null>(null);
 
@@ -74,6 +87,8 @@ export function QuestionCard({
     loadedFor.current = loadKey;
     setClue(false);
     setReveal(null);
+    setSubmittedAnswer("");
+    setChallenged(false);
     setLoadError(null);
     setSubmitError(null);
     setQuestion(null);
@@ -123,6 +138,7 @@ export function QuestionCard({
     setBusy(true);
     setSubmitError(null);
     try {
+      setSubmittedAnswer(input?.text ?? "");
       const res = await submitArcadeAnswer({
         data: {
           questionId: question.id,
@@ -214,6 +230,29 @@ export function QuestionCard({
             </p>
             <p className="text-xs opacity-90">Answer: {reveal.answer}</p>
           </div>
+          {!reveal.correct && submittedAnswer && user && (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={challenged}
+              className="ml-auto border-current/30 bg-background/20"
+              onClick={async () => {
+                if (!question) return;
+                try {
+                  await challengeArcadeAnswer({
+                    data: { questionId: question.id, answer: submittedAnswer },
+                  });
+                  setChallenged(true);
+                  toast.success("Answer sent for review");
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "Could not send challenge");
+                }
+              }}
+            >
+              <Flag className="size-3.5" /> {challenged ? "Sent" : "Challenge"}
+            </Button>
+          )}
         </div>
       ) : !canAnswer ? (
         <p className="mt-4 text-xs text-muted-foreground">
