@@ -160,7 +160,16 @@ function Home() {
           </Link>
         </div>
         <div className="mt-4">
-          <SportPicker sports={sports ?? []} value={sport} onChange={setSport} playable={playable} compact />
+          <SportCascadePicker
+            sports={sports ?? []}
+            sport={sport}
+            competitionId={prefs.competitionId}
+            playable={playable}
+            onSportChange={setSport}
+            onCompetitionChange={(competitionId, competitionName) =>
+              void setPrefs({ ...prefs, sport, competitionId, competitionName, team: null, person: null })
+            }
+          />
         </div>
       </section>
 
