@@ -140,7 +140,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     });
 
     if (data.action === "matchmake") {
-      const secureRpc = admin.rpc as unknown as (
+      const secureRpc = admin.rpc.bind(admin) as unknown as (
         name: string,
         args: Record<string, unknown>,
       ) => Promise<{ data: string | null; error: { message: string } | null }>;
@@ -168,7 +168,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     }
 
     if (data.action === "create") {
-      const createRoom = admin.rpc as unknown as (
+      const createRoom = admin.rpc.bind(admin) as unknown as (
         name: string,
         args: Record<string, unknown>,
       ) => Promise<{ data: ArcadeRoomRow | null; error: { message: string } | null }>;
@@ -186,7 +186,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     }
 
     if (data.action === "join") {
-      const joinRoom = admin.rpc as unknown as (
+      const joinRoom = admin.rpc.bind(admin) as unknown as (
         name: string,
         args: Record<string, unknown>,
       ) => Promise<{ data: ArcadeRoomRow | null; error: { message: string } | null }>;
@@ -298,7 +298,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     }
 
     // leave
-    const leaveRoom = admin.rpc as unknown as (
+    const leaveRoom = admin.rpc.bind(admin) as unknown as (
       name: string,
       args: Record<string, unknown>,
     ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
@@ -468,7 +468,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
     const movement = correct ? (data.usedClue ? 5 : 6) : 0;
 
     // Service-role only: clients cannot forge correct answers or progression points by calling the RPC.
-    const secureRpc = admin.rpc as unknown as (
+    const secureRpc = admin.rpc.bind(admin) as unknown as (
       name: string,
       args: Record<string, unknown>,
     ) => Promise<{ error: { message: string } | null }>;
