@@ -101,11 +101,13 @@ export function AnswerComposer({
   };
 
   return (
-    <div className="mt-4">
-      <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Your private answer</p>
+    <div className={`game-card mt-4 p-4 transition-colors ${listening ? "border-t-4 border-primary" : ""}`}>
+      <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
+        Your private answer
+      </p>
       <div
-        className={`mt-2 flex items-center gap-2 rounded-xl border bg-background/60 p-1.5 pl-3 transition-colors ${
-          listening ? "border-primary" : "border-border"
+        className={`mt-3 flex items-center gap-2 rounded-full border bg-background/80 p-1.5 pl-4 transition-all shadow-inner ${
+          listening ? "border-primary/60 shadow-[0_0_18px_-4px] shadow-primary/30" : "border-border"
         }`}
       >
         <input
@@ -126,6 +128,7 @@ export function AnswerComposer({
           type="button"
           size="icon"
           variant={listening ? "default" : "outline"}
+          className={`rounded-full ${listening ? "" : "border-gold/50 text-gold hover:bg-gold/10 hover:text-gold"}`}
           aria-label={listening ? "Stop listening" : "Speak answer"}
           onClick={speak}
           disabled={disabled}
@@ -133,11 +136,18 @@ export function AnswerComposer({
         >
           {voiceSupported ? <Mic className="size-4" /> : <MicOff className="size-4" />}
         </Button>
-        <Button type="button" size="icon" aria-label="Submit answer" onClick={send} disabled={disabled || busy || !value.trim()}>
+        <Button
+          type="button"
+          size="icon"
+          className="rounded-full"
+          aria-label="Submit answer"
+          onClick={send}
+          disabled={disabled || busy || !value.trim()}
+        >
           <Send className="size-4" />
         </Button>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
         <span>{notice || "Only the active player can answer; the server checks it and reveals the result to everyone."}</span>
         {onPass && (
           <button
