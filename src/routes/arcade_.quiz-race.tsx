@@ -31,6 +31,8 @@ import { QuestionCard, type QuestionOutcome } from "@/components/game/QuestionCa
 import { useEntitlements } from "@/lib/entitlements";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { ConnectionBanner, PresenceDot } from "@/components/game/RoomPresence";
+import { useArcadePresence } from "@/hooks/useArcadePresence";
 
 type Game = "ludo" | "snakes";
 type Search = { game: Game; room?: string };
@@ -78,6 +80,7 @@ function QuizRacePage() {
   const { pro, loading: entLoading } = useEntitlements();
   const isPro = game === "ludo";
   const online = !!roomId;
+  const presence = useArcadePresence(roomId, user?.id);
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
   const { data: room } = useQuery({
@@ -164,7 +167,11 @@ function QuizRacePage() {
     setRolling(true);
     const t = setTimeout(() => setRolling(false), 600);
     return () => clearTimeout(t);
-  }, [online ? undefined : turnKey, online ? room?.round_no : undefined, online ? room?.active_seat : undefined]);
+  }, [
+    online ? undefined : turnKey,
+    online ? room?.round_no : undefined,
+    online ? room?.active_seat : undefined,
+  ]);
 
   const list = online ? onlinePlayers : players;
   const n = online ? list.length : count;
@@ -386,6 +393,7 @@ function QuizRacePage() {
 
   return (
     <Shell title={title} onBack={reset}>
+      {online && <ConnectionBanner status={presence.myStatus} />}
       {online && (
         <div className="mt-6 flex items-center justify-between text-[0.62rem] font-black uppercase tracking-[0.16em]">
           <span className="text-primary">● Live room {room?.code}</span>
@@ -440,7 +448,7 @@ function QuizRacePage() {
                 <span
                   className={`block truncate text-[0.58rem] font-black uppercase tracking-[0.12em] ${SEAT_TEXT[i % 4]}`}
                 >
-                  {p.name}
+                  {p.name} {p.userId && <PresenceDot status={presence.byUser.get(p.userId)} />}
                 </span>
                 <span className="block text-xs text-muted-foreground">{p.position}</span>
               </span>
@@ -458,7 +466,10 @@ function QuizRacePage() {
           )}
         </div>
         <div className="flex shrink-0 flex-row items-center gap-3 sm:w-28 sm:flex-col sm:justify-center">
-          <Dice value={active.tokens?.[0] ? ((active.tokens[0] - 1) % 6) + 1 : 6} rolling={rolling} />
+          <Dice
+            value={active.tokens?.[0] ? ((active.tokens[0] - 1) % 6) + 1 : 6}
+            rolling={rolling}
+          />
           <p className="text-center text-[0.6rem] font-black uppercase tracking-[0.14em] text-muted-foreground">
             {myTurn || !online ? "Your roll" : "Waiting…"}
           </p>
@@ -484,33 +495,116 @@ function QuizRacePage() {
 
 /* ---------------- Ludo board geometry (52-cell cross track) ---------------- */
 const LUDO_PATH: [number, number][] = [
-  [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
-  [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],
+  [6, 1],
+  [6, 2],
+  [6, 3],
+  [6, 4],
+  [6, 5],
+  [5, 6],
+  [4, 6],
+  [3, 6],
+  [2, 6],
+  [1, 6],
+  [0, 6],
   [0, 7],
-  [0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
-  [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14],
+  [0, 8],
+  [1, 8],
+  [2, 8],
+  [3, 8],
+  [4, 8],
+  [5, 8],
+  [6, 9],
+  [6, 10],
+  [6, 11],
+  [6, 12],
+  [6, 13],
+  [6, 14],
   [7, 14],
-  [8, 14], [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
-  [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8],
+  [8, 14],
+  [8, 13],
+  [8, 12],
+  [8, 11],
+  [8, 10],
+  [8, 9],
+  [9, 8],
+  [10, 8],
+  [11, 8],
+  [12, 8],
+  [13, 8],
+  [14, 8],
   [14, 7],
-  [14, 6], [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
-  [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
+  [14, 6],
+  [13, 6],
+  [12, 6],
+  [11, 6],
+  [10, 6],
+  [9, 6],
+  [8, 5],
+  [8, 4],
+  [8, 3],
+  [8, 2],
+  [8, 1],
+  [8, 0],
   [7, 0],
   [6, 0],
 ];
 const LUDO_HOME_RUNS: [number, number][][] = [
-  [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]], // red
-  [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]], // green
-  [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]], // yellow
-  [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]], // blue
+  [
+    [7, 1],
+    [7, 2],
+    [7, 3],
+    [7, 4],
+    [7, 5],
+  ], // red
+  [
+    [1, 7],
+    [2, 7],
+    [3, 7],
+    [4, 7],
+    [5, 7],
+  ], // green
+  [
+    [7, 13],
+    [7, 12],
+    [7, 11],
+    [7, 10],
+    [7, 9],
+  ], // yellow
+  [
+    [13, 7],
+    [12, 7],
+    [11, 7],
+    [10, 7],
+    [9, 7],
+  ], // blue
 ];
 const LUDO_START_OFFSET = [0, 13, 26, 39];
 const LUDO_CENTER: [number, number] = [7, 7];
 const LUDO_YARD_PADS: [number, number][][] = [
-  [[1.3, 1.3], [1.3, 4.7], [4.7, 1.3], [4.7, 4.7]], // red
-  [[1.3, 10.3], [1.3, 13.7], [4.7, 10.3], [4.7, 13.7]], // green
-  [[10.3, 10.3], [10.3, 13.7], [13.7, 10.3], [13.7, 13.7]], // yellow
-  [[10.3, 1.3], [10.3, 4.7], [13.7, 1.3], [13.7, 4.7]], // blue
+  [
+    [1.3, 1.3],
+    [1.3, 4.7],
+    [4.7, 1.3],
+    [4.7, 4.7],
+  ], // red
+  [
+    [1.3, 10.3],
+    [1.3, 13.7],
+    [4.7, 10.3],
+    [4.7, 13.7],
+  ], // green
+  [
+    [10.3, 10.3],
+    [10.3, 13.7],
+    [13.7, 10.3],
+    [13.7, 13.7],
+  ], // yellow
+  [
+    [10.3, 1.3],
+    [10.3, 4.7],
+    [13.7, 1.3],
+    [13.7, 4.7],
+  ], // blue
 ];
 const LUDO_COLORS = [
   "var(--ludo-red)",
@@ -586,12 +680,14 @@ function LudoBoard({
                     <span
                       key={i}
                       className="disc-3d absolute size-[22%] -translate-x-1/2 -translate-y-1/2"
-                      style={{
-                        left: i % 2 === 0 ? "30%" : "70%",
-                        top: i < 2 ? "30%" : "70%",
-                        "--disc-light": LUDO_COLORS[seat],
-                        "--disc-dark": LUDO_COLORS[seat],
-                      } as React.CSSProperties}
+                      style={
+                        {
+                          left: i % 2 === 0 ? "30%" : "70%",
+                          top: i < 2 ? "30%" : "70%",
+                          "--disc-light": LUDO_COLORS[seat],
+                          "--disc-dark": LUDO_COLORS[seat],
+                        } as React.CSSProperties
+                      }
                     />
                   ))}
                 </div>
@@ -680,13 +776,7 @@ function slSquarePct(square: number) {
   return { x: (colInRow + 0.5) * 10, y: (visualRow + 0.5) * 10 };
 }
 
-function SnakesBoard({
-  cells,
-  players,
-}: {
-  cells: number[];
-  players: { position: number }[];
-}) {
+function SnakesBoard({ cells, players }: { cells: number[]; players: { position: number }[] }) {
   const ladderEntries = Object.entries(LADDERS).map(([from, to]) => ({
     from: Number(from),
     to,
@@ -811,11 +901,36 @@ function SnakesBoard({
 /* ---------------- Dice ---------------- */
 const DICE_PIPS: Record<number, [number, number][]> = {
   1: [[50, 50]],
-  2: [[25, 25], [75, 75]],
-  3: [[25, 25], [50, 50], [75, 75]],
-  4: [[25, 25], [25, 75], [75, 25], [75, 75]],
-  5: [[25, 25], [25, 75], [50, 50], [75, 25], [75, 75]],
-  6: [[25, 25], [25, 50], [25, 75], [75, 25], [75, 50], [75, 75]],
+  2: [
+    [25, 25],
+    [75, 75],
+  ],
+  3: [
+    [25, 25],
+    [50, 50],
+    [75, 75],
+  ],
+  4: [
+    [25, 25],
+    [25, 75],
+    [75, 25],
+    [75, 75],
+  ],
+  5: [
+    [25, 25],
+    [25, 75],
+    [50, 50],
+    [75, 25],
+    [75, 75],
+  ],
+  6: [
+    [25, 25],
+    [25, 50],
+    [25, 75],
+    [75, 25],
+    [75, 50],
+    [75, 75],
+  ],
 };
 
 function Dice({ value, rolling }: { value: number; rolling: boolean }) {
