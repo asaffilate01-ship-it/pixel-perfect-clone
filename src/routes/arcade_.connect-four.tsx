@@ -281,15 +281,17 @@ function ConnectFourPage() {
         </div>
       )}
 
-      <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
+      <p className="game-feedback game-feedback-info mt-4 w-full justify-center">
         <Sparkles className="size-4 text-gold" />
-        {result
-          ? "Match over."
-          : turn === "me"
-            ? selectedCol === null
-              ? "Tap an open column to reveal your question"
-              : `Column ${selectedCol + 1} selected — answer to drop your token`
-            : "Your rival is choosing…"}
+        <span>
+          {result
+            ? "Match over."
+            : turn === "me"
+              ? selectedCol === null
+                ? "Tap an open column to reveal your question"
+                : `Column ${selectedCol + 1} selected — answer to drop your token`
+              : "Your rival is choosing…"}
+        </span>
       </p>
 
       <div className="game-panel game-panel-accent-primary mt-4 p-3 sm:p-4">
