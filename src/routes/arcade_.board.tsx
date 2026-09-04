@@ -561,34 +561,37 @@ function BoardPage() {
           )}
 
           {mode === "draft" && (
-            <div className="game-card mt-6 p-4 space-y-2">
-              {DRAFT.map((x, i) => {
-                const signed = squad.includes(i);
-                return (
-                  <button
-                    key={x.name}
-                    type="button"
-                    disabled={signed || target !== null}
-                    onClick={() => setTarget(i)}
-                    className={`panel flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "border-primary/60 bg-primary/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
-                  >
-                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
-                      <span className="font-display text-xl text-gold">{x.rating}</span>
-                    </span>
-                    <span className="flex-1">
-                      <span className="block font-display text-xl">{x.name}</span>
-                      <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                        {x.role}
+            <div className={`game-panel relative mt-6 p-4 space-y-2 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative space-y-2">
+                {DRAFT.map((x, i) => {
+                  const signed = squad.includes(i);
+                  return (
+                    <button
+                      key={x.name}
+                      type="button"
+                      disabled={signed || target !== null}
+                      onClick={() => setTarget(i)}
+                      className={`panel flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "border-gold/60 bg-gold/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
+                    >
+                      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
+                        <span className="font-display text-xl text-gold">{x.rating}</span>
                       </span>
-                    </span>
-                    {signed && (
-                      <span className="grid size-8 place-items-center rounded-full bg-primary/20">
-                        <Check className="size-5 text-primary" />
+                      <span className="flex-1">
+                        <span className="block font-display text-xl">{x.name}</span>
+                        <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                          {x.role}
+                        </span>
                       </span>
-                    )}
-                  </button>
-                );
-              })}
+                      {signed && (
+                        <span className="game-feedback game-feedback-success">
+                          <Check className="size-4" /> Signed
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
