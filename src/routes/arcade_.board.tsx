@@ -86,7 +86,7 @@ const CONFIG: Record<
     icon: Gauge,
     tone: "text-gold bg-gold/12",
     accent: "text-gold",
-    rule: "Choose a scoring lane. Correct answers reduce 501 to exactly zero.",
+    rule: "Three questions per visit. Choose the difficulty, score up to 180, and finish exactly on a double.",
     pro: true,
   },
   connections: {
@@ -168,8 +168,7 @@ const DRAFT = [
   { name: "Marta", role: "FWD", rating: 94 },
   { name: "Ronaldo Nazário", role: "FWD", rating: 96 },
 ];
-// Include a one-point checkout so the 501 start value can always reach exactly zero.
-const LANES = [1, 25, 50, 100] as const;
+const DART_SCORES = [25, 40, 50, 60] as const;
 
 function hasLine(cells: number[]) {
   const s = new Set(cells);
@@ -205,6 +204,10 @@ function BoardPage() {
   const [mine, setMine] = useState<number[]>([]);
   const [rival, setRival] = useState<number[]>([]);
   const [remaining, setRemaining] = useState(501);
+  const [visitStart, setVisitStart] = useState(501);
+  const [visitQuestion, setVisitQuestion] = useState(0);
+  const [visitScore, setVisitScore] = useState(0);
+  const [checkout, setCheckout] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [solved, setSolved] = useState<string[]>([]);
@@ -217,6 +220,10 @@ function BoardPage() {
     setMine([]);
     setRival([]);
     setRemaining(501);
+    setVisitStart(501);
+    setVisitQuestion(0);
+    setVisitScore(0);
+    setCheckout(false);
     setFeedback(null);
     setSelected([]);
     setSolved([]);
@@ -253,15 +260,43 @@ function BoardPage() {
     if (mode === "bingo" && correct) setMine((v) => [...v, target]);
     if (mode === "draft" && correct) setSquad((v) => [...v, target]);
     if (mode === "501") {
-      if (correct) {
-        const value = LANES[target] ?? 25;
-        setRemaining((v) => (value > v ? v : v - value)); // bust rule: overshoot scores nothing
-        if (value > remaining)
-          setFeedback(`Bust — ${value} is more than you need. Pick a smaller lane.`);
+      const value = checkout ? remaining : (DART_SCORES[target] ?? 25);
+      const projected = remaining - (correct ? value : 0);
+      const bust = correct && (projected < 0 || projected === 1 || (projected === 0 && !checkout));
+      const lastQuestion = visitQuestion === 2;
+
+      if (correct && checkout) {
+        setRemaining(0);
+        setVisitScore((score) => score + value);
+        setFeedback(`Checkout! Double ${value / 2} — game won.`);
+      } else if (bust) {
+        setRemaining(visitStart);
+        setVisitScore(0);
+        setVisitQuestion(0);
+        setFeedback(
+          `Bust — the visit returns to ${visitStart}. You must leave zero and finish on a double.`,
+        );
+      } else {
+        const nextRemaining = correct ? projected : remaining;
+        const nextVisitScore = visitScore + (correct ? value : 0);
+        setRemaining(nextRemaining);
+        if (lastQuestion) {
+          setFeedback(`Visit complete · ${nextVisitScore} scored · ${nextRemaining} remaining.`);
+          setVisitStart(nextRemaining);
+          setVisitScore(0);
+          setVisitQuestion(0);
+        } else {
+          setVisitScore(nextVisitScore);
+          setVisitQuestion((question) => question + 1);
+          setFeedback(
+            correct ? `Correct · ${value} scored.` : "Miss · no score for this question.",
+          );
+        }
       }
+      setCheckout(false);
     }
     if (!correct) setMisses((m) => m + 1);
-    if (mode !== "501" || !correct || (LANES[target] ?? 0) <= remaining) {
+    if (mode !== "501") {
       setFeedback(
         correct
           ? `Correct${o.answer ? ` · ${o.answer}` : ""}`
@@ -298,6 +333,10 @@ function BoardPage() {
     setMine([]);
     setRival([]);
     setRemaining(501);
+    setVisitStart(501);
+    setVisitQuestion(0);
+    setVisitScore(0);
+    setCheckout(false);
     setFeedback(null);
     setSelected([]);
     setSolved([]);
@@ -339,7 +378,9 @@ function BoardPage() {
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <SideAdRail placement="arcade" />
-      <div className={`game-card relative overflow-hidden flex items-center gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+      <div
+        className={`game-card relative overflow-hidden flex items-center gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}
+      >
         <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
         <Button variant="ghost" size="icon" aria-label="Back" asChild>
           <Link to="/arcade">
@@ -355,7 +396,9 @@ function BoardPage() {
         </span>
       </div>
 
-      <div className={`game-panel relative mt-5 flex items-center justify-between gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+      <div
+        className={`game-panel relative mt-5 flex items-center justify-between gap-4 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}
+      >
         <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
         <div>
           <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
@@ -378,13 +421,13 @@ function BoardPage() {
 
       {mode !== "connections" && (
         <>
-          <Label>Difficulty</Label>
+          <Label>{mode === "501" ? "Next question difficulty" : "Difficulty"}</Label>
           <div className="flex flex-wrap gap-2">
             {DIFFICULTIES.map((d) => (
               <Chip
                 key={d.level}
                 on={difficulty === d.level}
-                onClick={() => setDifficulty(d.level)}
+                onClick={() => target === null && setDifficulty(d.level)}
               >
                 {d.label}
               </Chip>
@@ -429,9 +472,15 @@ function BoardPage() {
       ) : (
         <>
           {mode === "territory" && (
-            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+            <div
+              className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}
+            >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
-              <div className="grid grid-cols-5 gap-2 relative" role="group" aria-label="Territory zones">
+              <div
+                className="grid grid-cols-5 gap-2 relative"
+                role="group"
+                aria-label="Territory zones"
+              >
                 {Array.from({ length: 19 }, (_, i) => {
                   const own = mine.includes(i),
                     theirs = rival.includes(i);
@@ -466,7 +515,9 @@ function BoardPage() {
           )}
 
           {mode === "501" && (
-            <div className={`game-panel relative mt-6 p-6 text-center border-t-4 ${c.accent.replace("text-", "border-")}`}>
+            <div
+              className={`game-panel relative mt-6 p-6 text-center border-t-4 ${c.accent.replace("text-", "border-")}`}
+            >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
               <div className="relative inline-flex flex-col items-center">
                 <div
@@ -477,7 +528,10 @@ function BoardPage() {
                     height: "8rem",
                   }}
                 >
-                  <div className="game-score-ring-inner" style={{ width: "6.5rem", height: "6.5rem" }}>
+                  <div
+                    className="game-score-ring-inner"
+                    style={{ width: "6.5rem", height: "6.5rem" }}
+                  >
                     <div>
                       <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
                         Remaining
@@ -488,33 +542,83 @@ function BoardPage() {
                 </div>
               </div>
               <div className="mt-6 grid grid-cols-4 gap-2">
-                {LANES.map((x, i) => (
-                  <button
-                    key={x}
-                    type="button"
-                    disabled={target !== null}
-                    onClick={() => setTarget(i)}
-                    aria-pressed={target === i}
-                    className={`game-tile text-xs ${
-                      x > remaining
-                        ? "border-border text-muted-foreground/50"
-                        : target === i
-                          ? "game-tile-reward"
-                          : "hover:border-gold/60 hover:text-gold"
-                    }`}
+                {DIFFICULTIES.map((level, index) => (
+                  <div
+                    key={level.level}
+                    className={`game-tile text-xs ${difficulty === level.level ? "game-tile-reward" : ""}`}
                   >
-                    <span className="font-display text-2xl leading-none">{x}</span>
-                  </button>
+                    <span className="font-display text-2xl leading-none">{DART_SCORES[index]}</span>
+                    <span>{level.label}</span>
+                  </div>
                 ))}
               </div>
+              <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-border/70 bg-background/50 p-3 text-center">
+                <div>
+                  <strong className="block text-lg text-foreground">{visitQuestion + 1}/3</strong>
+                  <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">
+                    Question
+                  </span>
+                </div>
+                <div>
+                  <strong className="block text-lg text-gold">{visitScore}</strong>
+                  <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">
+                    Visit score
+                  </span>
+                </div>
+                <div>
+                  <strong className="block text-lg text-foreground">180</strong>
+                  <span className="text-[0.6rem] uppercase tracking-wider text-muted-foreground">
+                    Visit max
+                  </span>
+                </div>
+              </div>
+              {remaining <= 40 && remaining % 2 === 0 ? (
+                <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                  <Button
+                    variant="outline"
+                    disabled={target !== null}
+                    onClick={() => {
+                      setCheckout(false);
+                      setTarget(difficulty - 1);
+                    }}
+                  >
+                    Score {DART_SCORES[difficulty - 1]}
+                  </Button>
+                  <Button
+                    disabled={target !== null}
+                    onClick={() => {
+                      setCheckout(true);
+                      setTarget(difficulty - 1);
+                    }}
+                    className="bg-gold text-background hover:bg-gold/90"
+                  >
+                    Checkout · Double {remaining / 2}
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
+                  disabled={target !== null}
+                  onClick={() => {
+                    setCheckout(false);
+                    setTarget(difficulty - 1);
+                  }}
+                >
+                  Start {DIFFICULTIES[difficulty - 1]?.label} question ·{" "}
+                  {DART_SCORES[difficulty - 1]} points
+                </Button>
+              )}
               <p className="mt-3 text-xs text-muted-foreground">
-                Choose a scoring lane to receive your question. Overshooting is a bust.
+                A visit is three questions. A bust restores the score at the start of the visit.
+                Exact zero must be checked out on a double.
               </p>
             </div>
           )}
 
           {mode === "connections" && (
-            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+            <div
+              className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}
+            >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
               <div className="grid grid-cols-4 gap-2 relative">
                 {allConnections.map((x) => {
@@ -553,7 +657,10 @@ function BoardPage() {
                 Check connection
               </Button>
               {solved.map((x) => (
-                <p key={x} className="game-feedback game-feedback-success mt-2 w-full justify-center">
+                <p
+                  key={x}
+                  className="game-feedback game-feedback-success mt-2 w-full justify-center"
+                >
                   <Check className="size-3.5" /> {x}
                 </p>
               ))}
@@ -561,7 +668,9 @@ function BoardPage() {
           )}
 
           {mode === "draft" && (
-            <div className={`game-panel relative mt-6 p-4 space-y-2 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+            <div
+              className={`game-panel relative mt-6 p-4 space-y-2 border-t-4 ${c.accent.replace("text-", "border-")}`}
+            >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
               <div className="relative space-y-2">
                 {DRAFT.map((x, i) => {
@@ -596,10 +705,14 @@ function BoardPage() {
           )}
 
           {mode === "bingo" && (
-            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+            <div
+              className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}
+            >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
               <div className="relative mb-3 flex items-center justify-between">
-                <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Your card</p>
+                <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                  Your card
+                </p>
                 <span className="game-feedback game-feedback-info">
                   {mine.length}/{BINGO.length} marked
                 </span>
@@ -608,7 +721,13 @@ function BoardPage() {
                 {BINGO.map((label, i) => {
                   const own = mine.includes(i);
                   const TileIcon = BINGO_ICONS[label] ?? Star;
-                  const tone = ["text-chart-1", "text-chart-2", "text-chart-3", "text-chart-4", "text-chart-5"][i % 5];
+                  const tone = [
+                    "text-chart-1",
+                    "text-chart-2",
+                    "text-chart-3",
+                    "text-chart-4",
+                    "text-chart-5",
+                  ][i % 5];
                   return (
                     <button
                       key={label}
@@ -649,7 +768,7 @@ function BoardPage() {
               turnKey={`${mode}-${round}-${target}`}
               sportId={sportId}
               categoryKey={null}
-              difficulty={difficulty}
+              difficulty={mode === "501" ? target + 1 : difficulty}
               bank={bank}
               accentClass={c.accent}
               onResolved={resolve}
@@ -657,7 +776,9 @@ function BoardPage() {
                 mode === "territory"
                   ? `Zone ${target + 1} · answer to capture`
                   : mode === "501"
-                    ? `${LANES[target]} lane`
+                    ? checkout
+                      ? `Checkout · Double ${remaining / 2}`
+                      : `${DIFFICULTIES[target]?.label ?? "Question"} · ${DART_SCORES[target] ?? 25} points`
                     : mode === "draft"
                       ? `Sign ${DRAFT[target]?.name ?? "the athlete"}`
                       : `Square · ${BINGO[target]}`
