@@ -8,6 +8,9 @@ type AuthState = {
   loading: boolean;
   isStaff: boolean;
   displayName: string | null;
+  /** null until the profile has loaded; false means the four-step setup has not been completed. */
+  onboarded: boolean | null;
+  refresh: () => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -17,6 +20,8 @@ const AuthContext = createContext<AuthState>({
   loading: true,
   isStaff: false,
   displayName: null,
+  onboarded: null,
+  refresh: async () => {},
   signOut: async () => {},
 });
 
@@ -25,6 +30,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isStaff, setIsStaff] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [onboarded, setOnboarded] = useState<boolean | null>(null);
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -36,6 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!next?.user) {
         setIsStaff(false);
         setDisplayName(null);
+        setOnboarded(null);
         return;
       }
       const { data: roles } = await supabase
@@ -51,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("display_name")
+        .select("display_name, onboarded_at")
         .eq("id", next.user.id)
         .maybeSingle();
       if (cancelled) return;
@@ -64,8 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!profile) {
         await supabase.from("profiles").insert({ id: next.user.id, display_name: fallback });
         setDisplayName(fallback);
+        setOnboarded(false);
       } else {
         setDisplayName(profile.display_name ?? fallback);
+        setOnboarded(Boolean(profile.onboarded_at));
       }
     };
 
@@ -80,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelled = true;
       sub.subscription.unsubscribe();
     };
-  }, []);
+  }, [tick]);
 
   const value = useMemo<AuthState>(
     () => ({
@@ -89,11 +99,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       isStaff,
       displayName,
+      onboarded,
+      refresh: async () => setTick((t) => t + 1),
       signOut: async () => {
         await supabase.auth.signOut();
       },
     }),
-    [session, loading, isStaff, displayName],
+    [session, loading, isStaff, displayName, onboarded],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
