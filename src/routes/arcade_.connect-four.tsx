@@ -6,11 +6,8 @@ import {
   ChevronLeft,
   Flag,
   Handshake,
-  Shield,
-  ShieldCheck,
   SkipForward,
   Sparkles,
-  Trophy,
   Timer,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -62,6 +59,38 @@ export const Route = createFileRoute("/arcade_/connect-four")({
 
 const TURN_SECONDS = 30;
 
+/** Finds the indices of a winning four-in-a-row on a gravity board, or an empty array. */
+function findWinningCells(board: (Side | null)[], cols = COLS, rows = ROWS): number[] {
+  const at = (r: number, c: number) => board[r * cols + c];
+  const dirs: [number, number][] = [
+    [0, 1],
+    [1, 0],
+    [1, 1],
+    [1, -1],
+  ];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const v = at(r, c);
+      if (!v) continue;
+      for (const [dr, dc] of dirs) {
+        const cells = [r * cols + c];
+        let ok = true;
+        for (let k = 1; k < 4; k++) {
+          const rr = r + dr * k;
+          const cc = c + dc * k;
+          if (rr < 0 || rr >= rows || cc < 0 || cc >= cols || at(rr, cc) !== v) {
+            ok = false;
+            break;
+          }
+          cells.push(rr * cols + cc);
+        }
+        if (ok) return cells;
+      }
+    }
+  }
+  return [];
+}
+
 function ConnectFourPage() {
   const navigate = useNavigate();
   const [board, setBoard] = useState<(Side | null)[]>(() => Array(COLS * ROWS).fill(null));
@@ -72,6 +101,7 @@ function ConnectFourPage() {
   const [seconds, setSeconds] = useState(TURN_SECONDS);
   const [lastIndex, setLastIndex] = useState<number | null>(null);
   const [selectedCol, setSelectedCol] = useState<number | null>(null);
+  const [hoveredCol, setHoveredCol] = useState<number | null>(null);
   const [sportId, setSportId] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState(2);
   const botTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -213,6 +243,7 @@ function ConnectFourPage() {
   };
 
   const filled = board.filter(Boolean).length;
+  const winningCells = findWinningCells(board);
 
   return (
     <div className="connect-four-arena mx-auto min-h-screen w-full max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
@@ -305,6 +336,10 @@ function ConnectFourPage() {
               key={i}
               type="button"
               onClick={() => chooseColumn(i)}
+              onMouseEnter={() => setHoveredCol(i)}
+              onMouseLeave={() => setHoveredCol((c) => (c === i ? null : c))}
+              onFocus={() => setHoveredCol(i)}
+              onBlur={() => setHoveredCol((c) => (c === i ? null : c))}
               disabled={
                 sportsLoading ||
                 !sportId ||
@@ -343,25 +378,73 @@ function ConnectFourPage() {
         />
       )}
 
-      <div className="game-panel game-panel-accent-gold mt-3 p-3 sm:p-4">
-        <div className="grid grid-cols-7 gap-1.5 sm:gap-2" role="grid" aria-label="Connect Four board">
-          {board.map((v, i) => (
-            <div
-              key={i}
-              role="gridcell"
-              aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
-              className={`grid aspect-square place-items-center rounded-full border-2 transition-all duration-300 ${
-                v === "me"
-                  ? "game-token game-token-gold scale-105"
-                  : v === "them"
-                    ? "game-token game-token-rival"
-                    : "border-border bg-surface-strong/60 shadow-inner"
-              } ${lastIndex === i ? "ring-2 ring-primary/80 ring-offset-2 ring-offset-background" : ""}`}
-            >
-              {v === "me" && <Trophy className="size-3.5 sm:size-5" />}
-              {v === "them" && <Shield className="size-3.5 sm:size-5" />}
+      <div className="board-stage mt-5 px-2 pb-8 sm:px-4">
+        <div className="relative mx-auto max-w-xl">
+          {/* Ghost preview disc floating above the hovered / selected column */}
+          <div
+            className="pointer-events-none absolute -top-7 left-0 grid w-full grid-cols-7 gap-[1.4%] px-[3%] sm:-top-9"
+            aria-hidden
+          >
+            {Array.from({ length: COLS }, (_, c) => {
+              const activeCol = selectedCol ?? hoveredCol;
+              const show = activeCol === c && turn === "me" && !result && dropToken(board, c, "me");
+              return (
+                <div key={c} className="grid place-items-center">
+                  {show && (
+                    <div
+                      className={`disc-3d ${turn === "me" ? "disc-red" : "disc-yellow"} aspect-square w-[70%] animate-bounce opacity-60`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <div
+            className="board-tilt board-rim board-plastic-blue relative aspect-[7/6] p-[2.5%] sm:p-[3%]"
+            role="grid"
+            aria-label="Connect Four board"
+          >
+            <div className="grid h-full w-full grid-cols-7 gap-[1.4%]">
+              {board.map((v, i) => {
+                const row = Math.floor(i / COLS);
+                const col = i % COLS;
+                const isLast = lastIndex === i;
+                const isWinning = winningCells.includes(i);
+                const isHoveredCol = (selectedCol ?? hoveredCol) === col;
+                return (
+                  <div
+                    key={i}
+                    role="gridcell"
+                    aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
+                    className={`board-hole relative aspect-square overflow-hidden transition-colors duration-200 ${
+                      isHoveredCol && !v ? "outline outline-2 outline-offset-1 outline-primary/40" : ""
+                    }`}
+                  >
+                    {v && (
+                      <div
+                        className={`disc-3d absolute inset-[4%] ${v === "me" ? "disc-red" : "disc-yellow"} ${
+                          isLast ? "disc-dropping" : ""
+                        } ${isWinning ? "ring-4 ring-[var(--color-gold)] animate-pulse" : ""}`}
+                        style={isLast ? ({ "--drop-distance": `${(row + 1) * 52}px` } as React.CSSProperties) : undefined}
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          ))}
+          </div>
+
+          {/* Legs / feet so the frame stands like the real toy */}
+          <div className="pointer-events-none absolute inset-x-0 -bottom-6 flex justify-between px-[8%] sm:-bottom-8">
+            <div className="board-rim board-plastic-blue h-6 w-10 rounded-md sm:h-8 sm:w-14" />
+            <div className="board-rim board-plastic-blue h-6 w-10 rounded-md sm:h-8 sm:w-14" />
+          </div>
+          {/* Floor shadow */}
+          <div
+            className="pointer-events-none absolute inset-x-[6%] -bottom-7 h-4 rounded-[100%] bg-black/30 blur-md sm:-bottom-9 sm:h-5"
+            aria-hidden
+          />
         </div>
       </div>
 
@@ -439,13 +522,7 @@ function PlayerChip({ label, me, active }: { label: string; me?: boolean; active
           : "border-border text-muted-foreground"
       }`}
     >
-      <span
-        className={`game-token grid size-6 place-items-center ${
-          me ? "game-token-gold" : "game-token-rival"
-        }`}
-      >
-        {me ? <ShieldCheck className="size-3.5" /> : <Shield className="size-3.5" />}
-      </span>
+      <span className={`disc-3d ${me ? "disc-red" : "disc-yellow"} size-6`} aria-hidden />
       {label}
       {active && (
         <span

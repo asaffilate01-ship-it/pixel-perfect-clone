@@ -31,15 +31,19 @@ import { DIFFICULTIES, fetchSports } from "@/lib/fanzeno";
 import { useQuizPrefs } from "@/lib/quizPrefs";
 import { useEntitlements } from "@/lib/entitlements";
 import { SideAdRail } from "@/components/site/AdSlots";
+import { Dartboard, type DartboardHighlight } from "@/components/arcade/Dartboard";
 
 type Mode = "territory" | "501" | "connections" | "draft" | "bingo";
 type Search = { mode: Mode };
 const MODES: Mode[] = ["territory", "501", "connections", "draft", "bingo"];
 
 export const Route = createFileRoute("/arcade_/board")({
-  validateSearch: (raw: Record<string, unknown>): Search => ({
-    mode: MODES.includes(raw["mode"] as Mode) ? (raw["mode"] as Mode) : "bingo",
-  }),
+  validateSearch: (raw: Record<string, unknown>): Search => {
+    // The default search parser JSON-parses each value, so ?mode=501 arrives as the
+    // number 501 rather than the string "501" — coerce back to a string before checking.
+    const raw_mode = String(raw["mode"] ?? "");
+    return { mode: (MODES as string[]).includes(raw_mode) ? (raw_mode as Mode) : "bingo" };
+  },
   head: ({ match }) => {
     const c = CONFIG[match.search.mode];
     return {
@@ -169,6 +173,12 @@ const DRAFT = [
   { name: "Ronaldo Nazário", role: "FWD", rating: 96 },
 ];
 const DART_SCORES = [25, 40, 50, 60] as const;
+const DART_BEDS: DartboardHighlight[] = [
+  { segment: 25, ring: "outer" },
+  { segment: 20, ring: "double" },
+  { segment: 50, ring: "bull" },
+  { segment: 20, ring: "treble" },
+];
 
 function hasLine(cells: number[]) {
   const s = new Set(cells);
@@ -198,6 +208,7 @@ function BoardPage() {
   });
   const sportId = sports?.find((s) => s.slug === prefs.sport)?.id ?? sports?.[0]?.id ?? null;
   const [difficulty, setDifficulty] = useState(2);
+  const [lastBed, setLastBed] = useState<DartboardHighlight | null>(null);
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState<number | null>(null);
@@ -476,8 +487,9 @@ function BoardPage() {
               className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}
             >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="board-stage relative">
               <div
-                className="grid grid-cols-5 gap-2 relative"
+                className="board-tilt board-rim board-felt grid grid-cols-5 gap-2 p-3"
                 role="group"
                 aria-label="Territory zones"
               >
@@ -491,25 +503,24 @@ function BoardPage() {
                       disabled={own || theirs || target !== null}
                       onClick={() => setTarget(i)}
                       aria-label={`Zone ${i + 1}${own ? ", yours" : theirs ? ", rival" : ""}`}
-                      className={`game-tile ${
-                        own
-                          ? "game-tile-completed"
-                          : theirs
-                            ? "border-destructive bg-destructive text-destructive-foreground"
-                            : target === i
-                              ? "game-tile-reward"
-                              : "hover:border-primary/60"
+                      className={`game-tile !bg-transparent !border-white/10 ${
+                        target === i && !own && !theirs ? "game-tile-reward" : "hover:border-primary/60"
                       } ${i === 15 ? "col-start-2" : ""}`}
                     >
-                      <Hexagon
-                        className={`size-6 ${own ? "text-primary-foreground" : theirs ? "text-destructive-foreground" : "text-muted-foreground"}`}
-                      />
+                      {(own || theirs) ? (
+                        <span
+                          className={`game-token size-8 ${own ? "game-token-gold" : "game-token-rival"}`}
+                        />
+                      ) : (
+                        <Hexagon className="size-6 text-cream/70" />
+                      )}
                       <span className="absolute bottom-1 right-1.5 text-[0.55rem] font-bold text-inherit opacity-70">
                         {i + 1}
                       </span>
                     </button>
                   );
                 })}
+              </div>
               </div>
             </div>
           )}
@@ -519,37 +530,46 @@ function BoardPage() {
               className={`game-panel relative mt-6 p-6 text-center border-t-4 ${c.accent.replace("text-", "border-")}`}
             >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
-              <div className="relative inline-flex flex-col items-center">
-                <div
-                  className="game-score-ring"
-                  style={{
-                    ["--progress" as string]: `${Math.max(0, Math.min(100, ((501 - remaining) / 501) * 100))}%`,
-                    width: "8rem",
-                    height: "8rem",
-                  }}
-                >
-                  <div
-                    className="game-score-ring-inner"
-                    style={{ width: "6.5rem", height: "6.5rem" }}
-                  >
-                    <div>
-                      <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
-                        Remaining
-                      </p>
-                      <p className="font-display text-6xl text-gold">{remaining}</p>
-                    </div>
-                  </div>
+              <div className="board-stage relative mx-auto flex max-w-xs flex-col items-center">
+                <div className="board-tilt board-rim board-wood aspect-square w-full p-4 sm:max-w-[20rem]">
+                  <Dartboard
+                    size={320}
+                    className="mx-auto h-full w-full"
+                    highlight={target === null ? DART_BEDS : []}
+                    lastHit={lastBed}
+                    onPick={
+                      target !== null
+                        ? undefined
+                        : (bed) => {
+                            const index = DART_BEDS.findIndex(
+                              (b) => b.segment === bed.segment && b.ring === bed.ring,
+                            );
+                            if (index === -1) return;
+                            setLastBed(bed);
+                            setDifficulty(index + 1);
+                          }
+                    }
+                  />
+                </div>
+                <div className="scoreboard-slate -mt-6 w-11/12 rounded-xl px-4 py-3">
+                  <p className="text-[0.6rem] font-black uppercase tracking-[0.24em] opacity-70">
+                    Remaining
+                  </p>
+                  <p className="font-mono text-5xl font-black tabular-nums">{remaining}</p>
                 </div>
               </div>
-              <div className="mt-6 grid grid-cols-4 gap-2">
+              <div className="mt-4 flex flex-wrap justify-center gap-2">
                 {DIFFICULTIES.map((level, index) => (
-                  <div
+                  <Chip
                     key={level.level}
-                    className={`game-tile text-xs ${difficulty === level.level ? "game-tile-reward" : ""}`}
+                    on={difficulty === level.level}
+                    onClick={() => {
+                      setLastBed(DART_BEDS[index] ?? null);
+                      setDifficulty(level.level);
+                    }}
                   >
-                    <span className="font-display text-2xl leading-none">{DART_SCORES[index]}</span>
-                    <span>{level.label}</span>
-                  </div>
+                    {DART_SCORES[index]} · {level.label}
+                  </Chip>
                 ))}
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2 rounded-xl border border-border/70 bg-background/50 p-3 text-center">
@@ -620,7 +640,8 @@ function BoardPage() {
               className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}
             >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
-              <div className="grid grid-cols-4 gap-2 relative">
+              <div className="board-stage relative">
+              <div className="board-tilt board-rim board-felt grid grid-cols-4 gap-2 p-3">
                 {allConnections.map((x) => {
                   const done = solvedItems.has(x),
                     on = selected.includes(x);
@@ -635,12 +656,12 @@ function BoardPage() {
                           v.includes(x) ? v.filter((y) => y !== x) : v.length < 4 ? [...v, x] : v,
                         )
                       }
-                      className={`game-tile text-xs ${
+                      className={`phys-card game-tile text-xs ${
                         done
-                          ? "border-primary/40 bg-primary/10 text-primary"
+                          ? "phys-card-solved border-primary/40 bg-primary/10 text-primary"
                           : on
                             ? "game-tile-completed"
-                            : "hover:border-primary/60"
+                            : ""
                       }`}
                     >
                       {done && <Check className="size-3 text-primary" />}
@@ -648,6 +669,7 @@ function BoardPage() {
                     </button>
                   );
                 })}
+              </div>
               </div>
               <Button
                 className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
@@ -672,7 +694,8 @@ function BoardPage() {
               className={`game-panel relative mt-6 p-4 space-y-2 border-t-4 ${c.accent.replace("text-", "border-")}`}
             >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
-              <div className="relative space-y-2">
+              <div className="board-stage relative">
+              <div className="board-tilt board-rim board-wood relative space-y-2 p-3">
                 {DRAFT.map((x, i) => {
                   const signed = squad.includes(i);
                   return (
@@ -681,7 +704,7 @@ function BoardPage() {
                       type="button"
                       disabled={signed || target !== null}
                       onClick={() => setTarget(i)}
-                      className={`panel flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "border-gold/60 bg-gold/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
+                      className={`card-holder flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "card-slide-in border-gold/60 bg-gold/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
                     >
                       <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
                         <span className="font-display text-xl text-gold">{x.rating}</span>
@@ -701,6 +724,7 @@ function BoardPage() {
                   );
                 })}
               </div>
+              </div>
             </div>
           )}
 
@@ -717,7 +741,12 @@ function BoardPage() {
                   {mine.length}/{BINGO.length} marked
                 </span>
               </div>
-              <div className="grid grid-cols-4 gap-2 relative" role="group" aria-label="Bingo card">
+              <div className="board-stage relative">
+              <div
+                className="board-tilt board-rim board-felt grid grid-cols-4 gap-2 p-3 bingo-stock"
+                role="group"
+                aria-label="Bingo card"
+              >
                 {BINGO.map((label, i) => {
                   const own = mine.includes(i);
                   const TileIcon = BINGO_ICONS[label] ?? Star;
@@ -735,24 +764,22 @@ function BoardPage() {
                       disabled={own || target !== null}
                       onClick={() => setTarget(i)}
                       aria-pressed={target === i}
-                      className={`game-tile ${
-                        own
-                          ? "game-tile-completed"
-                          : target === i
-                            ? "game-tile-reward"
-                            : `game-tile-accent ${tone}`
+                      className={`bingo-cell game-tile !bg-transparent ${
+                        target === i ? "game-tile-reward" : `game-tile-accent ${tone}`
                       }`}
                     >
                       <TileIcon className="size-5 text-current" />
                       <span className="leading-none">{label}</span>
+                      {own && <span className="daub-mark" aria-hidden />}
                       {own && (
-                        <span className="absolute right-1 top-1">
-                          <Check className="size-3 text-primary-foreground" />
+                        <span className="absolute right-1 top-1 z-10">
+                          <Check className="size-3 text-primary" />
                         </span>
                       )}
                     </button>
                   );
                 })}
+              </div>
               </div>
             </div>
           )}

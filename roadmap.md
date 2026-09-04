@@ -80,3 +80,4 @@
 - [x] Fix editDistance strict-index typecheck errors
 
 - [ ] 3D-look, realistic game boards for all arcade games (Ludo, Connect 4, 501 darts, tic-tac-toe, Snakes, Mastermind, boards)
+- [ ] Investigate: rooms cannot be opened/set up; confirm testfan has Pro access to all games
