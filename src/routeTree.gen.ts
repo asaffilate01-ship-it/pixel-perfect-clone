@@ -21,6 +21,7 @@ import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
 import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
+import { Route as ArcadeBoardRouteImport } from './routes/arcade_.board'
 import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
 import { Route as ArcadeMastermindRouteImport } from './routes/arcade_.mastermind'
 import { Route as ArcadeQuizRaceRouteImport } from './routes/arcade_.quiz-race'
@@ -91,6 +92,11 @@ const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   path: '/profile',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ArcadeBoardRoute = ArcadeBoardRouteImport.update({
+  id: '/arcade_/board',
+  path: '/arcade/board',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArcadeConnectFourRoute = ArcadeConnectFourRouteImport.update({
   id: '/arcade_/connect-four',
   path: '/arcade/connect-four',
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/arcade/board': typeof ArcadeBoardRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
@@ -171,6 +178,7 @@ export interface FileRoutesByTo {
   '/notifications': typeof AuthenticatedNotificationsRoute
   '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
+  '/arcade/board': typeof ArcadeBoardRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
@@ -195,6 +203,7 @@ export interface FileRoutesById {
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
   '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
+  '/arcade_/board': typeof ArcadeBoardRoute
   '/arcade_/connect-four': typeof ArcadeConnectFourRoute
   '/arcade_/mastermind': typeof ArcadeMastermindRoute
   '/arcade_/quiz-race': typeof ArcadeQuizRaceRoute
@@ -219,6 +228,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/onboarding'
     | '/profile'
+    | '/arcade/board'
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
@@ -241,6 +251,7 @@ export interface FileRouteTypes {
     | '/notifications'
     | '/onboarding'
     | '/profile'
+    | '/arcade/board'
     | '/arcade/connect-four'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
@@ -264,6 +275,7 @@ export interface FileRouteTypes {
     | '/_authenticated/notifications'
     | '/_authenticated/onboarding'
     | '/_authenticated/profile'
+    | '/arcade_/board'
     | '/arcade_/connect-four'
     | '/arcade_/mastermind'
     | '/arcade_/quiz-race'
@@ -284,6 +296,7 @@ export interface RootRouteChildren {
   FiltersRoute: typeof FiltersRoute
   LeaderboardRoute: typeof LeaderboardRoute
   UpgradeRoute: typeof UpgradeRoute
+  ArcadeBoardRoute: typeof ArcadeBoardRoute
   ArcadeConnectFourRoute: typeof ArcadeConnectFourRoute
   ArcadeMastermindRoute: typeof ArcadeMastermindRoute
   ArcadeQuizRaceRoute: typeof ArcadeQuizRaceRoute
@@ -381,6 +394,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedProfileRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/arcade_/board': {
+      id: '/arcade_/board'
+      path: '/arcade/board'
+      fullPath: '/arcade/board'
+      preLoaderRoute: typeof ArcadeBoardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/arcade_/connect-four': {
       id: '/arcade_/connect-four'
       path: '/arcade/connect-four'
@@ -473,6 +493,7 @@ const rootRouteChildren: RootRouteChildren = {
   FiltersRoute: FiltersRoute,
   LeaderboardRoute: LeaderboardRoute,
   UpgradeRoute: UpgradeRoute,
+  ArcadeBoardRoute: ArcadeBoardRoute,
   ArcadeConnectFourRoute: ArcadeConnectFourRoute,
   ArcadeMastermindRoute: ArcadeMastermindRoute,
   ArcadeQuizRaceRoute: ArcadeQuizRaceRoute,
