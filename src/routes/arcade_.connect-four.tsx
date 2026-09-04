@@ -431,10 +431,8 @@ function PlayerChip({ label, me, active }: { label: string; me?: boolean; active
       }`}
     >
       <span
-        className={`grid size-6 place-items-center rounded-full ${
-          me
-            ? "bg-gradient-to-br from-yellow-200 to-orange-500 text-amber-950"
-            : "bg-gradient-to-br from-rose-400 to-red-600 text-white"
+        className={`game-token grid size-6 place-items-center ${
+          me ? "game-token-gold" : "game-token-rival"
         }`}
       >
         {me ? <ShieldCheck className="size-3.5" /> : <Shield className="size-3.5" />}
