@@ -69,4 +69,4 @@
 - Fixed guest data loading: RLS helper functions re-granted to anon
 
 ## In progress
-- (none)
+- In-game UI/UX polish: boards and play screens need stronger icons, avatars, colour hierarchy, and game-card feel inspired by the National Lottery instant-win grid and Dribbble sport-quiz references; avoid team logos or player likenesses (copyright).
