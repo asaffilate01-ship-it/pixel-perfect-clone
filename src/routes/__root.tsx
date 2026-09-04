@@ -15,6 +15,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { QuizPrefsProvider } from "@/lib/quizPrefs";
 import { EntitlementsProvider } from "@/lib/entitlements";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { MobileTabBar } from "@/components/site/MobileTabBar";
 import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
@@ -23,9 +24,7 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="font-display text-7xl text-foreground">404</h1>
         <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          That square isn&apos;t on the grid.
-        </p>
+        <p className="mt-2 text-sm text-muted-foreground">That square isn&apos;t on the grid.</p>
         <div className="mt-6">
           <Link
             to="/"
@@ -131,24 +130,27 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <EntitlementsProvider>
-        <QuizPrefsProvider>
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader />
-            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-            <main className="flex-1">
-              <Outlet />
-            </main>
-            <footer className="border-t border-border/70 py-8">
-              <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                <span className="font-display text-base tracking-wide text-foreground">
-                  FANZENO<span className="text-primary">.</span>
-                </span>
-                <span>Answers are validated server-side against the Fanzeno sports database.</span>
-              </div>
-            </footer>
-          </div>
-          <Toaster />
-        </QuizPrefsProvider>
+          <QuizPrefsProvider>
+            <div className="flex min-h-screen flex-col">
+              <SiteHeader />
+              {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+              <main className="flex-1 pb-24 md:pb-0">
+                <Outlet />
+              </main>
+              <footer className="border-t border-border/70 py-8">
+                <div className="mx-auto flex w-full max-w-6xl flex-col gap-2 px-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span className="font-display text-base tracking-wide text-foreground">
+                    FANZENO<span className="text-primary">.</span>
+                  </span>
+                  <span>
+                    Answers are validated server-side against the Fanzeno sports database.
+                  </span>
+                </div>
+              </footer>
+              <MobileTabBar />
+            </div>
+            <Toaster />
+          </QuizPrefsProvider>
         </EntitlementsProvider>
       </AuthProvider>
     </QueryClientProvider>
