@@ -314,7 +314,7 @@ function ConnectFourPage() {
               className={`game-tile min-h-12 text-[0.55rem] ${
                 selectedCol === i
                   ? "game-tile-reward"
-                  : "border-cyan-300/20 text-cyan-100 hover:border-cyan-300/50 hover:bg-cyan-300/10"
+                  : "border-primary/20 text-primary hover:border-primary/50 hover:bg-primary/10"
               }`}
               aria-label={`Choose column ${i + 1}`}
               aria-pressed={selectedCol === i}
