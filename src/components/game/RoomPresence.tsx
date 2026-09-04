@@ -8,7 +8,7 @@ const presentation: Record<ArcadePresenceState, { label: string; className: stri
   offline: { label: "Offline", className: "bg-muted-foreground" },
 };
 
-export function PresenceDot({ status = "offline" }: { status?: ArcadePresenceState }) {
+export function PresenceDot({ status = "offline" }: { status?: ArcadePresenceState | undefined }) {
   const item = presentation[status];
   return (
     <span className="inline-flex items-center gap-1.5 text-[0.58rem] font-bold text-muted-foreground">

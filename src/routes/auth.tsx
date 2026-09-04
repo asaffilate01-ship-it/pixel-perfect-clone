@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-type AuthSearch = { next?: string };
+type AuthSearch = { next?: string | undefined };
 
 const safeNext = (value: unknown) =>
   typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : undefined;
