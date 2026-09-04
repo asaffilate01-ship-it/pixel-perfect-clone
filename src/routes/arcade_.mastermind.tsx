@@ -8,7 +8,7 @@ import { fetchClueBank, fetchRoom, fetchRoomPlayers, SEAT_TEXT } from "@/lib/arc
 import { useEntitlements } from "@/lib/entitlements";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { Chip, Label, PlayerCard } from "@/components/game/ArcadeSetup";
+import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeSetup";
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
@@ -318,6 +318,7 @@ function MastermindPage() {
               />
             </PlayerCard>
           ))}
+          <FairnessNote />
         </div>
         <Button
           size="lg"

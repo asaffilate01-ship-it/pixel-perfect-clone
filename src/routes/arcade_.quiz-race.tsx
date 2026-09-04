@@ -25,7 +25,7 @@ import {
   SEAT_TEXT,
   SNAKES,
 } from "@/lib/arcadeQuiz";
-import { Chip, Label, PlayerCard } from "@/components/game/ArcadeSetup";
+import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeSetup";
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard, type QuestionOutcome } from "@/components/game/QuestionCard";
 import { useEntitlements } from "@/lib/entitlements";
@@ -323,6 +323,7 @@ function QuizRacePage() {
               />
             </PlayerCard>
           ))}
+          <FairnessNote />
         </div>
         <Button
           size="lg"

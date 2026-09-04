@@ -10,6 +10,7 @@ import {
   Clock,
   Globe,
   Layers,
+  Search,
   Sparkles,
   Trophy,
 } from "lucide-react";
@@ -21,6 +22,8 @@ import {
 } from "@/lib/fanzeno";
 import { ERAS, QUESTION_FOCUS, useQuizPrefs, type EraId, type QuizPrefs } from "@/lib/quizPrefs";
 import { EntityScopePicker } from "@/components/game/EntityScopePicker";
+import { SportPicker } from "@/components/game/SportPicker";
+import { SportIcon } from "@/lib/sportCatalog";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/filters")({
@@ -66,9 +69,11 @@ function Filters() {
   );
   const countries = useMemo(() => countriesForSport(list), [list]);
   const [country, setCountry] = useState("all");
+  const [search, setSearch] = useState("");
   const [open, setOpen] = useState<Record<string, boolean>>({});
   useEffect(() => {
     setCountry("all");
+    setSearch("");
     setOpen({});
   }, [sport?.id]);
   const groups = useMemo(() => groupCompetitions(list, country), [list, country]);
@@ -88,6 +93,30 @@ function Filters() {
     }
   };
 
+  const filteredGroups = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    if (!needle) return groups;
+    return groups
+      .map((g) => ({
+        ...g,
+        items: g.items.filter(
+          (c) =>
+            c.name.toLowerCase().includes(needle) ||
+            (c.short_name ?? "").toLowerCase().includes(needle) ||
+            (c.region ?? "").toLowerCase().includes(needle),
+        ),
+      }))
+      .filter((g) => g.items.length > 0);
+  }, [groups, search]);
+
+  const summary = [
+    sport?.name ?? "Any sport",
+    draft.competitionName ?? "All competitions",
+    draft.team?.name,
+    draft.person?.name,
+    ERAS.find((e) => e.id === draft.era)?.label,
+  ].filter(Boolean);
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
       <div className="flex items-center gap-3">
@@ -100,32 +129,44 @@ function Filters() {
         </div>
       </div>
 
-      <SectionLabel>Sport</SectionLabel>
-      <div className="flex flex-wrap gap-2">
-        {(sports ?? []).map((s) => {
-          const on = s.slug === draft.sport;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() =>
-                setDraft({ ...draft, sport: s.slug, competitionId: null, competitionName: null, team: null, person: null })
-              }
-              className={`rounded-xl border px-4 py-2.5 text-[0.7rem] font-extrabold uppercase tracking-[0.1em] transition-colors ${
-                on
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {s.name}
-            </button>
-          );
-        })}
+      {/* Current selection, always visible */}
+      <div className="sticky top-16 z-20 mt-5 flex flex-wrap items-center gap-2 rounded-2xl border border-primary/40 bg-background/85 p-3 backdrop-blur">
+        <span className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
+          Playing
+        </span>
+        {sport && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-2.5 py-1 text-xs font-bold">
+            <SportIcon slug={sport.slug} className="size-3.5 text-primary" />
+            {sport.name}
+          </span>
+        )}
+        {summary.slice(1).map((s) => (
+          <span key={s} className="rounded-full bg-surface-strong px-2.5 py-1 text-xs font-semibold">
+            {s}
+          </span>
+        ))}
+        <Button
+          size="sm"
+          className="ml-auto font-bold uppercase tracking-[0.14em]"
+          disabled={saving}
+          onClick={() => void save()}
+        >
+          Save
+        </Button>
       </div>
+
+      <SectionLabel>1 · Sport</SectionLabel>
+      <SportPicker
+        sports={sports ?? []}
+        value={draft.sport}
+        onChange={(slug) =>
+          setDraft({ ...draft, sport: slug, competitionId: null, competitionName: null, team: null, person: null })
+        }
+      />
 
       {countries.length > 1 && (
         <>
-          <SectionLabel>Country or region</SectionLabel>
+          <SectionLabel>2 · Country or region</SectionLabel>
           <div className="flex flex-wrap gap-2">
             {["all", ...countries].map((c) => {
               const on = country === c;
@@ -148,7 +189,17 @@ function Filters() {
         </>
       )}
 
-      <SectionLabel>Competition or league</SectionLabel>
+      <SectionLabel>3 · League or competition</SectionLabel>
+      <label className="relative mb-3 block">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={`Search ${sport?.name ?? ""} leagues, cups and tours`}
+          aria-label="Search competitions"
+          className="h-11 w-full rounded-xl border border-border bg-surface/60 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
+        />
+      </label>
       <div className="space-y-2">
         <ScopeRow
           on={draft.competitionId === null}
@@ -161,8 +212,8 @@ function Filters() {
           title={`All ${sport?.name ?? "sports"}`}
           sub="Mix competitions, nations and eras"
         />
-        {groups.map((g, i) => {
-          const expanded = isOpen(g.key, i);
+        {filteredGroups.map((g, i) => {
+          const expanded = search.trim() ? true : isOpen(g.key, i);
           const selectedHere = g.items.some((c) => c.id === draft.competitionId);
           return (
             <div key={g.key} className="overflow-hidden rounded-2xl border border-border bg-surface/40">
@@ -182,7 +233,7 @@ function Filters() {
                   )}
                 </span>
                 <span className="flex-1">
-                  <span className="block text-sm font-bold">{g.label}</span>
+                  <span className="block text-sm font-bold">{humanise(g.label)}</span>
                   <span className="block text-[0.7rem] text-muted-foreground">
                     {g.items.length} {g.items.length === 1 ? "option" : "options"}
                     {selectedHere && " · selected"}
@@ -224,7 +275,7 @@ function Filters() {
 
       {sport && (
         <>
-          <SectionLabel>Drill down</SectionLabel>
+          <SectionLabel>4 · Team or person (optional)</SectionLabel>
           <div className="space-y-2">
             <EntityScopePicker
               sportId={sport.id}
@@ -246,7 +297,7 @@ function Filters() {
         </>
       )}
 
-      <SectionLabel>Question focus</SectionLabel>
+      <SectionLabel>5 · Question focus</SectionLabel>
       <div className="flex flex-wrap gap-2">
         {QUESTION_FOCUS.map((f) => {
           const on = (draft.focus ?? "Mixed") === f;
@@ -267,7 +318,7 @@ function Filters() {
         })}
       </div>
 
-      <SectionLabel>Era</SectionLabel>
+      <SectionLabel>6 · Era</SectionLabel>
       <div className="flex flex-wrap gap-2">
         {ERAS.map((e) => {
           const on = draft.era === e.id;
@@ -308,6 +359,9 @@ function Filters() {
     </div>
   );
 }
+
+const humanise = (k: string) =>
+  /[a-z]-[a-z]/.test(k) ? k.replace(/-/g, " ").replace(/^\w/, (c) => c.toUpperCase()) : k;
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
