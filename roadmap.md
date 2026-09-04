@@ -70,3 +70,7 @@
 
 ## In progress
 - In-game UI/UX polish: boards and play screens need stronger icons, avatars, colour hierarchy, and game-card feel inspired by the National Lottery instant-win grid and Dribbble sport-quiz references; avoid team logos or player likenesses (copyright).
+- Confirm final colour-scheme direction with user (currently dark pitch-green + mint primary + gold rewards).
+
+## Done (Sep 4 data/account)
+- Unlocked Fanzeno Pro for the testfan account only so every game can be tested; all other accounts keep the normal Pro gates.
