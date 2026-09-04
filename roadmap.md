@@ -55,6 +55,9 @@
 - Admin UI for honours, verified facts and generation jobs
 - Multi-language copy (mobile app ships i18n; web is English only)
 
+## Done (v0.12–v0.20 fold-in)
+- Branding, notifications, onboarding + home nudge, 5 arcade boards, Monthly page, Ops question review, security-definer grants tightened
+
 ## In progress
 - v0.12–v0.20 fold-in (archive of nine releases; latest v0.20)
 - Brand: Fanzeno logo in header + app-icon favicon
