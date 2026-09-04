@@ -1,7 +1,16 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, Dices, Gem, Play, Radio, TrendingDown, TrendingUp, Trophy } from "lucide-react";
+import {
+  ChevronLeft,
+  Dices,
+  Gem,
+  Play,
+  Radio,
+  TrendingDown,
+  TrendingUp,
+  Trophy,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchSports, DIFFICULTIES } from "@/lib/fanzeno";
 import {
@@ -71,7 +80,11 @@ function QuizRacePage() {
   const online = !!roomId;
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
-  const { data: room } = useQuery({ queryKey: ["arcade-room", roomId], queryFn: () => fetchRoom(roomId!), enabled: online });
+  const { data: room } = useQuery({
+    queryKey: ["arcade-room", roomId],
+    queryFn: () => fetchRoom(roomId!),
+    enabled: online,
+  });
   const { data: roomPlayers } = useQuery({
     queryKey: ["arcade-room-players", roomId],
     queryFn: () => fetchRoomPlayers(roomId!),
@@ -96,7 +109,9 @@ function QuizRacePage() {
 
   useEffect(() => {
     if (online || !sports?.length) return;
-    setPlayers((x) => x.map((p, i) => (p.sportId ? p : { ...p, sportId: sports[i % sports.length]!.id })));
+    setPlayers((x) =>
+      x.map((p, i) => (p.sportId ? p : { ...p, sportId: sports[i % sports.length]!.id })),
+    );
   }, [sports, online]);
 
   // Online: the room is the source of truth for seats, positions and whose turn it is.
@@ -108,8 +123,21 @@ function QuizRacePage() {
     };
     const channel = supabase
       .channel(`arcade-play-${roomId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "arcade_room_players", filter: `room_id=eq.${roomId}` }, refresh)
-      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "arcade_rooms", filter: `id=eq.${roomId}` }, refresh)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "arcade_room_players",
+          filter: `room_id=eq.${roomId}`,
+        },
+        refresh,
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "arcade_rooms", filter: `id=eq.${roomId}` },
+        refresh,
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);
@@ -135,9 +163,11 @@ function QuizRacePage() {
   const n = online ? list.length : count;
   const activeIdx = online ? Math.max(0, seatOrder.indexOf(room?.active_seat ?? 0)) : turn;
   const active = list[activeIdx];
-  const onlineDifficulty = online ? room?.difficulty ?? 2 : difficulty;
+  const onlineDifficulty = online ? (room?.difficulty ?? 2) : difficulty;
   const myTurn = online ? active?.userId === user?.id : true;
-  const onlineTurnKey = online ? `${room?.active_seat}-${room?.round_no}-${roomPlayers?.map((p) => p.position).join(",")}` : turnKey;
+  const onlineTurnKey = online
+    ? `${room?.active_seat}-${room?.round_no}-${roomPlayers?.map((p) => p.position).join(",")}`
+    : turnKey;
 
   const title = game === "ludo" ? "Quiz Ludo" : "Quiz Snakes & Ladders";
   const spaces = game === "ludo" ? 52 : 100;
@@ -157,9 +187,14 @@ function QuizRacePage() {
     ? room?.status === "finished"
       ? list.find((p) => (game === "ludo" ? p.position >= LUDO_HOME : p.position >= 100))
       : undefined
-    : players.slice(0, count).find((p) => (game === "ludo" ? p.tokens.every((t) => t === LUDO_HOME) : p.position >= 100));
+    : players
+        .slice(0, count)
+        .find((p) =>
+          game === "ludo" ? p.tokens.every((t) => t === LUDO_HOME) : p.position >= 100,
+        );
 
   const start = () => {
+    if (players.slice(0, count).some((player) => !player.sportId)) return;
     setSetup(false);
     setTurn(0);
     setTurnKey((k) => k + 1);
@@ -191,7 +226,8 @@ function QuizRacePage() {
       const landed = tokens[tokenIndex]!;
       return current.map((p, i) => {
         if (i === turn) return { ...p, tokens, position: Math.max(...tokens) };
-        if (!LUDO_SAFE.has(landed) && landed !== LUDO_HOME) return { ...p, tokens: p.tokens.map((t) => (t === landed ? 0 : t)) };
+        if (!LUDO_SAFE.has(landed) && landed !== LUDO_HOME)
+          return { ...p, tokens: p.tokens.map((t) => (t === landed ? 0 : t)) };
         return p;
       });
     });
@@ -209,7 +245,8 @@ function QuizRacePage() {
           </span>
           <h2 className="mt-4 text-3xl">Quiz Ludo is a Pro game</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Unlock it with Fanzeno Pro — one payment, lifetime. Snakes &amp; Ladders is free to play right now.
+            Unlock it with Fanzeno Pro — one payment, lifetime. Snakes &amp; Ladders is free to play
+            right now.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
             <Button asChild>
@@ -240,8 +277,8 @@ function QuizRacePage() {
         >
           <Radio className="size-4 shrink-0 text-primary" />
           <span>
-            <span className="font-black uppercase tracking-[0.14em] text-primary">Play online</span> — host a private room
-            and friends join on their own devices with server-checked answers.
+            <span className="font-black uppercase tracking-[0.14em] text-primary">Play online</span>{" "}
+            — host a private room and friends join on their own devices with server-checked answers.
           </span>
         </Link>
         <Label>Game difficulty</Label>
@@ -269,19 +306,30 @@ function QuizRacePage() {
               avatar={p.avatar}
               sports={sports ?? []}
               onName={(name) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, name } : v)))}
-              onSport={(sportId) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, sportId } : v)))}
-              onCategory={(categoryKey) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, categoryKey } : v)))}
+              onSport={(sportId) =>
+                setPlayers((x) => x.map((v, j) => (j === i ? { ...v, sportId } : v)))
+              }
+              onCategory={(categoryKey) =>
+                setPlayers((x) => x.map((v, j) => (j === i ? { ...v, categoryKey } : v)))
+              }
             >
               <AvatarPicker
                 value={p.avatar}
                 pro={pro}
                 label={`${p.name} avatar`}
-                onChange={(avatar) => setPlayers((x) => x.map((v, j) => (j === i ? { ...v, avatar } : v)))}
+                onChange={(avatar) =>
+                  setPlayers((x) => x.map((v, j) => (j === i ? { ...v, avatar } : v)))
+                }
               />
             </PlayerCard>
           ))}
         </div>
-        <Button size="lg" className="mt-8 w-full font-bold uppercase tracking-[0.14em]" onClick={start}>
+        <Button
+          size="lg"
+          className="mt-8 w-full font-bold uppercase tracking-[0.14em]"
+          onClick={start}
+          disabled={!sports?.length || players.slice(0, count).some((player) => !player.sportId)}
+        >
           <Play className="size-4" /> Start {title}
         </Button>
       </Shell>
@@ -300,7 +348,11 @@ function QuizRacePage() {
           </div>
           <h2 className={`mt-3 text-5xl ${SEAT_TEXT[idx % 4]}`}>{winner.name}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            {game === "ludo" ? (online ? "First token home." : "All four tokens home.") : "First to square 100."}
+            {game === "ludo"
+              ? online
+                ? "First token home."
+                : "All four tokens home."
+              : "First to square 100."}
           </p>
           <Button className="mt-6" onClick={reset}>
             {online ? "Back to rooms" : "Play again"}
@@ -313,7 +365,9 @@ function QuizRacePage() {
   if (!active) {
     return (
       <Shell title={title} onBack={reset}>
-        <p className="mt-8 animate-pulse text-center text-sm text-muted-foreground">Joining the room…</p>
+        <p className="mt-8 animate-pulse text-center text-sm text-muted-foreground">
+          Joining the room…
+        </p>
       </Shell>
     );
   }
@@ -331,9 +385,12 @@ function QuizRacePage() {
         <div className="flex-1">
           <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-muted-foreground">
             {active.name}
-            {online && myTurn ? " · your turn" : ""} · {DIFFICULTIES.find((d) => d.level === onlineDifficulty)?.label}
+            {online && myTurn ? " · your turn" : ""} ·{" "}
+            {DIFFICULTIES.find((d) => d.level === onlineDifficulty)?.label}
           </p>
-          <p className="text-sm font-bold">{sports?.find((s) => s.id === active.sportId)?.name ?? "All sports"}</p>
+          <p className="text-sm font-bold">
+            {sports?.find((s) => s.id === active.sportId)?.name ?? "All sports"}
+          </p>
         </div>
         <p className="font-display text-2xl">
           {game === "ludo"
@@ -345,12 +402,22 @@ function QuizRacePage() {
       </div>
 
       {online && (
-        <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
+        <div
+          className="mt-3 grid gap-2"
+          style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}
+        >
           {list.map((p, i) => (
-            <div key={i} className={`panel flex items-center gap-2 p-2 ${i === activeIdx ? "border-primary" : ""}`}>
+            <div
+              key={i}
+              className={`panel flex items-center gap-2 p-2 ${i === activeIdx ? "border-primary" : ""}`}
+            >
               <Avatar id={p.avatar} size={28} />
               <span className="min-w-0">
-                <span className={`block truncate text-[0.58rem] font-black uppercase tracking-[0.12em] ${SEAT_TEXT[i % 4]}`}>{p.name}</span>
+                <span
+                  className={`block truncate text-[0.58rem] font-black uppercase tracking-[0.12em] ${SEAT_TEXT[i % 4]}`}
+                >
+                  {p.name}
+                </span>
                 <span className="block text-xs text-muted-foreground">{p.position}</span>
               </span>
             </div>
@@ -367,7 +434,12 @@ function QuizRacePage() {
           const ladder = game === "snakes" && LADDERS[c];
           const snake = game === "snakes" && SNAKES[c];
           const safe = game === "ludo" && LUDO_SAFE.has(c);
-          const band = game === "snakes" ? ["bg-surface/60", "bg-primary/8", "bg-gold/8", "bg-chart-3/10"][Math.floor((c - 1) / 10) % 4] : "bg-surface/50";
+          const band =
+            game === "snakes"
+              ? ["bg-surface/60", "bg-primary/8", "bg-gold/8", "bg-chart-3/10"][
+                  Math.floor((c - 1) / 10) % 4
+                ]
+              : "bg-surface/50";
           return (
             <div
               key={c}
@@ -392,11 +464,18 @@ function QuizRacePage() {
                 </span>
               ) : null}
               <span className="absolute inset-x-0 bottom-0.5 flex flex-wrap justify-center gap-0.5 px-0.5">
-                {list.slice(0, n).flatMap((p, i) =>
-                  (game === "ludo" && !online ? p.tokens : [p.position]).map((pos, t) =>
-                    pos === c ? <span key={`${i}-${t}`} className={`size-2 rounded-full ${SEAT_COLORS[i % 4]}`} /> : null,
-                  ),
-                )}
+                {list
+                  .slice(0, n)
+                  .flatMap((p, i) =>
+                    (game === "ludo" && !online ? p.tokens : [p.position]).map((pos, t) =>
+                      pos === c ? (
+                        <span
+                          key={`${i}-${t}`}
+                          className={`size-2 rounded-full ${SEAT_COLORS[i % 4]}`}
+                        />
+                      ) : null,
+                    ),
+                  )}
               </span>
             </div>
           );
@@ -420,7 +499,15 @@ function QuizRacePage() {
   );
 }
 
-function Shell({ title, onBack, children }: { title: string; onBack: () => void; children: React.ReactNode }) {
+function Shell({
+  title,
+  onBack,
+  children,
+}: {
+  title: string;
+  onBack: () => void;
+  children: React.ReactNode;
+}) {
   const Icon = title.includes("Ludo") ? Dices : TrendingUp;
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">

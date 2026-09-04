@@ -48,7 +48,27 @@ with editorial as (
   ('f1','world-champions','Who won the first Formula One World Drivers'' Championship in 1950?','The Italian drove for Alfa Romeo.','["Giuseppe Farina","Nino Farina","Farina"]'::jsonb,'Giuseppe “Nino” Farina',.15,'https://www.formula1.com/en/results/1950/drivers','Formula 1 1950 standings'),
   ('f1','world-champions','Who is Formula One''s only posthumous world champion?','The Austrian secured the 1970 title after his death.','["Jochen Rindt","Rindt"]'::jsonb,'Jochen Rindt',.40,'https://www.formula1.com/en/results/1970/drivers','Formula 1 1970 standings'),
   ('f1','world-champions','Which driver won the 1982 Formula One world title despite winning only one race that season?','The Finnish driver raced for Williams.','["Keke Rosberg","Keijo Rosberg","Rosberg"]'::jsonb,'Keke Rosberg',.68,'https://www.formula1.com/en/results/1982/drivers','Formula 1 1982 standings'),
-  ('f1','constructors','Which constructor won its first Formula One Constructors'' Championship in 1980?','Alan Jones won the drivers'' title for the same team.','["Williams","Williams Racing","Williams Grand Prix Engineering"]'::jsonb,'Williams',.90,'https://www.formula1.com/en/results/1980/team','Formula 1 1980 constructor standings')
+  ('f1','constructors','Which constructor won its first Formula One Constructors'' Championship in 1980?','Alan Jones won the drivers'' title for the same team.','["Williams","Williams Racing","Williams Grand Prix Engineering"]'::jsonb,'Williams',.90,'https://www.formula1.com/en/results/1980/team','Formula 1 1980 constructor standings'),
+
+  ('nba','records','Who scored 81 points for the Los Angeles Lakers in January 2006?','It is the second-highest individual score in NBA history.','["Kobe Bryant","Kobe","Bryant"]'::jsonb,'Kobe Bryant',.15,'https://www.nba.com/news/history-kobe-bryant-81-point-game','NBA: Kobe Bryant’s 81-point game'),
+  ('nba','awards','Who became the first unanimous NBA Most Valuable Player in 2016?','The Golden State guard made 402 three-pointers that season.','["Stephen Curry","Steph Curry","Curry"]'::jsonb,'Stephen Curry',.40,'https://www.nba.com/news/history-stephen-curry-unanimous-mvp','NBA: first unanimous MVP'),
+  ('nba','awards','Who became the youngest NBA MVP in 2011?','The Chicago Bulls point guard was 22.','["Derrick Rose","Rose"]'::jsonb,'Derrick Rose',.68,'https://www.nba.com/news/history-derrick-rose-youngest-mvp','NBA: Derrick Rose MVP'),
+  ('nba','finals','Who is the only player to win NBA Finals MVP while playing for the losing team?','He won the inaugural award in 1969.','["Jerry West","West"]'::jsonb,'Jerry West',.90,'https://www.nba.com/news/history-finals-mvp-winners','NBA Finals MVP history'),
+
+  ('nfl','super-bowl','Which team completed the NFL''s only perfect season by winning Super Bowl VII?','They finished the 1972 season 17–0.','["Miami Dolphins","Dolphins","Miami"]'::jsonb,'Miami Dolphins',.15,'https://www.nfl.com/100/originals/100-greatest/teams-1','NFL 100 greatest teams'),
+  ('nfl','super-bowl','Which team won the first Super Bowl?','Vince Lombardi coached the champions.','["Green Bay Packers","Packers","Green Bay"]'::jsonb,'Green Bay Packers',.40,'https://www.nfl.com/super-bowl/history/1966','NFL Super Bowl I'),
+  ('nfl','awards','Who won three consecutive NFL Most Valuable Player awards from 1995 through 1997?','The quarterback played for Green Bay.','["Brett Favre","Favre"]'::jsonb,'Brett Favre',.68,'https://www.nfl.com/players/brett-favre/stats/career','NFL: Brett Favre'),
+  ('nfl','super-bowl','Which franchise became the first wild-card team to win the Super Bowl after the 1980 season?','The team beat Philadelphia in Super Bowl XV.','["Oakland Raiders","Raiders","Las Vegas Raiders"]'::jsonb,'Oakland Raiders',.90,'https://www.nfl.com/super-bowl/history/1980','NFL Super Bowl XV'),
+
+  ('mlb','records','Which player holds MLB''s record with a 56-game hitting streak?','The streak was set in 1941.','["Joe DiMaggio","DiMaggio","Joltin Joe"]'::jsonb,'Joe DiMaggio',.15,'https://www.mlb.com/news/joe-dimaggio-56-game-hitting-streak','MLB: Joe DiMaggio’s hitting streak'),
+  ('mlb','history','Who broke Major League Baseball''s modern colour barrier in 1947?','He wore number 42 for the Brooklyn Dodgers.','["Jackie Robinson","Robinson"]'::jsonb,'Jackie Robinson',.40,'https://www.mlb.com/history/jackie-robinson','MLB: Jackie Robinson'),
+  ('mlb','world-series','Who hit the famous pinch-hit walk-off home run in Game 1 of the 1988 World Series?','The injured Dodgers outfielder homered off Dennis Eckersley.','["Kirk Gibson","Gibson"]'::jsonb,'Kirk Gibson',.68,'https://www.mlb.com/news/kirk-gibson-1988-world-series-home-run','MLB: Kirk Gibson 1988'),
+  ('mlb','world-series','Who threw the only perfect game in World Series history?','The Yankees pitcher achieved it in Game 5 in 1956.','["Don Larsen","Larsen","Donald Larsen"]'::jsonb,'Don Larsen',.90,'https://www.mlb.com/news/don-larsen-perfect-game-world-series','MLB: Don Larsen perfect game'),
+
+  ('nhl','records','Who is the NHL''s all-time leader in career points?','He is known as The Great One.','["Wayne Gretzky","Gretzky","The Great One"]'::jsonb,'Wayne Gretzky',.15,'https://www.nhl.com/player/wayne-gretzky-8447400','NHL: Wayne Gretzky'),
+  ('nhl','stanley-cup','Which franchise won the Stanley Cup in its inaugural 1917–18 NHL season?','The team is based in Toronto and later adopted its current name.','["Toronto Arenas","Arenas"]'::jsonb,'Toronto Arenas',.40,'https://www.nhl.com/mapleleafs/team/history','Toronto Maple Leafs history'),
+  ('nhl','stanley-cup','Which team became the first based in the United States to win the Stanley Cup in 1917?','The club represented Seattle.','["Seattle Metropolitans","Metropolitans"]'::jsonb,'Seattle Metropolitans',.68,'https://www.nhl.com/kraken/news/seattle-metropolitans-stanley-cup-history','NHL: Seattle Metropolitans'),
+  ('nhl','records','Who was the first goaltender credited with scoring an NHL goal?','The New York Islanders goalie received credit in 1979.','["Billy Smith","Smith","William John Smith"]'::jsonb,'Billy Smith',.90,'https://www.nhl.com/news/goalies-who-have-scored-goals','NHL goal-scoring goaltenders')
 )
 insert into public.question_bank(
   sport_id, category_key, question_type, prompt_i18n, clue_i18n, answer_rule,
@@ -168,3 +188,238 @@ end$$;
 revoke all on function public.reserve_fair_question(uuid,uuid,uuid,uuid,text,smallint,text[]) from public, anon;
 grant execute on function public.reserve_fair_question(uuid,uuid,uuid,uuid,text,smallint,text[]) to authenticated, service_role;
 
+-- Persistent arcade progression. Only the server-side attempt recorder can mutate it.
+create table if not exists public.player_arcade_progress (
+  user_id uuid primary key references auth.users on delete cascade,
+  xp bigint not null default 0 check (xp >= 0),
+  rank_points bigint not null default 0 check (rank_points >= 0),
+  answered int not null default 0 check (answered >= 0),
+  correct_answers int not null default 0 check (correct_answers >= 0),
+  current_answer_streak int not null default 0 check (current_answer_streak >= 0),
+  best_answer_streak int not null default 0 check (best_answer_streak >= 0),
+  daily_streak int not null default 0 check (daily_streak >= 0),
+  best_daily_streak int not null default 0 check (best_daily_streak >= 0),
+  last_correct_date date,
+  updated_at timestamptz not null default now()
+);
+grant select on public.player_arcade_progress to authenticated;
+grant all on public.player_arcade_progress to service_role;
+alter table public.player_arcade_progress enable row level security;
+drop policy if exists "public arcade ranks" on public.player_arcade_progress;
+create policy "public arcade ranks" on public.player_arcade_progress for select
+  using (true);
+revoke insert, update, delete on public.player_arcade_progress from anon, authenticated;
+create index if not exists arcade_rank_points
+  on public.player_arcade_progress(rank_points desc, best_answer_streak desc, updated_at asc);
+
+alter table public.question_attempts
+  add column if not exists awarded_points int not null default 0 check (awarded_points >= 0);
+
+create or replace function public.record_verified_question_attempt(
+  p_user_id uuid,
+  p_question_id uuid,
+  p_room_id uuid,
+  p_difficulty smallint,
+  p_correct boolean,
+  p_used_clue boolean,
+  p_passed boolean,
+  p_response_ms int
+)
+returns void language plpgsql security definer set search_path=public as $$
+declare
+  q public.question_bank;
+  theta numeric;
+  expected numeric;
+  k numeric;
+  prior int;
+  base_points int;
+  speed_bonus int;
+  awarded int;
+begin
+  if p_user_id is null then raise exception 'User required'; end if;
+  select * into q from public.question_bank where id=p_question_id and active and verification_status='verified';
+  if q.id is null then raise exception 'Unknown or inactive question'; end if;
+
+  base_points := case p_difficulty when 1 then 100 when 2 then 175 when 3 then 275 else 425 end;
+  speed_bonus := case when p_correct then greatest(0, least(100, (30000 - least(30000,p_response_ms)) / 300)) else 0 end;
+  awarded := case when p_correct then round(base_points * case when p_used_clue then .70 else 1 end)::int + speed_bonus else 0 end;
+
+  select ability_theta, attempts into theta, prior from public.player_abilities
+    where user_id=p_user_id and sport_id=q.sport_id and category_key=coalesce(q.category_key,'all');
+  theta:=coalesce(theta,0); prior:=coalesce(prior,0);
+  expected:=1/(1+exp(-q.discrimination_a*(theta-q.difficulty_b)));
+  k:=case when prior<20 then .22 else .08 end;
+
+  insert into public.question_attempts(
+    question_id,user_id,room_id,difficulty_selected,correct,used_clue,passed,
+    response_ms,ability_before,awarded_points
+  ) values(
+    p_question_id,p_user_id,p_room_id,p_difficulty,p_correct,p_used_clue,p_passed,
+    p_response_ms,theta,awarded
+  );
+
+  insert into public.player_abilities(user_id,sport_id,category_key,ability_theta,attempts,standard_error)
+  values(p_user_id,q.sport_id,coalesce(q.category_key,'all'),theta+k*((case when p_correct then 1 else 0 end)-expected),1,1)
+  on conflict(user_id,sport_id,category_key) do update set
+    ability_theta=excluded.ability_theta,
+    attempts=public.player_abilities.attempts+1,
+    standard_error=greatest(.15,1/sqrt(public.player_abilities.attempts+1)),
+    updated_at=now();
+
+  insert into public.player_arcade_progress(
+    user_id,xp,rank_points,answered,correct_answers,current_answer_streak,
+    best_answer_streak,daily_streak,best_daily_streak,last_correct_date
+  ) values(
+    p_user_id,awarded+10,awarded,1,case when p_correct then 1 else 0 end,
+    case when p_correct then 1 else 0 end,case when p_correct then 1 else 0 end,
+    case when p_correct then 1 else 0 end,case when p_correct then 1 else 0 end,
+    case when p_correct then current_date else null end
+  )
+  on conflict(user_id) do update set
+    xp=public.player_arcade_progress.xp+awarded+10,
+    rank_points=public.player_arcade_progress.rank_points+awarded,
+    answered=public.player_arcade_progress.answered+1,
+    correct_answers=public.player_arcade_progress.correct_answers+(case when p_correct then 1 else 0 end),
+    current_answer_streak=case when p_correct then public.player_arcade_progress.current_answer_streak+1 else 0 end,
+    best_answer_streak=greatest(
+      public.player_arcade_progress.best_answer_streak,
+      case when p_correct then public.player_arcade_progress.current_answer_streak+1 else 0 end
+    ),
+    daily_streak=case
+      when not p_correct then public.player_arcade_progress.daily_streak
+      when public.player_arcade_progress.last_correct_date=current_date then public.player_arcade_progress.daily_streak
+      when public.player_arcade_progress.last_correct_date=current_date-1 then public.player_arcade_progress.daily_streak+1
+      else 1 end,
+    best_daily_streak=greatest(public.player_arcade_progress.best_daily_streak,case
+      when not p_correct then public.player_arcade_progress.daily_streak
+      when public.player_arcade_progress.last_correct_date=current_date then public.player_arcade_progress.daily_streak
+      when public.player_arcade_progress.last_correct_date=current_date-1 then public.player_arcade_progress.daily_streak+1
+      else 1 end),
+    last_correct_date=case when p_correct then current_date else public.player_arcade_progress.last_correct_date end,
+    updated_at=now();
+
+  update public.question_bank set
+    calibration_attempts=calibration_attempts+1,
+    difficulty_b=case when calibration_attempts>=10
+      then difficulty_b-0.05*((case when p_correct then 1 else 0 end)-expected)
+      else difficulty_b end
+  where id=p_question_id;
+end$$;
+
+revoke all on function public.record_question_attempt(uuid,uuid,smallint,boolean,boolean,boolean,int)
+  from public, anon, authenticated;
+revoke all on function public.record_verified_question_attempt(uuid,uuid,uuid,smallint,boolean,boolean,boolean,int)
+  from public, anon, authenticated;
+grant execute on function public.record_verified_question_attempt(uuid,uuid,uuid,smallint,boolean,boolean,boolean,int)
+  to service_role;
+
+-- Random matchmaking feeds the same authoritative room engine as invite-code matches.
+alter table public.arcade_rooms drop constraint if exists arcade_rooms_status_check;
+alter table public.arcade_rooms add constraint arcade_rooms_status_check
+  check(status in('lobby','active','complete','finished','cancelled'));
+
+create table if not exists public.arcade_matchmaking_queue (
+  user_id uuid primary key references auth.users on delete cascade,
+  mode_slug text not null references public.game_modes(slug),
+  difficulty smallint not null check (difficulty between 1 and 4),
+  sport_id uuid references public.sports,
+  category_key text,
+  matched_room_id uuid references public.arcade_rooms on delete set null,
+  joined_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+grant select on public.arcade_matchmaking_queue to authenticated;
+grant all on public.arcade_matchmaking_queue to service_role;
+alter table public.arcade_matchmaking_queue enable row level security;
+drop policy if exists "own matchmaking ticket" on public.arcade_matchmaking_queue;
+create policy "own matchmaking ticket" on public.arcade_matchmaking_queue for select
+  using (user_id=auth.uid());
+revoke insert, update, delete on public.arcade_matchmaking_queue from anon, authenticated;
+create index if not exists arcade_match_pool
+  on public.arcade_matchmaking_queue(mode_slug,difficulty,joined_at)
+  where matched_room_id is null;
+
+create or replace function public.matchmake_arcade_player(
+  p_user_id uuid,
+  p_mode_slug text,
+  p_difficulty smallint,
+  p_sport_id uuid default null,
+  p_category_key text default null
+)
+returns uuid language plpgsql security definer set search_path=public as $$
+declare
+  opponent public.arcade_matchmaking_queue;
+  existing_room uuid;
+  room_id uuid;
+  selected_sport uuid;
+  opponent_sport uuid;
+  me_name text;
+  them_name text;
+  me_avatar text;
+  them_avatar text;
+begin
+  if p_mode_slug not in ('quiz-ludo','quiz-snakes-ladders','sports-mastermind') then
+    raise exception 'This game is not available for random matchmaking';
+  end if;
+  if not public.can_host_game(p_user_id,p_mode_slug) then
+    raise exception 'Fanzeno Pro is required for this matchmaking queue';
+  end if;
+
+  select matched_room_id into existing_room from public.arcade_matchmaking_queue where user_id=p_user_id;
+  if existing_room is not null then return existing_room; end if;
+
+  delete from public.arcade_matchmaking_queue
+    where matched_room_id is null and joined_at < now()-interval '10 minutes';
+
+  select * into opponent
+  from public.arcade_matchmaking_queue q
+  where q.user_id<>p_user_id and q.mode_slug=p_mode_slug and q.difficulty=p_difficulty
+    and q.matched_room_id is null
+  order by q.joined_at
+  for update skip locked
+  limit 1;
+
+  if opponent.user_id is null then
+    insert into public.arcade_matchmaking_queue(user_id,mode_slug,difficulty,sport_id,category_key,joined_at,updated_at)
+    values(p_user_id,p_mode_slug,p_difficulty,p_sport_id,p_category_key,now(),now())
+    on conflict(user_id) do update set
+      mode_slug=excluded.mode_slug,difficulty=excluded.difficulty,sport_id=excluded.sport_id,
+      category_key=excluded.category_key,matched_room_id=null,joined_at=now(),updated_at=now();
+    return null;
+  end if;
+
+  selected_sport:=coalesce(p_sport_id,(select id from public.sports where enabled order by sort_order limit 1));
+  opponent_sport:=coalesce(opponent.sport_id,selected_sport);
+  select coalesce(display_name,'Player'),coalesce(avatar_preset,'captain') into me_name,me_avatar
+    from public.profiles where id=p_user_id;
+  select coalesce(display_name,'Player'),coalesce(avatar_preset,'captain') into them_name,them_avatar
+    from public.profiles where id=opponent.user_id;
+
+  insert into public.arcade_rooms(
+    code,host_id,mode_slug,difficulty,status,visibility,settings,active_seat,round_no,
+    turn_started_at,turn_ends_at
+  ) values(
+    'FZ-'||upper(substr(encode(gen_random_bytes(4),'hex'),1,4)),opponent.user_id,
+    p_mode_slug,p_difficulty,'active','public','{"max_players":2,"matchmaking":"random"}',
+    0,1,now(),now()+interval '3 minutes'
+  ) returning id into room_id;
+
+  insert into public.arcade_room_players(
+    room_id,user_id,seat,display_name,sport_id,category_key,status,settings
+  ) values
+    (room_id,opponent.user_id,0,coalesce(them_name,'Player 1'),opponent_sport,opponent.category_key,'ready',
+      jsonb_build_object('avatar_id',coalesce(them_avatar,'captain'),'sport_id',opponent_sport,'category_key',opponent.category_key)),
+    (room_id,p_user_id,1,coalesce(me_name,'Player 2'),selected_sport,p_category_key,'ready',
+      jsonb_build_object('avatar_id',coalesce(me_avatar,'captain'),'sport_id',selected_sport,'category_key',p_category_key));
+
+  update public.arcade_matchmaking_queue set matched_room_id=room_id,updated_at=now()
+    where user_id=opponent.user_id;
+  insert into public.arcade_matchmaking_queue(user_id,mode_slug,difficulty,sport_id,category_key,matched_room_id,updated_at)
+    values(p_user_id,p_mode_slug,p_difficulty,selected_sport,p_category_key,room_id,now())
+    on conflict(user_id) do update set matched_room_id=room_id,updated_at=now();
+  return room_id;
+end$$;
+revoke all on function public.matchmake_arcade_player(uuid,text,smallint,uuid,text)
+  from public, anon, authenticated;
+grant execute on function public.matchmake_arcade_player(uuid,text,smallint,uuid,text)
+  to service_role;
