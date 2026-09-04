@@ -1,26 +1,31 @@
 import { Link } from "@tanstack/react-router";
-import { Languages, LogOut, Shield, User } from "lucide-react";
+import { Bell, Languages, LogOut, Shield, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { useNotifications } from "@/lib/notifications";
+import logoAsset from "@/assets/fanzeno-horizontal-dark.png.asset.json";
+import markAsset from "@/assets/fanzeno-mark.png.asset.json";
 
 const nav = [
   { to: "/", label: "Home" },
   { to: "/clue/$sport", label: "Clue", params: { sport: "football" } },
   { to: "/compete", label: "Arena" },
   { to: "/arcade", label: "Arcade" },
+  { to: "/competitions", label: "Monthly" },
   { to: "/leaderboard", label: "Ranks" },
-  { to: "/upgrade", label: "Ad free" },
+  { to: "/upgrade", label: "Pro" },
 ] as const;
 
 export function SiteHeader() {
   const { user, isStaff, displayName, signOut } = useAuth();
+  const { unread } = useNotifications(20);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur-lg">
       <div className="mx-auto flex h-16 w-full max-w-6xl items-center gap-4 px-4">
-        <Link to="/" className="flex items-baseline gap-1">
-          <span className="font-display text-2xl tracking-wide">FANZENO</span>
-          <span className="text-2xl leading-none text-primary">.</span>
+        <Link to="/" className="flex items-center" aria-label="Fanzeno home">
+          <img src={logoAsset.url} alt="Fanzeno" className="hidden h-9 w-auto sm:block" width={1820} height={512} />
+          <img src={markAsset.url} alt="Fanzeno" className="h-9 w-9 sm:hidden" width={1024} height={1024} />
         </Link>
 
         <nav className="ml-4 hidden items-center gap-1 md:flex">
@@ -51,6 +56,16 @@ export function SiteHeader() {
           )}
           {user ? (
             <div className="flex items-center gap-1">
+              <Button asChild variant="ghost" size="icon" aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}>
+                <Link to="/notifications" className="relative">
+                  <Bell className="size-4" />
+                  {unread > 0 && (
+                    <span className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-destructive px-1 text-[0.55rem] font-black text-destructive-foreground">
+                      {unread > 9 ? "9+" : unread}
+                    </span>
+                  )}
+                </Link>
+              </Button>
               <Button asChild variant="ghost" size="sm">
                 <Link to="/profile">
                   <User className="size-4" />
