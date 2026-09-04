@@ -429,8 +429,9 @@ function BoardPage() {
       ) : (
         <>
           {mode === "territory" && (
-            <div className="game-card mt-6 p-4">
-              <div className="grid grid-cols-5 gap-2" role="group" aria-label="Territory zones">
+            <div className={`game-panel relative mt-6 p-4 border-t-4 ${c.accent.replace("text-", "border-")}`}>
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="grid grid-cols-5 gap-2 relative" role="group" aria-label="Territory zones">
                 {Array.from({ length: 19 }, (_, i) => {
                   const own = mine.includes(i),
                     theirs = rival.includes(i);
