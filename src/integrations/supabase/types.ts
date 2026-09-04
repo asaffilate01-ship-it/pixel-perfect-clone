@@ -3074,6 +3074,31 @@ export type Database = {
           },
         ]
       }
+      question_pool_coverage: {
+        Row: {
+          category_key: string | null
+          competition_id: string | null
+          difficulty: number | null
+          playable_questions: number | null
+          sport_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_competition_id_fkey"
+            columns: ["competition_id"]
+            isOneToOne: false
+            referencedRelation: "competitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_host_game: {
@@ -3169,6 +3194,10 @@ export type Database = {
         }[]
       }
       publish_question: { Args: { p_question_id: string }; Returns: undefined }
+      question_difficulty_band: {
+        Args: { p_percentile: number }
+        Returns: number
+      }
       record_question_attempt: {
         Args: {
           p_correct: boolean
