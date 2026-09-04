@@ -95,7 +95,10 @@ export function QuestionCard({
     setFallback("");
     setLoading(true);
     started.current = Date.now();
-    let cancelled = false;
+    const myKey = loadKey;
+    // Only a genuine scope change (new loadKey) invalidates this request — not an
+    // unrelated re-render where `user`/`bank` object identity changed.
+    const isStale = () => loadedFor.current !== myKey;
     (async () => {
       if (user && sportId && canAnswer) {
         try {
@@ -106,13 +109,13 @@ export function QuestionCard({
             setTimeout(() => reject(new Error("Question request timed out")), 8_000),
           );
           const { question: q } = await Promise.race([request, timeout]);
-          if (!cancelled) {
+          if (!isStale()) {
             setQuestion(q);
             setLoading(false);
           }
           return;
         } catch (e) {
-          if (!cancelled) {
+          if (!isStale()) {
             setLoadError(
               e instanceof Error
                 ? e.message
@@ -123,14 +126,11 @@ export function QuestionCard({
           return;
         }
       }
-      if (!cancelled) {
+      if (!isStale()) {
         setFallback(pickPrompt(bank ?? {}, sportId));
         setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [loadKey, bank, canAnswer, categoryKey, difficulty, roomId, sportId, user]);
 
   const resolveServer = async (input: AnswerInput | null) => {
