@@ -365,19 +365,26 @@ function ConnectFourPage() {
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-        <Button variant="outline" size="sm" onClick={pass} disabled={turn !== "me" || !!result}>
+      <div className="game-panel mt-5 flex flex-wrap items-center justify-center gap-2 p-3">
+        <Button
+          variant="outline"
+          size="sm"
+          className="rounded-full border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
+          onClick={pass}
+          disabled={turn !== "me" || !!result}
+        >
           <SkipForward className="size-4" /> Pass turn
         </Button>
         <Button
           variant="outline"
           size="sm"
+          className="rounded-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
           onClick={offerDraw}
           disabled={turn !== "me" || !!result || drawOffered}
         >
           <Handshake className="size-4" /> {drawOffered ? "Draw offered" : "Offer draw"}
         </Button>
-        <span className="text-xs text-muted-foreground">
+        <span className="game-feedback game-feedback-info">
           {filled}/{COLS * ROWS} tokens
         </span>
       </div>
