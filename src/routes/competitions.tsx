@@ -34,12 +34,19 @@ async function fetchCompetitions() {
 async function fetchScores(competitionId: string) {
   const { data, error } = await supabase
     .from("monthly_competition_scores")
-    .select("user_id, verified_points, verified_wins, verified_games, integrity_status, profiles:profiles!inner(display_name)")
+    .select("user_id, verified_points, verified_wins, verified_games, integrity_status")
     .eq("competition_id", competitionId)
     .order("verified_points", { ascending: false })
     .limit(50);
   if (error) throw error;
-  return data ?? [];
+  const rows = data ?? [];
+  const ids = rows.map((r) => r.user_id).filter((x): x is string => !!x);
+  const names = new Map<string, string>();
+  if (ids.length) {
+    const { data: profiles } = await supabase.from("profiles").select("id, display_name").in("id", ids);
+    for (const p of profiles ?? []) names.set(p.id, p.display_name ?? "Anonymous fan");
+  }
+  return rows.map((r) => ({ ...r, name: names.get(r.user_id ?? "") ?? "Player" }));
 }
 
 function fmt(iso: string) {
@@ -115,7 +122,7 @@ function CompetitionsPage() {
                 {(scores ?? []).map((row, i) => (
                   <li key={row.user_id} className={`flex items-center gap-3 py-2.5 ${row.user_id === user?.id ? "text-primary" : ""}`}>
                     <span className="w-6 font-display text-xl text-muted-foreground">{i + 1}</span>
-                    <span className="flex-1 text-sm font-semibold">{(row.profiles as { display_name: string | null } | null)?.display_name ?? "Player"}</span>
+                    <span className="flex-1 text-sm font-semibold">{row.name}</span>
                     {row.integrity_status !== "verified" && (
                       <span className="text-[0.58rem] font-bold uppercase tracking-[0.14em] text-muted-foreground">{row.integrity_status}</span>
                     )}
