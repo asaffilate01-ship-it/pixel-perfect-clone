@@ -10,14 +10,23 @@ type Recognition = {
   continuous: boolean;
   start: () => void;
   stop: () => void;
-  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string; confidence: number }> & { isFinal: boolean }> }) => void) | null;
+  onresult:
+    | ((e: {
+        results: ArrayLike<
+          ArrayLike<{ transcript: string; confidence: number }> & { isFinal: boolean }
+        >;
+      }) => void)
+    | null;
   onerror: (() => void) | null;
   onend: (() => void) | null;
 };
 
 function getRecognition(): Recognition | null {
   if (typeof window === "undefined") return null;
-  const w = window as unknown as { SpeechRecognition?: new () => Recognition; webkitSpeechRecognition?: new () => Recognition };
+  const w = window as unknown as {
+    SpeechRecognition?: new () => Recognition;
+    webkitSpeechRecognition?: new () => Recognition;
+  };
   const Ctor = w.SpeechRecognition ?? w.webkitSpeechRecognition;
   return Ctor ? new Ctor() : null;
 }
@@ -101,7 +110,9 @@ export function AnswerComposer({
   };
 
   return (
-    <div className={`game-card mt-4 p-4 transition-colors ${listening ? "border-t-4 border-primary" : ""}`}>
+    <div
+      className={`game-card mt-4 p-4 transition-colors ${listening ? "border-t-4 border-primary" : ""}`}
+    >
       <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
         Your private answer
       </p>
@@ -148,7 +159,10 @@ export function AnswerComposer({
         </Button>
       </div>
       <div className="mt-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
-        <span>{notice || "Only the active player can answer; the server checks it and reveals the result to everyone."}</span>
+        <span>
+          {notice ||
+            "Type from memory. Accents, name order and small spelling mistakes are accepted—no answer list is shown."}
+        </span>
         {onPass && (
           <button
             type="button"

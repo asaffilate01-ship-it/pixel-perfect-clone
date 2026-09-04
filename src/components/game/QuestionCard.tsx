@@ -100,10 +100,12 @@ export function QuestionCard({
           if (!cancelled) {
             setLoadError(
               e instanceof Error
-                ? `${e.message}. A local question has been loaded instead.`
-                : "Verified question unavailable. A local question has been loaded instead.",
+                ? e.message
+                : "A verified question is not available for this exact sport and level.",
             );
+            setLoading(false);
           }
+          return;
         }
       }
       if (!cancelled) {
@@ -242,30 +244,32 @@ export function QuestionCard({
         <>
           <p className="mt-3 text-xs text-muted-foreground">
             {user
-              ? "No verified bank question for this scope yet — the table decides this one."
-              : "Sign in for server-checked questions. For now, say your answer out loud — the table decides."}
+              ? "This round is paused because no verified question matches the exact sport, category and difficulty. Retry or change the setup."
+              : "Sign in for server-checked questions. In pass-and-play, type or say the answer and let the players confirm it."}
           </p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {!clue && (
-              <Button variant="outline" onClick={() => setClue(true)} disabled={loading}>
-                <Lightbulb className="size-4" /> Get clue
+          {!user && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {!clue && (
+                <Button variant="outline" onClick={() => setClue(true)} disabled={loading}>
+                  <Lightbulb className="size-4" /> Get clue
+                </Button>
+              )}
+              <Button
+                variant="destructive"
+                disabled={loading}
+                onClick={() => onResolved({ correct: false, usedClue: clue, passed: false })}
+              >
+                <X className="size-4" /> Wrong
               </Button>
-            )}
-            <Button
-              variant="destructive"
-              disabled={loading}
-              onClick={() => onResolved({ correct: false, usedClue: clue, passed: false })}
-            >
-              <X className="size-4" /> Wrong
-            </Button>
-            <Button
-              className="flex-1"
-              disabled={loading}
-              onClick={() => onResolved({ correct: true, usedClue: clue, passed: false })}
-            >
-              <Check className="size-4" /> Correct
-            </Button>
-          </div>
+              <Button
+                className="flex-1"
+                disabled={loading}
+                onClick={() => onResolved({ correct: true, usedClue: clue, passed: false })}
+              >
+                <Check className="size-4" /> Correct
+              </Button>
+            </div>
+          )}
         </>
       )}
     </div>

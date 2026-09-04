@@ -17,6 +17,55 @@ const normalise = (x: string) =>
     .toLowerCase()
     .replace(/[^a-z0-9]/g, "");
 
+const words = (value: string) =>
+  value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, index) => index);
+  for (let i = 1; i <= a.length; i += 1) {
+    let diagonal = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j += 1) {
+      const above = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+      diagonal = above;
+    }
+  }
+  return row[b.length];
+}
+
+/** Accept authoritative aliases and limited typos without exposing possible answers. */
+function answerMatches(input: string, accepted: string[]): boolean {
+  const candidate = normalise(input);
+  if (!candidate) return false;
+  return accepted.some((answer) => {
+    const canonical = normalise(answer);
+    if (candidate === canonical) return true;
+    const inputWords = words(input);
+    const answerWords = words(answer);
+    if (
+      inputWords.length > 1 &&
+      inputWords.length === answerWords.length &&
+      [...inputWords].sort().join("") === [...answerWords].sort().join("")
+    )
+      return true;
+    const longest = Math.max(candidate.length, canonical.length);
+    if (Math.min(candidate.length, canonical.length) < 5) return false;
+    const allowance = longest >= 12 ? 2 : 1;
+    return (
+      Math.abs(candidate.length - canonical.length) <= allowance &&
+      editDistance(candidate, canonical) <= allowance
+    );
+  });
+}
+
 const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("create"),
@@ -396,11 +445,9 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       roomQuestionId = roomQ.id;
     }
 
-    const accepted = (((q.answer_rule as { accepted?: string[] }) ?? {}).accepted ?? []).map(
-      normalise,
-    );
+    const accepted = ((q.answer_rule as { accepted?: string[] }) ?? {}).accepted ?? [];
     const correct =
-      !data.passed && data.answer.trim().length > 0 && accepted.includes(normalise(data.answer));
+      !data.passed && data.answer.trim().length > 0 && answerMatches(data.answer, accepted);
     const movement = correct ? (data.usedClue ? 5 : 6) : 0;
 
     // Service-role only: clients cannot forge correct answers or progression points by calling the RPC.
