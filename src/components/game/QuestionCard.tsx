@@ -95,7 +95,10 @@ export function QuestionCard({
     setFallback("");
     setLoading(true);
     started.current = Date.now();
-    let cancelled = false;
+    const myKey = loadKey;
+    // Only a genuine scope change (new loadKey) invalidates this request — not an
+    // unrelated re-render where `user`/`bank` object identity changed.
+    const isStale = () => loadedFor.current !== myKey;
     (async () => {
       if (user && sportId && canAnswer) {
         try {
@@ -106,13 +109,13 @@ export function QuestionCard({
             setTimeout(() => reject(new Error("Question request timed out")), 8_000),
           );
           const { question: q } = await Promise.race([request, timeout]);
-          if (!cancelled) {
+          if (!isStale()) {
             setQuestion(q);
             setLoading(false);
           }
           return;
         } catch (e) {
-          if (!cancelled) {
+          if (!isStale()) {
             setLoadError(
               e instanceof Error
                 ? e.message
@@ -123,14 +126,11 @@ export function QuestionCard({
           return;
         }
       }
-      if (!cancelled) {
+      if (!isStale()) {
         setFallback(pickPrompt(bank ?? {}, sportId));
         setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
   }, [loadKey, bank, canAnswer, categoryKey, difficulty, roomId, sportId, user]);
 
   const resolveServer = async (input: AnswerInput | null) => {
@@ -283,7 +283,9 @@ export function QuestionCard({
         <>
           <p className="mt-3 text-xs text-muted-foreground">
             {user
-              ? "This round is paused because no verified question matches the exact sport, category and difficulty. Retry or change the setup."
+              ? loading
+                ? "Matching a verified question to your sport, category and difficulty…"
+                : "This round is paused because no verified question matches the exact sport, category and difficulty. Retry or change the setup."
               : "Sign in for server-checked questions. In pass-and-play, type or say the answer and let the players confirm it."}
           </p>
           {!user && (

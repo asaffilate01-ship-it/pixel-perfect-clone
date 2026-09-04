@@ -62,6 +62,7 @@
 
 ## Done (Sep 4 UI pass)
 - Games UI/UX overhaul: consistent game cards with proper icons across Arcade hub, modes and boards
+- 3D-styled physical boards (Connect Four, Ludo, Snakes, dartboard 501, wooden tic-tac-toe, Mastermind studio, felt Bingo card); fixed question loader getting stuck on "Picking a fair question…"
   (refs: National Lottery instant-win games grid, Dribbble sport-quiz UI). No team logos or player photos (copyright).
 - Simpler sport / sport-category filtering UX (home sport picker + /filters page): clear chips, search, grouped categories
 - Sport hierarchy: Sport (American Football, Basketball…) → League/competition (NFL, CFL, NCAA / NBA, NCAA, EuroBasket, FIBA Worlds, Olympics) → categories
@@ -80,3 +81,4 @@
 - [x] Fix editDistance strict-index typecheck errors
 
 - [ ] 3D-look, realistic game boards for all arcade games (Ludo, Connect 4, 501 darts, tic-tac-toe, Snakes, Mastermind, boards)
+- [ ] Investigate: rooms cannot be opened/set up; confirm testfan has Pro access to all games

@@ -408,72 +408,87 @@ function PlayPage() {
         </div>
       )}
 
-      <div className="panel mt-6 overflow-hidden p-3 sm:p-5">
-        <div className="grid grid-cols-[minmax(72px,1fr)_repeat(3,1fr)] gap-2">
-          <div />
-          {grid.cols.map((label) => (
-            <div
-              key={label}
-              className="flex flex-col items-center gap-1 rounded-lg bg-surface-strong/70 px-2 py-3 text-center text-[0.66rem] font-bold uppercase leading-tight tracking-[0.08em]"
-            >
-              <CriterionGlyph label={label} />
-              {label}
-            </div>
-          ))}
-
-          {grid.rows.map((rowLabel, r) => (
-            <div key={rowLabel} className="contents">
-              <div className="flex items-center gap-2 rounded-lg bg-surface-strong/70 px-2 py-3 text-[0.66rem] font-bold uppercase leading-tight tracking-[0.08em]">
-                <CriterionGlyph label={rowLabel} />
-                <span>{rowLabel}</span>
+      <div className="board-stage mt-6">
+        <div className="board-tilt board-rim board-wood p-3 sm:p-5">
+          <div className="relative grid grid-cols-[minmax(72px,1fr)_repeat(3,1fr)] gap-x-1.5 gap-y-1.5">
+            <div />
+            {grid.cols.map((label) => (
+              <div
+                key={label}
+                className="flex flex-col items-center gap-1 rounded-md border border-black/30 bg-black/35 px-2 py-3 text-center text-[0.62rem] font-bold uppercase leading-tight tracking-[0.08em] text-white/85 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_0_rgba(255,255,255,0.06)]"
+              >
+                <CriterionGlyph label={label} />
+                {label}
               </div>
-              {[0, 1, 2].map((c) => {
-                const index = r * 3 + c;
-                const cell = board[index]!;
-                const owner = owners[index];
-                const locked =
-                  cell.status !== "empty" ||
-                  (battle && (winner !== null || (mode === "cpu" && turn === "p2")));
-                return (
-                  <button
-                    key={index}
-                    type="button"
-                    disabled={locked}
-                    onClick={() => {
-                      setActive(index);
-                      setGuess("");
-                    }}
-                    className={`aspect-square rounded-xl border p-2 text-center text-[0.7rem] font-semibold transition-all ${
-                      cell.status === "correct"
-                        ? owner === "p2"
-                          ? "border-gold/70 bg-gold/15 text-foreground"
-                          : "border-primary/70 bg-primary/18 text-foreground"
-                        : cell.status === "wrong"
-                          ? "border-destructive/60 bg-destructive/12 text-muted-foreground line-through"
-                          : "border-border bg-background/60 hover:border-primary/70 hover:bg-primary/8 disabled:opacity-60"
-                    }`}
-                  >
-                    {cell.status === "empty" ? (
-                      <span className="text-lg text-muted-foreground">+</span>
-                    ) : (
-                      <span className="flex h-full flex-col items-center justify-center gap-1">
-                        {cell.status === "correct" ? (
-                          <Check
-                            className={`size-4 ${owner === "p2" ? "text-gold" : "text-primary"}`}
+            ))}
+
+            {grid.rows.map((rowLabel, r) => (
+              <div key={rowLabel} className="contents">
+                <div className="flex items-center gap-2 rounded-md border border-black/30 bg-black/35 px-2 py-3 text-[0.62rem] font-bold uppercase leading-tight tracking-[0.08em] text-white/85 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6),inset_0_-1px_0_rgba(255,255,255,0.06)]">
+                  <CriterionGlyph label={rowLabel} />
+                  <span>{rowLabel}</span>
+                </div>
+                {[0, 1, 2].map((c) => {
+                  const index = r * 3 + c;
+                  const cell = board[index]!;
+                  const owner = owners[index];
+                  const locked =
+                    cell.status !== "empty" ||
+                    (battle && (winner !== null || (mode === "cpu" && turn === "p2")));
+                  const isRival = battle && owner === "p2";
+                  return (
+                    <button
+                      key={index}
+                      type="button"
+                      disabled={locked}
+                      onClick={() => {
+                        setActive(index);
+                        setGuess("");
+                      }}
+                      className={`relative aspect-square p-2 text-center text-[0.7rem] font-semibold transition-all ${c !== 2 ? "border-r-[3px]" : ""} ${r !== 2 ? "border-b-[3px]" : ""} border-black/50 ${
+                        cell.status === "wrong"
+                          ? "bg-[color-mix(in_oklab,var(--wood-dark)_88%,black)] shadow-[inset_0_3px_8px_rgba(0,0,0,0.65)]"
+                          : "bg-[color-mix(in_oklab,var(--wood-dark)_75%,black)] shadow-[inset_0_3px_8px_rgba(0,0,0,0.55)] hover:bg-[color-mix(in_oklab,var(--wood-dark)_65%,black)] disabled:opacity-90"
+                      }`}
+                    >
+                      {cell.status === "empty" ? (
+                        <span className="text-lg text-white/25">+</span>
+                      ) : cell.status === "correct" ? (
+                        <span className="flex h-full flex-col items-center justify-center gap-1">
+                          <span
+                            className={`disc-3d size-9 ${isRival ? "" : ""}`}
+                            style={
+                              isRival
+                                ? ({
+                                    "--disc-light": "var(--token-rival-light)",
+                                    "--disc-dark": "var(--token-rival-dark)",
+                                  } as React.CSSProperties)
+                                : ({
+                                    "--disc-light": "var(--token-gold-light)",
+                                    "--disc-dark": "var(--token-gold-dark)",
+                                  } as React.CSSProperties)
+                            }
                           />
-                        ) : (
-                          <X className="size-4 text-destructive" />
-                        )}
-                        <span className="line-clamp-3 break-words">
-                          {cell.athlete ?? cell.guess}
+                          <span className="mt-0.5 line-clamp-2 rounded-sm bg-black/40 px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-[0.04em] text-white/90">
+                            {cell.athlete ?? cell.guess}
+                          </span>
                         </span>
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
+                      ) : (
+                        <span className="flex h-full flex-col items-center justify-center gap-1">
+                          <span className="grid size-8 place-items-center rounded-full border-2 border-destructive/70 bg-destructive/25 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]">
+                            <X className="size-4 text-destructive" />
+                          </span>
+                          <span className="line-clamp-2 break-words text-[0.58rem] text-white/40 line-through">
+                            {cell.guess}
+                          </span>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

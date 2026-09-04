@@ -451,3 +451,280 @@
   from { opacity: 0; transform: translateY(6px) scale(0.96); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
+
+/* ---------- 3D-styled physical game boards (shared materials) ---------- */
+:root, .dark {
+  --wood-light: oklch(0.62 0.09 60);
+  --wood-dark: oklch(0.42 0.08 50);
+  --wood-edge: oklch(0.30 0.06 45);
+  --felt-green: oklch(0.42 0.12 150);
+  --felt-green-dark: oklch(0.30 0.10 150);
+  --plastic-blue: oklch(0.48 0.17 258);
+  --plastic-blue-dark: oklch(0.34 0.15 258);
+  --plastic-blue-light: oklch(0.62 0.16 255);
+  --disc-red: oklch(0.58 0.22 28);
+  --disc-red-dark: oklch(0.42 0.20 28);
+  --disc-yellow: oklch(0.86 0.17 92);
+  --disc-yellow-dark: oklch(0.70 0.16 85);
+  --ludo-red: oklch(0.58 0.22 28);
+  --ludo-green: oklch(0.62 0.18 145);
+  --ludo-blue: oklch(0.56 0.18 255);
+  --ludo-yellow: oklch(0.86 0.17 92);
+  --dart-black: oklch(0.18 0.01 260);
+  --dart-cream: oklch(0.92 0.03 85);
+  --dart-red: oklch(0.55 0.21 28);
+  --dart-green: oklch(0.52 0.15 150);
+  --dart-wire: oklch(0.82 0.01 260);
+  --board-shadow: 0 30px 60px -20px color-mix(in oklab, oklch(0 0 0) 70%, transparent), 0 12px 24px -12px color-mix(in oklab, oklch(0 0 0) 60%, transparent);
+}
+
+/* Perspective stage: wrap any board in this to give it a tabletop tilt. */
+@utility board-stage {
+  perspective: 1400px;
+  perspective-origin: 50% 20%;
+}
+@utility board-tilt {
+  transform: rotateX(14deg);
+  transform-style: preserve-3d;
+  transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  &:hover { transform: rotateX(6deg); }
+}
+@utility board-tilt-flat {
+  transform: rotateX(0deg);
+}
+
+/* Thick physical rim: stacked shadows fake an extruded edge under the board. */
+@utility board-rim {
+  border-radius: 1.25rem;
+  box-shadow:
+    0 2px 0 var(--rim-color, var(--wood-edge)),
+    0 4px 0 var(--rim-color, var(--wood-edge)),
+    0 6px 0 var(--rim-color, var(--wood-edge)),
+    0 8px 0 var(--rim-color, var(--wood-edge)),
+    0 10px 0 color-mix(in oklab, var(--rim-color, var(--wood-edge)) 80%, oklch(0 0 0)),
+    var(--board-shadow);
+}
+
+@utility board-wood {
+  --rim-color: var(--wood-edge);
+  background:
+    repeating-linear-gradient(92deg, color-mix(in oklab, oklch(0 0 0) 8%, transparent) 0 2px, transparent 2px 9px, color-mix(in oklab, oklch(1 0 0) 4%, transparent) 9px 11px, transparent 11px 23px),
+    linear-gradient(180deg, var(--wood-light), var(--wood-dark));
+}
+@utility board-felt {
+  --rim-color: var(--felt-green-dark);
+  background:
+    radial-gradient(ellipse at 50% 30%, color-mix(in oklab, oklch(1 0 0) 8%, transparent), transparent 70%),
+    repeating-radial-gradient(circle at 30% 20%, transparent 0 1px, color-mix(in oklab, oklch(0 0 0) 6%, transparent) 1px 2px),
+    linear-gradient(180deg, var(--felt-green), var(--felt-green-dark));
+}
+@utility board-plastic-blue {
+  --rim-color: var(--plastic-blue-dark);
+  background: linear-gradient(180deg, var(--plastic-blue-light), var(--plastic-blue) 40%, var(--plastic-blue-dark));
+}
+
+/* Bevelled glossy disc / counter. */
+@utility disc-3d {
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 35% 30%, color-mix(in oklab, oklch(1 0 0) 55%, transparent), transparent 42%),
+    radial-gradient(circle at 50% 50%, var(--disc-light) 0 58%, var(--disc-dark) 60% 100%);
+  box-shadow:
+    inset 0 -3px 6px color-mix(in oklab, oklch(0 0 0) 35%, transparent),
+    inset 0 2px 3px color-mix(in oklab, oklch(1 0 0) 30%, transparent),
+    0 3px 6px color-mix(in oklab, oklch(0 0 0) 45%, transparent);
+}
+@utility disc-red { --disc-light: var(--disc-red); --disc-dark: var(--disc-red-dark); }
+@utility disc-yellow { --disc-light: var(--disc-yellow); --disc-dark: var(--disc-yellow-dark); }
+
+/* Circular cut-out hole in a plastic frame (Connect Four slot). */
+@utility board-hole {
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-background) 85%, oklch(0 0 0));
+  box-shadow:
+    inset 0 4px 8px color-mix(in oklab, oklch(0 0 0) 70%, transparent),
+    inset 0 -1px 2px color-mix(in oklab, oklch(1 0 0) 25%, transparent);
+}
+
+/* Domed game piece with a dark base ring (Ludo / Snakes token). */
+@utility pawn-3d {
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 35% 28%, color-mix(in oklab, oklch(1 0 0) 70%, transparent), transparent 40%),
+    radial-gradient(circle at 50% 55%, var(--pawn-color) 0 65%, color-mix(in oklab, var(--pawn-color) 60%, oklch(0 0 0)) 68% 100%);
+  box-shadow:
+    inset 0 -4px 6px color-mix(in oklab, oklch(0 0 0) 40%, transparent),
+    0 4px 3px -2px color-mix(in oklab, oklch(0 0 0) 60%, transparent),
+    0 8px 14px -4px color-mix(in oklab, oklch(0 0 0) 60%, transparent);
+  border: 2px solid color-mix(in oklab, oklch(1 0 0) 85%, var(--pawn-color));
+}
+
+/* Ivory dice cube. */
+@utility dice-3d {
+  border-radius: 18%;
+  background: linear-gradient(145deg, oklch(0.98 0.01 90), oklch(0.86 0.02 85));
+  box-shadow:
+    inset 0 -4px 6px color-mix(in oklab, oklch(0 0 0) 20%, transparent),
+    inset 0 2px 2px oklch(1 0 0),
+    0 6px 12px color-mix(in oklab, oklch(0 0 0) 50%, transparent);
+  color: oklch(0.2 0.01 260);
+}
+@keyframes dice-roll {
+  0% { transform: rotate(0deg) scale(1); }
+  30% { transform: rotate(140deg) scale(1.15) translateY(-10px); }
+  60% { transform: rotate(260deg) scale(1.05) translateY(-4px); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+@utility dice-rolling { animation: dice-roll 600ms cubic-bezier(0.2, 0.7, 0.3, 1); }
+
+@keyframes disc-drop {
+  0% { transform: translateY(calc(-1 * var(--drop-distance, 300px))); }
+  70% { transform: translateY(0); }
+  85% { transform: translateY(-6%); }
+  100% { transform: translateY(0); }
+}
+@utility disc-dropping { animation: disc-drop 520ms cubic-bezier(0.55, 0, 1, 0.45); }
+
+/* Engraved / routed lines for a wooden tic-tac-toe or grid board. */
+@utility groove-line {
+  background: linear-gradient(180deg, color-mix(in oklab, oklch(0 0 0) 45%, transparent), color-mix(in oklab, oklch(1 0 0) 12%, transparent));
+  box-shadow: inset 0 1px 2px color-mix(in oklab, oklch(0 0 0) 60%, transparent);
+}
+
+/* ---------- Board-page specific physical extras ---------- */
+@keyframes dart-hit-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  55% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@utility dart-flight-pop {
+  animation: dart-hit-pop 380ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+@utility dartbed-glow {
+  animation: dartbed-pulse 1.4s ease-in-out infinite;
+}
+@keyframes dartbed-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.72; }
+}
+@utility dartbed-hit {
+  animation: dartbed-flash 500ms ease-out;
+}
+@keyframes dartbed-flash {
+  0% { filter: brightness(2.4); }
+  100% { filter: brightness(1); }
+}
+
+/* Chalk / slate scoreboard for the dartboard remaining score. */
+@utility scoreboard-slate {
+  background:
+    radial-gradient(ellipse at 50% 0%, oklch(1 0 0 / 0.06), transparent 60%),
+    linear-gradient(180deg, oklch(0.22 0.01 260), oklch(0.12 0.01 260));
+  border: 1px solid oklch(0.06 0 0 / 0.6);
+  box-shadow: inset 0 2px 6px oklch(0 0 0 / 0.6), inset 0 -1px 0 oklch(1 0 0 / 0.05), 0 8px 18px -8px oklch(0 0 0 / 0.6);
+  color: var(--dart-cream);
+  font-family: var(--font-mono, monospace);
+}
+
+/* Thick physical card/tile for Connections. */
+@utility phys-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid color-mix(in oklab, oklch(0 0 0) 25%, var(--color-border));
+  background: linear-gradient(180deg, color-mix(in oklab, var(--color-surface-strong) 96%, oklch(1 0 0)), var(--color-surface-strong));
+  box-shadow:
+    inset 0 1px 0 oklch(1 0 0 / 0.35),
+    0 1px 0 color-mix(in oklab, oklch(0 0 0) 30%, transparent),
+    0 6px 0 -2px color-mix(in oklab, oklch(0 0 0) 35%, transparent),
+    0 10px 16px -8px oklch(0 0 0 / 0.55);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow:
+      inset 0 1px 0 oklch(1 0 0 / 0.35),
+      0 1px 0 color-mix(in oklab, oklch(0 0 0) 30%, transparent),
+      0 10px 0 -2px color-mix(in oklab, oklch(0 0 0) 35%, transparent),
+      0 16px 22px -10px oklch(0 0 0 / 0.6);
+  }
+}
+@keyframes phys-card-settle {
+  0% { transform: rotateY(0deg) scale(1); }
+  45% { transform: rotateY(90deg) scale(1.06); }
+  55% { transform: rotateY(90deg) scale(1.06); }
+  100% { transform: rotateY(0deg) scale(1); }
+}
+@utility phys-card-solved {
+  animation: phys-card-settle 520ms cubic-bezier(0.3, 0.6, 0.3, 1) both;
+}
+
+/* Raised wooden card holder for Draft Five. */
+@utility card-holder {
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, color-mix(in oklab, oklch(0 0 0) 18%, transparent), transparent 40%), var(--color-surface);
+  box-shadow:
+    inset 0 3px 8px color-mix(in oklab, oklch(0 0 0) 45%, transparent),
+    inset 0 -1px 0 oklch(1 0 0 / 0.06),
+    0 2px 0 color-mix(in oklab, oklch(1 0 0) 8%, transparent);
+  border: 1px solid color-mix(in oklab, oklch(0 0 0) 30%, var(--color-border));
+}
+@keyframes card-slide-in {
+  0% { transform: translateX(60px) rotate(6deg); opacity: 0; }
+  100% { transform: translateX(0) rotate(0deg); opacity: 1; }
+}
+@utility card-slide-in {
+  animation: card-slide-in 360ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+/* Bingo card stock + ink daub. */
+@utility bingo-stock {
+  background: linear-gradient(180deg, oklch(0.97 0.01 90), oklch(0.9 0.015 85));
+  border: 1px solid oklch(0.8 0.02 85);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.7), 0 10px 24px -12px oklch(0 0 0 / 0.6);
+  color: oklch(0.22 0.01 260);
+}
+@utility bingo-cell {
+  position: relative;
+  border-radius: 0.6rem;
+  border: 1px solid oklch(0.75 0.02 85);
+  background: color-mix(in oklab, oklch(1 0 0) 60%, transparent);
+}
+@utility daub-mark {
+  position: absolute;
+  inset: 8%;
+  border-radius: 46% 54% 52% 48% / 50% 46% 54% 50%;
+  background: color-mix(in oklab, var(--color-primary) 55%, transparent);
+  mix-blend-mode: multiply;
+  box-shadow: inset 0 0 0 3px color-mix(in oklab, var(--color-primary) 70%, transparent);
+}
+
+/* ---------- Mastermind TV-studio presentation ---------- */
+@utility studio-set {
+  position: relative;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%, color-mix(in oklab, var(--gold) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, oklch(0.16 0.01 260), oklch(0.08 0.01 260));
+  box-shadow: inset 0 1px 0 color-mix(in oklab, oklch(1 0 0) 6%, transparent);
+}
+@utility studio-spotlight {
+  position: relative;
+  background:
+    radial-gradient(ellipse 70% 100% at 50% -20%, color-mix(in oklab, var(--gold) 22%, transparent), transparent 65%),
+    linear-gradient(180deg, oklch(0.20 0.01 260), oklch(0.12 0.01 260));
+  border: 1px solid color-mix(in oklab, oklch(1 0 0) 8%, transparent);
+}
+@utility studio-chair {
+  background: linear-gradient(160deg, oklch(0.24 0.01 260), oklch(0.11 0.01 260));
+  border: 1px solid color-mix(in oklab, oklch(1 0 0) 6%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in oklab, oklch(1 0 0) 8%, transparent), inset 0 -10px 16px color-mix(in oklab, oklch(0 0 0) 45%, transparent);
+}
+@utility studio-chair-active {
+  border-color: color-mix(in oklab, var(--gold) 55%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--gold) 40%, transparent),
+    0 0 24px 4px color-mix(in oklab, var(--gold) 30%, transparent),
+    inset 0 1px 0 color-mix(in oklab, oklch(1 0 0) 10%, transparent);
+}
+@utility segment-digits {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+  text-shadow: 0 0 6px color-mix(in oklab, var(--gold) 70%, transparent), 0 0 14px color-mix(in oklab, var(--gold) 35%, transparent);
+}

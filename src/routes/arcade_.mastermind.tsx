@@ -385,7 +385,7 @@ function MastermindPage() {
   const questionSport = currentPhase === 1 ? p.sportId : randomSport;
 
   return (
-    <Shell onBack={reset}>
+    <Shell onBack={reset} studio>
       <div className="mt-6 flex items-center justify-between text-[0.62rem] font-black uppercase tracking-[0.16em]">
         <span className="text-primary">
           ● Live room{online && room ? ` ${room.code}` : ""} · {n - 1} watching
@@ -399,7 +399,11 @@ function MastermindPage() {
         {list.slice(0, n).map((x, i) => (
           <div
             key={i}
-            className={`game-card p-3 text-center ${i === activeIdx ? "border-primary" : ""}`}
+            className={`relative overflow-hidden rounded-2xl p-3 text-center transition-all ${
+              i === activeIdx
+                ? "studio-chair studio-chair-active"
+                : "studio-chair"
+            }`}
           >
             <div className="flex justify-center">
               <Avatar id={x.avatar} size={30} />
@@ -409,20 +413,23 @@ function MastermindPage() {
             >
               {x.name}
             </p>
-            <p className="font-display text-3xl">{x.points}</p>
-            <p className="text-[0.6rem] text-muted-foreground">{x.passes} passes</p>
+            <p className="font-display text-3xl text-white">
+              <ScoreDigits value={x.points} />
+            </p>
+            <p className="text-[0.6rem] text-white/50">{x.passes} passes</p>
           </div>
         ))}
       </div>
 
-      <div className={`game-card mt-4 p-6 text-center ${shown <= 10 ? "border-destructive" : ""}`}>
-        <p className="font-display text-7xl tabular-nums">
-          {Math.floor(shown / 60)}:{String(shown % 60).padStart(2, "0")}
-        </p>
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.16em] text-muted-foreground">
-          {p.name}
-          {online && myTurn ? " · your turn" : ""} · {currentPhase === 1 ? sportName : "All sports"}
-        </p>
+      <div className="studio-spotlight mt-5 flex flex-col items-center gap-3 rounded-3xl p-6 text-center sm:flex-row sm:justify-center sm:gap-8">
+        <AnalogClock seconds={shown} total={ROUND_SECONDS} danger={shown <= 10} />
+        <div>
+          <p className="font-display text-lg text-white">{p.name}</p>
+          <p className="mt-1 inline-flex items-center gap-1.5 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-[0.62rem] font-black uppercase tracking-[0.16em] text-gold">
+            {online && myTurn ? "Your turn · " : ""}
+            {currentPhase === 1 ? sportName : "All sports"}
+          </p>
+        </div>
       </div>
 
       <QuestionCard
@@ -461,20 +468,77 @@ function MastermindPage() {
   );
 }
 
-function Shell({ onBack, children }: { onBack: () => void; children: React.ReactNode }) {
+function Shell({
+  onBack,
+  children,
+  studio,
+}: {
+  onBack: () => void;
+  children: React.ReactNode;
+  studio?: boolean;
+}) {
   return (
-    <div className="mx-auto w-full max-w-2xl px-4 py-8">
+    <div
+      className={`mx-auto w-full max-w-2xl px-4 py-8 ${studio ? "studio-set rounded-3xl" : ""}`}
+    >
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" aria-label="Back" onClick={onBack}>
           <ChevronLeft className="size-5" />
         </Button>
         <div className="flex-1">
-          <p className="eyebrow">Fanzeno live</p>
-          <h1 className="mt-1 text-3xl">Sports Mastermind</h1>
+          <p className={`eyebrow ${studio ? "text-white/60" : ""}`}>Fanzeno live</p>
+          <h1 className={`mt-1 text-3xl ${studio ? "text-white" : ""}`}>Sports Mastermind</h1>
         </div>
         <Brain className="size-6 text-gold" />
       </div>
       {children}
     </div>
   );
+}
+
+/** Analogue studio clock: sweeping SVG ring + big digital readout, presentation only. */
+function AnalogClock({
+  seconds,
+  total,
+  danger,
+}: {
+  seconds: number;
+  total: number;
+  danger: boolean;
+}) {
+  const radius = 42;
+  const circumference = 2 * Math.PI * radius;
+  const progress = Math.max(0, Math.min(1, seconds / total));
+  const offset = circumference * (1 - progress);
+  return (
+    <div className="relative grid size-32 shrink-0 place-items-center sm:size-36">
+      <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
+        <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="6" />
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke={danger ? "var(--destructive)" : "var(--gold)"}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-[stroke-dashoffset] duration-1000 ease-linear"
+        />
+      </svg>
+      <div className="text-center">
+        <p
+          className={`font-display text-4xl tabular-nums sm:text-5xl ${danger ? "text-destructive" : "text-white"}`}
+        >
+          {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Illuminated segment-style score readout. */
+function ScoreDigits({ value }: { value: number }) {
+  return <span className="segment-digits">{value}</span>;
 }

@@ -96,6 +96,7 @@ function QuizRacePage() {
   const [difficulty, setDifficulty] = useState(2);
   const [turn, setTurn] = useState(0);
   const [turnKey, setTurnKey] = useState(0);
+  const [rolling, setRolling] = useState(false);
   const [players, setPlayers] = useState<Player[]>(() =>
     Array.from({ length: 4 }, (_, i) => ({
       name: `Player ${i + 1}`,
@@ -158,6 +159,12 @@ function QuizRacePage() {
     [roomPlayers],
   );
   const seatOrder = useMemo(() => (roomPlayers ?? []).map((p) => p.seat), [roomPlayers]);
+
+  useEffect(() => {
+    setRolling(true);
+    const t = setTimeout(() => setRolling(false), 600);
+    return () => clearTimeout(t);
+  }, [online ? undefined : turnKey, online ? room?.round_no : undefined, online ? room?.active_seat : undefined]);
 
   const list = online ? onlinePlayers : players;
   const n = online ? list.length : count;
@@ -442,62 +449,19 @@ function QuizRacePage() {
         </div>
       )}
 
-      <div className="game-card mt-4 p-3">
-        <div
-          className="grid gap-1 overflow-hidden rounded-2xl"
-          style={{ gridTemplateColumns: `repeat(${game === "ludo" ? 13 : 10}, minmax(0, 1fr))` }}
-          aria-label={`${title} board`}
-        >
-        {cells.map((c) => {
-          const ladder = game === "snakes" && LADDERS[c];
-          const snake = game === "snakes" && SNAKES[c];
-          const safe = game === "ludo" && LUDO_SAFE.has(c);
-          const band =
-            game === "snakes"
-              ? ["bg-surface/60", "bg-primary/8", "bg-gold/8", "bg-chart-3/10"][
-                  Math.floor((c - 1) / 10) % 4
-                ]
-              : "bg-surface/50";
-          return (
-            <div
-              key={c}
-              className={`relative aspect-square rounded-md border text-[0.55rem] font-bold ${
-                ladder
-                  ? "border-primary/60 bg-primary/15"
-                  : snake
-                    ? "border-destructive/60 bg-destructive/15"
-                    : safe
-                      ? "border-gold/50 bg-gold/10"
-                      : `border-border ${band}`
-              }`}
-            >
-              <span className="absolute left-1 top-0.5 text-muted-foreground">{c}</span>
-              {ladder ? (
-                <span className="absolute bottom-0.5 right-1 flex items-center text-[0.5rem] text-primary">
-                  <TrendingUp className="size-2.5" />+{ladder - c}
-                </span>
-              ) : snake ? (
-                <span className="absolute bottom-0.5 right-1 flex items-center text-[0.5rem] text-destructive">
-                  <TrendingDown className="size-2.5" />−{c - snake}
-                </span>
-              ) : null}
-              <span className="absolute inset-x-0 bottom-0.5 flex flex-wrap justify-center gap-0.5 px-0.5">
-                {list
-                  .slice(0, n)
-                  .flatMap((p, i) =>
-                    (game === "ludo" && !online ? p.tokens : [p.position]).map((pos, t) =>
-                      pos === c ? (
-                        <span
-                          key={`${i}-${t}`}
-                          className={`size-2 rounded-full ${SEAT_COLORS[i % 4]}`}
-                        />
-                      ) : null,
-                    ),
-                  )}
-              </span>
-            </div>
-          );
-        })}
+      <div className="game-panel mt-4 flex flex-col gap-4 p-3 sm:flex-row sm:items-start">
+        <div className="mx-auto w-full max-w-md sm:max-w-none sm:flex-1">
+          {game === "ludo" ? (
+            <LudoBoard players={list.slice(0, n)} online={online} />
+          ) : (
+            <SnakesBoard cells={cells} players={list.slice(0, n)} />
+          )}
+        </div>
+        <div className="flex shrink-0 flex-row items-center gap-3 sm:w-28 sm:flex-col sm:justify-center">
+          <Dice value={active.tokens?.[0] ? ((active.tokens[0] - 1) % 6) + 1 : 6} rolling={rolling} />
+          <p className="text-center text-[0.6rem] font-black uppercase tracking-[0.14em] text-muted-foreground">
+            {myTurn || !online ? "Your roll" : "Waiting…"}
+          </p>
         </div>
       </div>
 
@@ -515,6 +479,356 @@ function QuizRacePage() {
         }}
       />
     </Shell>
+  );
+}
+
+/* ---------------- Ludo board geometry (52-cell cross track) ---------------- */
+const LUDO_PATH: [number, number][] = [
+  [6, 1], [6, 2], [6, 3], [6, 4], [6, 5],
+  [5, 6], [4, 6], [3, 6], [2, 6], [1, 6], [0, 6],
+  [0, 7],
+  [0, 8], [1, 8], [2, 8], [3, 8], [4, 8], [5, 8],
+  [6, 9], [6, 10], [6, 11], [6, 12], [6, 13], [6, 14],
+  [7, 14],
+  [8, 14], [8, 13], [8, 12], [8, 11], [8, 10], [8, 9],
+  [9, 8], [10, 8], [11, 8], [12, 8], [13, 8], [14, 8],
+  [14, 7],
+  [14, 6], [13, 6], [12, 6], [11, 6], [10, 6], [9, 6],
+  [8, 5], [8, 4], [8, 3], [8, 2], [8, 1], [8, 0],
+  [7, 0],
+  [6, 0],
+];
+const LUDO_HOME_RUNS: [number, number][][] = [
+  [[7, 1], [7, 2], [7, 3], [7, 4], [7, 5]], // red
+  [[1, 7], [2, 7], [3, 7], [4, 7], [5, 7]], // green
+  [[7, 13], [7, 12], [7, 11], [7, 10], [7, 9]], // yellow
+  [[13, 7], [12, 7], [11, 7], [10, 7], [9, 7]], // blue
+];
+const LUDO_START_OFFSET = [0, 13, 26, 39];
+const LUDO_CENTER: [number, number] = [7, 7];
+const LUDO_YARD_PADS: [number, number][][] = [
+  [[1.3, 1.3], [1.3, 4.7], [4.7, 1.3], [4.7, 4.7]], // red
+  [[1.3, 10.3], [1.3, 13.7], [4.7, 10.3], [4.7, 13.7]], // green
+  [[10.3, 10.3], [10.3, 13.7], [13.7, 10.3], [13.7, 13.7]], // yellow
+  [[10.3, 1.3], [10.3, 4.7], [13.7, 1.3], [13.7, 4.7]], // blue
+];
+const LUDO_COLORS = [
+  "var(--ludo-red)",
+  "var(--ludo-green)",
+  "var(--ludo-yellow)",
+  "var(--ludo-blue)",
+] as const;
+
+function ludoPct([r, c]: [number, number]) {
+  return { left: `${((c + 0.5) / 15) * 100}%`, top: `${((r + 0.5) / 15) * 100}%` };
+}
+
+/** Resolve a token's board cell for a given seat, given its raw 0..LUDO_HOME value. */
+function ludoTokenCell(seat: number, value: number, tokenIdx: number): [number, number] | null {
+  if (value <= 0) {
+    const pad = LUDO_YARD_PADS[seat % 4]![tokenIdx % 4]!;
+    return pad;
+  }
+  if (value >= LUDO_HOME) return LUDO_CENTER;
+  if (value > 51) return LUDO_HOME_RUNS[seat % 4]![value - 52]!;
+  const idx = (LUDO_START_OFFSET[seat % 4]! + (value - 1)) % 52;
+  return LUDO_PATH[idx]!;
+}
+
+function LudoPawn({
+  seat,
+  cell,
+  tokenIdx,
+}: {
+  seat: number;
+  cell: [number, number];
+  tokenIdx: number;
+}) {
+  const isYard = cell[0] > 15 || cell[1] > 15; // never true; kept for clarity
+  void isYard;
+  const pct = ludoPct(cell);
+  return (
+    <span
+      className="pawn-3d absolute z-10 size-[6.4%] -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out"
+      style={{ ...pct, "--pawn-color": LUDO_COLORS[seat % 4] } as React.CSSProperties}
+      title={`Player ${seat + 1} token ${tokenIdx + 1}`}
+    />
+  );
+}
+
+function LudoBoard({
+  players,
+  online,
+}: {
+  players: { tokens: number[]; position: number }[];
+  online: boolean;
+}) {
+  return (
+    <div className="board-stage">
+      <div className="board-tilt board-rim board-wood aspect-square w-full rounded-2xl p-2 sm:p-3">
+        <div className="board-felt relative aspect-square w-full overflow-hidden rounded-xl">
+          {/* Home quadrants */}
+          {(["red", "green", "yellow", "blue"] as const).map((_, seat) => {
+            const corner = [
+              { top: "0%", left: "0%" },
+              { top: "0%", left: "60%" },
+              { top: "60%", left: "60%" },
+              { top: "60%", left: "0%" },
+            ][seat]!;
+            return (
+              <div
+                key={seat}
+                className="absolute h-[40%] w-[40%] rounded-lg border-4 border-white/80 shadow-[inset_0_2px_8px_rgba(0,0,0,0.35)]"
+                style={{ ...corner, background: LUDO_COLORS[seat] }}
+              >
+                <div className="absolute inset-[12%] rounded-md bg-white/90 shadow-inner">
+                  {LUDO_YARD_PADS[seat]!.map((_, i) => (
+                    <span
+                      key={i}
+                      className="disc-3d absolute size-[22%] -translate-x-1/2 -translate-y-1/2"
+                      style={{
+                        left: i % 2 === 0 ? "30%" : "70%",
+                        top: i < 2 ? "30%" : "70%",
+                        "--disc-light": LUDO_COLORS[seat],
+                        "--disc-dark": LUDO_COLORS[seat],
+                      } as React.CSSProperties}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Cross track cells */}
+          {LUDO_PATH.map((cell, i) => {
+            const pct = ludoPct(cell);
+            const safe = LUDO_SAFE.has(i + 1);
+            return (
+              <span
+                key={`t-${i}`}
+                className="absolute size-[6.4%] -translate-x-1/2 -translate-y-1/2 rounded-[3px] border border-black/10 bg-white/90 shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]"
+                style={pct}
+              >
+                {safe && (
+                  <svg viewBox="0 0 24 24" className="absolute inset-0 text-gold/70">
+                    <path
+                      fill="currentColor"
+                      d="M12 1l2.9 6.9L22 9l-5.5 4.8L18 21l-6-3.6L6 21l1.5-7.2L2 9l7.1-1.1z"
+                    />
+                  </svg>
+                )}
+              </span>
+            );
+          })}
+          {/* Coloured starting arrows */}
+          {LUDO_START_OFFSET.map((offset, seat) => {
+            const pct = ludoPct(LUDO_PATH[offset]!);
+            return (
+              <span
+                key={`arrow-${seat}`}
+                className="absolute size-[6.4%] -translate-x-1/2 -translate-y-1/2 rounded-[3px] opacity-80"
+                style={{ ...pct, background: LUDO_COLORS[seat] }}
+              />
+            );
+          })}
+          {/* Coloured home-run lanes */}
+          {LUDO_HOME_RUNS.map((run, seat) =>
+            run.map((cell, i) => {
+              const pct = ludoPct(cell);
+              return (
+                <span
+                  key={`hr-${seat}-${i}`}
+                  className="absolute size-[6.4%] -translate-x-1/2 -translate-y-1/2 border border-black/10"
+                  style={{ ...pct, background: LUDO_COLORS[seat] }}
+                />
+              );
+            }),
+          )}
+          {/* Centre home triangle */}
+          <svg
+            viewBox="0 0 100 100"
+            className="pointer-events-none absolute left-[40%] top-[40%] size-[20%]"
+          >
+            <polygon points="50,50 0,0 100,0" fill={LUDO_COLORS[1]} opacity={0.9} />
+            <polygon points="50,50 100,0 100,100" fill={LUDO_COLORS[2]} opacity={0.9} />
+            <polygon points="50,50 100,100 0,100" fill={LUDO_COLORS[3]} opacity={0.9} />
+            <polygon points="50,50 0,100 0,0" fill={LUDO_COLORS[0]} opacity={0.9} />
+          </svg>
+
+          {/* Tokens */}
+          {players.map((p, seat) =>
+            (online ? [p.position] : p.tokens).map((v, tokenIdx) => (
+              <LudoPawn
+                key={`${seat}-${tokenIdx}`}
+                seat={seat}
+                tokenIdx={tokenIdx}
+                cell={ludoTokenCell(seat, v, tokenIdx)!}
+              />
+            )),
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Snakes & Ladders board geometry (10x10 boustrophedon) ---------------- */
+function slSquarePct(square: number) {
+  const rowFromBottom = Math.floor((square - 1) / 10);
+  const colInRow = rowFromBottom % 2 === 0 ? (square - 1) % 10 : 9 - ((square - 1) % 10);
+  const visualRow = 9 - rowFromBottom;
+  return { x: (colInRow + 0.5) * 10, y: (visualRow + 0.5) * 10 };
+}
+
+function SnakesBoard({
+  cells,
+  players,
+}: {
+  cells: number[];
+  players: { position: number }[];
+}) {
+  const ladderEntries = Object.entries(LADDERS).map(([from, to]) => ({
+    from: Number(from),
+    to,
+  }));
+  const snakeEntries = Object.entries(SNAKES).map(([from, to]) => ({ from: Number(from), to }));
+  return (
+    <div className="board-stage">
+      <div className="board-tilt board-rim board-wood aspect-square w-full rounded-2xl p-2 sm:p-3">
+        <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[oklch(0.94_0.02_85)]">
+          <div className="grid size-full grid-cols-10 grid-rows-10">
+            {cells.map((c, i) => {
+              const row = Math.floor(i / 10);
+              const col = i % 10;
+              const pastel = (row + col) % 2 === 0;
+              return (
+                <div
+                  key={c}
+                  className={`relative flex items-start justify-start border border-black/10 p-0.5 text-[0.5rem] font-bold sm:text-[0.6rem] ${
+                    pastel
+                      ? "bg-[oklch(0.9_0.05_85)] text-[oklch(0.4_0.05_85)]"
+                      : "bg-[oklch(0.82_0.06_50)] text-[oklch(0.3_0.05_50)]"
+                  }`}
+                >
+                  {c}
+                </div>
+              );
+            })}
+          </div>
+          <svg
+            viewBox="0 0 100 100"
+            className="pointer-events-none absolute inset-0 size-full"
+            preserveAspectRatio="none"
+          >
+            {ladderEntries.map(({ from, to }) => {
+              const a = slSquarePct(from);
+              const b = slSquarePct(to);
+              const dx = b.x - a.x;
+              const dy = b.y - a.y;
+              const len = Math.hypot(dx, dy) || 1;
+              const nx = (-dy / len) * 2.2;
+              const ny = (dx / len) * 2.2;
+              const rungs = Array.from({ length: 6 }, (_, i) => (i + 1) / 7);
+              return (
+                <g key={`ladder-${from}`}>
+                  <line
+                    x1={a.x + nx}
+                    y1={a.y + ny}
+                    x2={b.x + nx}
+                    y2={b.y + ny}
+                    stroke="oklch(0.7 0.16 85)"
+                    strokeWidth={1.4}
+                    strokeLinecap="round"
+                  />
+                  <line
+                    x1={a.x - nx}
+                    y1={a.y - ny}
+                    x2={b.x - nx}
+                    y2={b.y - ny}
+                    stroke="oklch(0.7 0.16 85)"
+                    strokeWidth={1.4}
+                    strokeLinecap="round"
+                  />
+                  {rungs.map((t, i) => (
+                    <line
+                      key={i}
+                      x1={a.x + nx + dx * t}
+                      y1={a.y + ny + dy * t}
+                      x2={a.x - nx + dx * t}
+                      y2={a.y - ny + dy * t}
+                      stroke="oklch(0.55 0.14 80)"
+                      strokeWidth={0.9}
+                    />
+                  ))}
+                </g>
+              );
+            })}
+            {snakeEntries.map(({ from, to }) => {
+              const a = slSquarePct(from);
+              const b = slSquarePct(to);
+              const mx = (a.x + b.x) / 2 + (a.y > b.y ? 8 : -8);
+              const my = (a.y + b.y) / 2 + (a.x > b.x ? -8 : 8);
+              return (
+                <g key={`snake-${from}`}>
+                  <path
+                    d={`M ${a.x} ${a.y} Q ${mx} ${my} ${b.x} ${b.y}`}
+                    fill="none"
+                    stroke="oklch(0.5 0.15 150)"
+                    strokeWidth={2.2}
+                    strokeLinecap="round"
+                  />
+                  <circle cx={a.x} cy={a.y} r={2.4} fill="oklch(0.42 0.17 145)" />
+                  <circle cx={a.x - 0.6} cy={a.y - 0.6} r={0.5} fill="white" />
+                  <circle cx={b.x} cy={b.y} r={1.4} fill="oklch(0.55 0.15 150)" />
+                </g>
+              );
+            })}
+          </svg>
+          {players.map((p, seat) => {
+            if (p.position <= 0) return null;
+            const { x, y } = slSquarePct(Math.min(100, p.position));
+            const jitter = (seat % 4) * 2.5 - 3.75;
+            return (
+              <span
+                key={seat}
+                className="pawn-3d absolute z-10 size-[6%] -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out"
+                style={
+                  {
+                    left: `${x + jitter}%`,
+                    top: `${y}%`,
+                    "--pawn-color": LUDO_COLORS[seat % 4],
+                  } as React.CSSProperties
+                }
+              />
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Dice ---------------- */
+const DICE_PIPS: Record<number, [number, number][]> = {
+  1: [[50, 50]],
+  2: [[25, 25], [75, 75]],
+  3: [[25, 25], [50, 50], [75, 75]],
+  4: [[25, 25], [25, 75], [75, 25], [75, 75]],
+  5: [[25, 25], [25, 75], [50, 50], [75, 25], [75, 75]],
+  6: [[25, 25], [25, 50], [25, 75], [75, 25], [75, 50], [75, 75]],
+};
+
+function Dice({ value, rolling }: { value: number; rolling: boolean }) {
+  return (
+    <div className={`dice-3d relative size-10 shrink-0 ${rolling ? "dice-rolling" : ""}`}>
+      {DICE_PIPS[value]?.map(([x, y], i) => (
+        <span
+          key={i}
+          className="absolute size-[16%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-current"
+          style={{ left: `${x}%`, top: `${y}%` }}
+        />
+      ))}
+    </div>
   );
 }
 
