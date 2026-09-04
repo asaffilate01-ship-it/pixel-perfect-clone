@@ -1,6 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
-import { Brain, ChevronLeft, Dices, Gem, Radio, ShieldCheck, TrendingUp, ArrowRight } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  Brain,
+  ChevronLeft,
+  Dices,
+  Gem,
+  Radio,
+  Search,
+  ShieldCheck,
+  TrendingUp,
+  ArrowRight,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Chip, Label } from "@/components/game/ArcadeSetup";
@@ -23,7 +34,10 @@ export const Route = createFileRoute("/arcade_/rooms")({
           "Host or join a private realtime room for Quiz Ludo, Snakes & Ladders or Sports Mastermind. Server-checked answers, 2–4 players.",
       },
       { property: "og:title", content: "Online arcade rooms — Fanzeno" },
-      { property: "og:description", content: "Private realtime sports quiz rooms with server-checked answers." },
+      {
+        property: "og:description",
+        content: "Private realtime sports quiz rooms with server-checked answers.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -32,9 +46,21 @@ export const Route = createFileRoute("/arcade_/rooms")({
 });
 
 const MODES = [
-  { slug: "quiz-snakes-ladders", name: "Snakes & Ladders", icon: TrendingUp, pro: false, tone: "text-primary bg-primary/12" },
+  {
+    slug: "quiz-snakes-ladders",
+    name: "Snakes & Ladders",
+    icon: TrendingUp,
+    pro: false,
+    tone: "text-primary bg-primary/12",
+  },
   { slug: "quiz-ludo", name: "Quiz Ludo", icon: Dices, pro: true, tone: "text-gold bg-gold/12" },
-  { slug: "sports-mastermind", name: "Sports Mastermind", icon: Brain, pro: true, tone: "text-gold bg-gold/12" },
+  {
+    slug: "sports-mastermind",
+    name: "Sports Mastermind",
+    icon: Brain,
+    pro: true,
+    tone: "text-gold bg-gold/12",
+  },
 ] as const;
 
 function RoomsPage() {
@@ -47,6 +73,7 @@ function RoomsPage() {
   const { code: invited } = Route.useSearch();
   const [code, setCode] = useState(invited ?? "");
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const selected = MODES.find((m) => m.slug === mode)!;
   const hostLocked = selected.pro && !pro;
@@ -54,7 +81,9 @@ function RoomsPage() {
   const create = async () => {
     setBusy("create");
     try {
-      const { room } = await arcadeRoomAction({ data: { action: "create", mode, maxPlayers: players, difficulty } });
+      const { room } = await arcadeRoomAction({
+        data: { action: "create", mode, maxPlayers: players, difficulty },
+      });
       if (room) void navigate({ to: "/arcade/rooms/$id", params: { id: room.id } });
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not create room");
@@ -80,6 +109,32 @@ function RoomsPage() {
     }
   };
 
+  const findRandom = useCallback(async () => {
+    try {
+      const result = await arcadeRoomAction({ data: { action: "matchmake", mode, difficulty } });
+      if (result.roomId) {
+        setSearching(false);
+        void navigate({ to: "/arcade/rooms/$id", params: { id: result.roomId } });
+      } else {
+        setSearching(true);
+      }
+    } catch (e) {
+      setSearching(false);
+      toast.error(e instanceof Error ? e.message : "Matchmaking unavailable");
+    }
+  }, [difficulty, mode, navigate]);
+
+  useEffect(() => {
+    if (!searching) return;
+    const timer = setInterval(() => void findRandom(), 2_000);
+    return () => clearInterval(timer);
+  }, [findRandom, searching]);
+
+  const cancelRandom = async () => {
+    setSearching(false);
+    await arcadeRoomAction({ data: { action: "cancel_matchmaking" } });
+  };
+
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
       <div className="flex items-center gap-3">
@@ -100,7 +155,8 @@ function RoomsPage() {
       {!loading && !user && (
         <div className="panel mt-6 p-5">
           <p className="text-sm text-muted-foreground">
-            Rooms reserve a seat for you and keep your question history, so you need to be signed in.
+            Rooms reserve a seat for you and keep your question history, so you need to be signed
+            in.
           </p>
           <Button asChild className="mt-4">
             <Link to="/auth">Sign in to play online</Link>
@@ -109,7 +165,9 @@ function RoomsPage() {
       )}
 
       <div className="panel mt-6 p-5">
-        <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gold">Have an invite?</p>
+        <p className="text-[0.62rem] font-black uppercase tracking-[0.18em] text-gold">
+          Have an invite?
+        </p>
         <h2 className="mt-1 text-2xl">Join with a room code</h2>
         <div className="mt-4 flex gap-2">
           <input
@@ -121,11 +179,17 @@ function RoomsPage() {
             aria-label="Room code"
             className="h-12 min-w-0 flex-1 rounded-xl border border-border bg-background/60 px-4 font-display text-xl tracking-[0.2em] outline-none placeholder:text-muted-foreground focus:border-primary"
           />
-          <Button className="h-12 px-6 font-bold uppercase tracking-[0.14em]" disabled={!user || busy !== null} onClick={() => void join()}>
+          <Button
+            className="h-12 px-6 font-bold uppercase tracking-[0.14em]"
+            disabled={!user || busy !== null}
+            onClick={() => void join()}
+          >
             {busy === "join" ? "Joining…" : "Join"}
           </Button>
         </div>
-        <p className="mt-3 text-xs text-muted-foreground">Free players can join a Pro host&apos;s invited private game.</p>
+        <p className="mt-3 text-xs text-muted-foreground">
+          Free players can join a Pro host&apos;s invited private game.
+        </p>
       </div>
 
       <Label>Create a room</Label>
@@ -153,7 +217,9 @@ function RoomsPage() {
                     </span>
                   )}
                 </span>
-                <span className="block text-xs text-muted-foreground">2–4 players · own subjects · live spectator view</span>
+                <span className="block text-xs text-muted-foreground">
+                  2–4 players · own subjects · live spectator view
+                </span>
               </span>
             </button>
           );
@@ -179,11 +245,43 @@ function RoomsPage() {
 
       <p className="mt-6 flex items-start gap-2 rounded-xl border border-border bg-surface/60 p-3 text-xs text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
-        Questions, turns and answers are controlled by the server. Reconnecting players return to their reserved seat.
+        Questions, turns and answers are controlled by the server. Reconnecting players return to
+        their reserved seat.
       </p>
 
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        <Button
+          size="lg"
+          variant="secondary"
+          disabled={!user || searching || hostLocked}
+          onClick={() => void findRandom()}
+          className="font-bold uppercase tracking-[0.12em]"
+        >
+          <Search className="size-4" /> Find random rival
+        </Button>
+        {searching ? (
+          <Button
+            size="lg"
+            variant="outline"
+            onClick={() => void cancelRandom()}
+            className="border-cyan-300/30 text-cyan-100"
+          >
+            <Radio className="size-4 animate-pulse" /> Searching… <X className="ml-auto size-4" />
+          </Button>
+        ) : (
+          <div className="grid place-items-center rounded-xl border border-dashed border-border px-3 text-center text-xs text-muted-foreground">
+            Or invite chosen players with a room code
+          </div>
+        )}
+      </div>
+
       {hostLocked ? (
-        <Button asChild size="lg" className="mt-6 w-full font-bold uppercase tracking-[0.14em]" variant="outline">
+        <Button
+          asChild
+          size="lg"
+          className="mt-6 w-full font-bold uppercase tracking-[0.14em]"
+          variant="outline"
+        >
           <Link to="/upgrade">
             <Gem className="size-4 text-gold" /> Unlock Pro to host {selected.name}
           </Link>
@@ -195,7 +293,8 @@ function RoomsPage() {
           disabled={!user || busy !== null}
           onClick={() => void create()}
         >
-          {busy === "create" ? "Creating…" : "Create private room"} <ArrowRight className="size-4" />
+          {busy === "create" ? "Creating…" : "Create private room"}{" "}
+          <ArrowRight className="size-4" />
         </Button>
       )}
     </div>

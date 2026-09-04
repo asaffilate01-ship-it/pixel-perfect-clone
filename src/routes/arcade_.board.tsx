@@ -1,7 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Check, ChevronLeft, Gauge, Gem, Grid2x2, Hexagon, Network, RotateCcw, Users } from "lucide-react";
+import {
+  Check,
+  ChevronLeft,
+  Gauge,
+  Gem,
+  Grid2x2,
+  Hexagon,
+  Network,
+  RotateCcw,
+  Users,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Chip, Label } from "@/components/game/ArcadeSetup";
 import { QuestionCard, type QuestionOutcome } from "@/components/game/QuestionCard";
@@ -24,7 +34,10 @@ export const Route = createFileRoute("/arcade_/board")({
     return {
       meta: [
         { title: `${c.title} — Fanzeno arcade` },
-        { name: "description", content: `${c.rule} Every answer is a verified sports fact checked by the server.` },
+        {
+          name: "description",
+          content: `${c.rule} Every answer is a verified sports fact checked by the server.`,
+        },
         { property: "og:title", content: `${c.title} — Fanzeno arcade` },
         { property: "og:description", content: c.rule },
         { property: "og:type", content: "website" },
@@ -35,12 +48,63 @@ export const Route = createFileRoute("/arcade_/board")({
   component: BoardPage,
 });
 
-const CONFIG: Record<Mode, { title: string; slug: string; icon: React.ElementType; tone: string; accent: string; rule: string; pro: boolean }> = {
-  territory: { title: "Territory", slug: "territory", icon: Hexagon, tone: "text-gold bg-gold/12", accent: "text-gold", rule: "Select a zone, then answer correctly to capture it. First to ten zones wins.", pro: true },
-  "501": { title: "Sports 501", slug: "sports-501", icon: Gauge, tone: "text-gold bg-gold/12", accent: "text-gold", rule: "Choose a scoring lane. Correct answers reduce 501 to exactly zero.", pro: true },
-  connections: { title: "Connections", slug: "connections", icon: Network, tone: "text-primary bg-primary/12", accent: "text-primary", rule: "Select four sporting names that share one exact connection.", pro: false },
-  draft: { title: "Draft Five", slug: "draft-xi", icon: Users, tone: "text-gold bg-gold/12", accent: "text-gold", rule: "Answer correctly to sign the highlighted athlete. Build the full five.", pro: true },
-  bingo: { title: "Sports Bingo", slug: "bingo", icon: Grid2x2, tone: "text-primary bg-primary/12", accent: "text-primary", rule: "Select a square and answer correctly. Complete a line of four.", pro: false },
+const CONFIG: Record<
+  Mode,
+  {
+    title: string;
+    slug: string;
+    icon: React.ElementType;
+    tone: string;
+    accent: string;
+    rule: string;
+    pro: boolean;
+  }
+> = {
+  territory: {
+    title: "Territory",
+    slug: "territory",
+    icon: Hexagon,
+    tone: "text-gold bg-gold/12",
+    accent: "text-gold",
+    rule: "Select a zone, then answer correctly to capture it. First to ten zones wins.",
+    pro: true,
+  },
+  "501": {
+    title: "Sports 501",
+    slug: "sports-501",
+    icon: Gauge,
+    tone: "text-gold bg-gold/12",
+    accent: "text-gold",
+    rule: "Choose a scoring lane. Correct answers reduce 501 to exactly zero.",
+    pro: true,
+  },
+  connections: {
+    title: "Connections",
+    slug: "connections",
+    icon: Network,
+    tone: "text-primary bg-primary/12",
+    accent: "text-primary",
+    rule: "Select four sporting names that share one exact connection.",
+    pro: false,
+  },
+  draft: {
+    title: "Draft Five",
+    slug: "draft-xi",
+    icon: Users,
+    tone: "text-gold bg-gold/12",
+    accent: "text-gold",
+    rule: "Answer correctly to sign the highlighted athlete. Build the full five.",
+    pro: true,
+  },
+  bingo: {
+    title: "Sports Bingo",
+    slug: "bingo",
+    icon: Grid2x2,
+    tone: "text-primary bg-primary/12",
+    accent: "text-primary",
+    rule: "Select a square and answer correctly. Complete a line of four.",
+    pro: false,
+  },
 };
 
 const CONNECTION_GROUPS = [
@@ -50,10 +114,22 @@ const CONNECTION_GROUPS = [
   { label: "Cricket World Cup winners", items: ["Stokes", "Ponting", "Dhoni", "Akram"] },
 ];
 const BINGO = [
-  "World champion", "Olympic medallist", "Premier League", "Grand Slam",
-  "Test captain", "European champion", "100+ caps", "Major winner",
-  "T20 champion", "Formula 1 winner", "NBA champion", "Rugby World Cup",
-  "Ballon d'Or", "Ashes winner", "Super Bowl", "Ryder Cup",
+  "World champion",
+  "Olympic medallist",
+  "Premier League",
+  "Grand Slam",
+  "Test captain",
+  "European champion",
+  "100+ caps",
+  "Major winner",
+  "T20 champion",
+  "Formula 1 winner",
+  "NBA champion",
+  "Rugby World Cup",
+  "Ballon d'Or",
+  "Ashes winner",
+  "Super Bowl",
+  "Ryder Cup",
 ];
 const DRAFT = [
   { name: "Gianluigi Buffon", role: "GK", rating: 92 },
@@ -62,7 +138,8 @@ const DRAFT = [
   { name: "Marta", role: "FWD", rating: 94 },
   { name: "Ronaldo Nazário", role: "FWD", rating: 96 },
 ];
-const LANES = [25, 50, 75, 100] as const;
+// Include a one-point checkout so the 501 start value can always reach exactly zero.
+const LANES = [1, 25, 50, 100] as const;
 
 function hasLine(cells: number[]) {
   const s = new Set(cells);
@@ -85,8 +162,12 @@ function BoardPage() {
   const { pro } = useEntitlements();
   const { prefs } = useQuizPrefs();
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
-  const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank, staleTime: 5 * 60_000 });
-  const sportId = sports?.find((s) => s.slug === prefs.sport)?.id ?? null;
+  const { data: bank } = useQuery({
+    queryKey: ["clue-bank"],
+    queryFn: fetchClueBank,
+    staleTime: 5 * 60_000,
+  });
+  const sportId = sports?.find((s) => s.slug === prefs.sport)?.id ?? sports?.[0]?.id ?? null;
   const [difficulty, setDifficulty] = useState(2);
 
   const [round, setRound] = useState(0);
@@ -101,23 +182,39 @@ function BoardPage() {
   const [misses, setMisses] = useState(0);
 
   useEffect(() => {
-    setRound(0); setTarget(null); setMine([]); setRival([]); setRemaining(501);
-    setFeedback(null); setSelected([]); setSolved([]); setSquad([]); setMisses(0);
+    setRound(0);
+    setTarget(null);
+    setMine([]);
+    setRival([]);
+    setRemaining(501);
+    setFeedback(null);
+    setSelected([]);
+    setSolved([]);
+    setSquad([]);
+    setMisses(0);
   }, [mode]);
 
   const finished =
-    mode === "territory" ? mine.length >= 10 || rival.length >= 10
-    : mode === "501" ? remaining === 0
-    : mode === "bingo" ? hasLine(mine)
-    : mode === "draft" ? squad.length === DRAFT.length
-    : solved.length === 4;
+    mode === "territory"
+      ? mine.length >= 10 || rival.length >= 10
+      : mode === "501"
+        ? remaining === 0
+        : mode === "bingo"
+          ? hasLine(mine)
+          : mode === "draft"
+            ? squad.length === DRAFT.length
+            : solved.length === 4;
   const won = mode === "territory" ? mine.length >= 10 : finished;
   const progress =
-    mode === "501" ? `${remaining}`
-    : mode === "connections" ? `${solved.length}/4 groups`
-    : mode === "draft" ? `${squad.length}/5 signed`
-    : mode === "territory" ? `${mine.length}–${rival.length}`
-    : `${mine.length}/16`;
+    mode === "501"
+      ? `${remaining}`
+      : mode === "connections"
+        ? `${solved.length}/4 groups`
+        : mode === "draft"
+          ? `${squad.length}/5 signed`
+          : mode === "territory"
+            ? `${mine.length}–${rival.length}`
+            : `${mine.length}/16`;
 
   const resolve = (o: QuestionOutcome) => {
     if (target === null) return;
@@ -129,12 +226,17 @@ function BoardPage() {
       if (correct) {
         const value = LANES[target] ?? 25;
         setRemaining((v) => (value > v ? v : v - value)); // bust rule: overshoot scores nothing
-        if (value > remaining) setFeedback(`Bust — ${value} is more than you need. Pick a smaller lane.`);
+        if (value > remaining)
+          setFeedback(`Bust — ${value} is more than you need. Pick a smaller lane.`);
       }
     }
     if (!correct) setMisses((m) => m + 1);
     if (mode !== "501" || !correct || (LANES[target] ?? 0) <= remaining) {
-      setFeedback(correct ? `Correct${o.answer ? ` · ${o.answer}` : ""}` : `Not this time${o.answer ? ` · ${o.answer}` : ""}`);
+      setFeedback(
+        correct
+          ? `Correct${o.answer ? ` · ${o.answer}` : ""}`
+          : `Not this time${o.answer ? ` · ${o.answer}` : ""}`,
+      );
     }
     setTarget(null);
     setRound((r) => r + 1);
@@ -156,11 +258,21 @@ function BoardPage() {
     () => CONNECTION_GROUPS.flatMap((g) => g.items).sort((a, b) => seeded(a, 3) - seeded(b, 3)),
     [],
   );
-  const solvedItems = new Set(solved.flatMap((l) => CONNECTION_GROUPS.find((g) => g.label === l)?.items ?? []));
+  const solvedItems = new Set(
+    solved.flatMap((l) => CONNECTION_GROUPS.find((g) => g.label === l)?.items ?? []),
+  );
 
   const reset = () => {
-    setRound(0); setTarget(null); setMine([]); setRival([]); setRemaining(501);
-    setFeedback(null); setSelected([]); setSolved([]); setSquad([]); setMisses(0);
+    setRound(0);
+    setTarget(null);
+    setMine([]);
+    setRival([]);
+    setRemaining(501);
+    setFeedback(null);
+    setSelected([]);
+    setSolved([]);
+    setSquad([]);
+    setMisses(0);
   };
 
   if (c.pro && !pro) {
@@ -172,7 +284,9 @@ function BoardPage() {
           </span>
           <h1 className="mt-4 text-4xl">{c.title}</h1>
           <p className="mt-2 text-sm text-muted-foreground">{c.rule}</p>
-          <p className="mt-4 text-xs text-muted-foreground">This is a Fanzeno Pro table. Free players can still join a Pro host's private room.</p>
+          <p className="mt-4 text-xs text-muted-foreground">
+            This is a Fanzeno Pro table. Free players can still join a Pro host's private room.
+          </p>
           <Button asChild size="lg" className="mt-5 font-bold uppercase tracking-[0.14em]">
             <Link to="/upgrade">
               <Gem className="size-4" /> Unlock Fanzeno Pro
@@ -206,7 +320,9 @@ function BoardPage() {
 
       <div className="panel mt-5 flex items-center gap-4 p-4">
         <div>
-          <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Progress</p>
+          <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
+            Progress
+          </p>
           <p className={`font-display text-3xl ${c.accent}`}>{progress}</p>
         </div>
         <p className="flex-1 text-xs text-muted-foreground">{c.rule}</p>
@@ -217,7 +333,11 @@ function BoardPage() {
           <Label>Difficulty</Label>
           <div className="flex flex-wrap gap-2">
             {DIFFICULTIES.map((d) => (
-              <Chip key={d.level} on={difficulty === d.level} onClick={() => setDifficulty(d.level)}>
+              <Chip
+                key={d.level}
+                on={difficulty === d.level}
+                onClick={() => setDifficulty(d.level)}
+              >
                 {d.label}
               </Chip>
             ))}
@@ -226,10 +346,22 @@ function BoardPage() {
       )}
 
       {finished ? (
-        <div className={`panel mt-6 p-6 text-center ${won ? "border-primary/60" : "border-destructive/60"}`}>
+        <div
+          className={`panel mt-6 p-6 text-center ${won ? "border-primary/60" : "border-destructive/60"}`}
+        >
           <p className="eyebrow">{won ? "Victory" : "Defeat"}</p>
           <p className="mt-2 font-display text-4xl">
-            {mode === "territory" ? (won ? "Territory captured" : "The rival holds the ground") : mode === "501" ? "Checkout!" : mode === "bingo" ? "Bingo!" : mode === "draft" ? "Full five signed" : "All four connected"}
+            {mode === "territory"
+              ? won
+                ? "Territory captured"
+                : "The rival holds the ground"
+              : mode === "501"
+                ? "Checkout!"
+                : mode === "bingo"
+                  ? "Bingo!"
+                  : mode === "draft"
+                    ? "Full five signed"
+                    : "All four connected"}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             {round} question{round === 1 ? "" : "s"} · {misses} miss{misses === 1 ? "" : "es"}
@@ -248,7 +380,8 @@ function BoardPage() {
           {mode === "territory" && (
             <div className="mt-6 grid grid-cols-5 gap-2" role="group" aria-label="Territory zones">
               {Array.from({ length: 19 }, (_, i) => {
-                const own = mine.includes(i), theirs = rival.includes(i);
+                const own = mine.includes(i),
+                  theirs = rival.includes(i);
                 return (
                   <button
                     key={i}
@@ -257,11 +390,21 @@ function BoardPage() {
                     onClick={() => setTarget(i)}
                     aria-label={`Zone ${i + 1}${own ? ", yours" : theirs ? ", rival" : ""}`}
                     className={`relative grid aspect-square place-items-center rounded-xl border transition-colors ${
-                      own ? "border-primary bg-primary/25" : theirs ? "border-destructive bg-destructive/25" : target === i ? "border-gold bg-gold/15" : "border-border bg-surface/60 hover:border-gold/60"
+                      own
+                        ? "border-primary bg-primary/25"
+                        : theirs
+                          ? "border-destructive bg-destructive/25"
+                          : target === i
+                            ? "border-gold bg-gold/15"
+                            : "border-border bg-surface/60 hover:border-gold/60"
                     } ${i === 15 ? "col-start-2" : ""}`}
                   >
-                    <Hexagon className={`size-7 ${own ? "text-primary" : theirs ? "text-destructive" : "text-muted-foreground/50"}`} />
-                    <span className="absolute bottom-1 right-1.5 text-[0.55rem] font-bold text-muted-foreground">{i + 1}</span>
+                    <Hexagon
+                      className={`size-7 ${own ? "text-primary" : theirs ? "text-destructive" : "text-muted-foreground/50"}`}
+                    />
+                    <span className="absolute bottom-1 right-1.5 text-[0.55rem] font-bold text-muted-foreground">
+                      {i + 1}
+                    </span>
                   </button>
                 );
               })}
@@ -270,7 +413,9 @@ function BoardPage() {
 
           {mode === "501" && (
             <div className="panel mt-6 p-6 text-center">
-              <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">Remaining</p>
+              <p className="text-[0.6rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                Remaining
+              </p>
               <p className="font-display text-7xl text-gold">{remaining}</p>
               <div className="mt-4 grid grid-cols-4 gap-2">
                 {LANES.map((x, i) => (
@@ -281,14 +426,20 @@ function BoardPage() {
                     onClick={() => setTarget(i)}
                     aria-pressed={target === i}
                     className={`rounded-xl border py-3 font-display text-2xl transition-colors ${
-                      x > remaining ? "border-border text-muted-foreground/50" : target === i ? "border-gold bg-gold text-background" : "border-border bg-surface/60 hover:border-gold"
+                      x > remaining
+                        ? "border-border text-muted-foreground/50"
+                        : target === i
+                          ? "border-gold bg-gold text-background"
+                          : "border-border bg-surface/60 hover:border-gold"
                     }`}
                   >
                     {x}
                   </button>
                 ))}
               </div>
-              <p className="mt-3 text-xs text-muted-foreground">Choose a scoring lane to receive your question. Overshooting is a bust.</p>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Choose a scoring lane to receive your question. Overshooting is a bust.
+              </p>
             </div>
           )}
 
@@ -296,16 +447,25 @@ function BoardPage() {
             <>
               <div className="mt-6 grid grid-cols-4 gap-2">
                 {allConnections.map((x) => {
-                  const done = solvedItems.has(x), on = selected.includes(x);
+                  const done = solvedItems.has(x),
+                    on = selected.includes(x);
                   return (
                     <button
                       key={x}
                       type="button"
                       disabled={done}
                       aria-pressed={on}
-                      onClick={() => setSelected((v) => (v.includes(x) ? v.filter((y) => y !== x) : v.length < 4 ? [...v, x] : v))}
+                      onClick={() =>
+                        setSelected((v) =>
+                          v.includes(x) ? v.filter((y) => y !== x) : v.length < 4 ? [...v, x] : v,
+                        )
+                      }
                       className={`rounded-xl border px-1 py-3 text-xs font-bold transition-colors ${
-                        done ? "border-primary/40 bg-primary/10 text-muted-foreground" : on ? "border-primary bg-primary text-primary-foreground" : "border-border bg-surface/60 hover:border-primary/60"
+                        done
+                          ? "border-primary/40 bg-primary/10 text-muted-foreground"
+                          : on
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-surface/60 hover:border-primary/60"
                       }`}
                     >
                       {x}
@@ -313,7 +473,11 @@ function BoardPage() {
                   );
                 })}
               </div>
-              <Button className="mt-4 w-full font-bold uppercase tracking-[0.14em]" disabled={selected.length !== 4} onClick={checkConnection}>
+              <Button
+                className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
+                disabled={selected.length !== 4}
+                onClick={checkConnection}
+              >
                 Check connection
               </Button>
               {solved.map((x) => (
@@ -341,7 +505,9 @@ function BoardPage() {
                     </span>
                     <span className="flex-1">
                       <span className="block font-display text-xl">{x.name}</span>
-                      <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">{x.role}</span>
+                      <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                        {x.role}
+                      </span>
                     </span>
                     {signed && <Check className="size-5 text-primary" />}
                   </button>
@@ -362,7 +528,11 @@ function BoardPage() {
                     onClick={() => setTarget(i)}
                     aria-pressed={target === i}
                     className={`aspect-square rounded-xl border p-1 text-[0.62rem] font-bold leading-tight transition-colors ${
-                      own ? "border-primary bg-primary/25 text-primary" : target === i ? "border-gold bg-gold/15" : "border-border bg-surface/60 hover:border-primary/60"
+                      own
+                        ? "border-primary bg-primary/25 text-primary"
+                        : target === i
+                          ? "border-gold bg-gold/15"
+                          : "border-border bg-surface/60 hover:border-primary/60"
                     }`}
                   >
                     {label}
@@ -372,7 +542,11 @@ function BoardPage() {
             </div>
           )}
 
-          {feedback && <p className="mt-4 text-center text-xs font-semibold text-muted-foreground">{feedback}</p>}
+          {feedback && (
+            <p className="mt-4 text-center text-xs font-semibold text-muted-foreground">
+              {feedback}
+            </p>
+          )}
 
           {target !== null && mode !== "connections" && (
             <QuestionCard
@@ -384,10 +558,13 @@ function BoardPage() {
               accentClass={c.accent}
               onResolved={resolve}
               rewardLabel={() =>
-                mode === "territory" ? `Zone ${target + 1} · answer to capture`
-                : mode === "501" ? `${LANES[target]} lane`
-                : mode === "draft" ? `Sign ${DRAFT[target]?.name ?? "the athlete"}`
-                : `Square · ${BINGO[target]}`
+                mode === "territory"
+                  ? `Zone ${target + 1} · answer to capture`
+                  : mode === "501"
+                    ? `${LANES[target]} lane`
+                    : mode === "draft"
+                      ? `Sign ${DRAFT[target]?.name ?? "the athlete"}`
+                      : `Square · ${BINGO[target]}`
               }
             />
           )}

@@ -27,6 +27,14 @@ const actionSchema = z.discriminatedUnion("action", [
     categoryKey: z.string().nullable().optional(),
   }),
   z.object({ action: z.literal("join"), code: z.string().min(4) }),
+  z.object({
+    action: z.literal("matchmake"),
+    mode: z.enum(["quiz-ludo", "quiz-snakes-ladders", "sports-mastermind"]),
+    difficulty: z.number().int().min(1).max(4).default(2),
+    sportId: z.string().uuid().nullable().optional(),
+    categoryKey: z.string().nullable().optional(),
+  }),
+  z.object({ action: z.literal("cancel_matchmaking") }),
   z.object({ action: z.literal("ready"), roomId: z.string().uuid(), ready: z.boolean() }),
   z.object({
     action: z.literal("settings"),
@@ -58,6 +66,8 @@ export type ArcadeRoomResult = {
   advanced?: boolean;
   finished?: boolean;
   left?: boolean;
+  queued?: boolean;
+  roomId?: string;
   settings?: Record<string, string | null>;
 };
 
@@ -81,8 +91,39 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
       ...extra,
     });
 
+    if (data.action === "matchmake") {
+      const secureRpc = admin.rpc as unknown as (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: string | null; error: { message: string } | null }>;
+      const { data: roomId, error } = await secureRpc("matchmake_arcade_player", {
+        p_user_id: userId,
+        p_mode_slug: data.mode,
+        p_difficulty: data.difficulty,
+        p_sport_id: data.sportId ?? null,
+        p_category_key: data.categoryKey ?? null,
+      });
+      if (error) throw new Error(error.message);
+      if (roomId) {
+        // A match is consumed as soon as this player receives it. The other player
+        // keeps their ticket until their next poll, so both clients still reach the
+        // same room without a completed ticket trapping either in an old match.
+        await admin.from("arcade_matchmaking_queue").delete().eq("user_id", userId);
+        return { roomId };
+      }
+      return { queued: true };
+    }
+
+    if (data.action === "cancel_matchmaking") {
+      await admin.from("arcade_matchmaking_queue").delete().eq("user_id", userId);
+      return { queued: false };
+    }
+
     if (data.action === "create") {
-      const { data: allowed } = await admin.rpc("can_host_game", { p_user_id: userId, p_mode_slug: data.mode });
+      const { data: allowed } = await admin.rpc("can_host_game", {
+        p_user_id: userId,
+        p_mode_slug: data.mode,
+      });
       if (!allowed) throw new Error("Fanzeno Pro is required to host this game");
       const { data: room, error } = await admin
         .from("arcade_rooms")
@@ -105,7 +146,10 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         status: "ready",
         sport_id: data.sportId ?? null,
         category_key: data.categoryKey ?? null,
-        settings: seatSettings({ sport_id: data.sportId ?? null, category_key: data.categoryKey ?? null }),
+        settings: seatSettings({
+          sport_id: data.sportId ?? null,
+          category_key: data.categoryKey ?? null,
+        }),
       });
       if (seatErr) throw new Error(seatErr.message);
       return { room: room as ArcadeRoomRow };
@@ -188,7 +232,10 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
 
     if (data.action === "start") {
       if (room.host_id !== userId) throw new Error("Only the host can start");
-      const { data: members } = await admin.from("arcade_room_players").select("status").eq("room_id", room.id);
+      const { data: members } = await admin
+        .from("arcade_room_players")
+        .select("status")
+        .eq("room_id", room.id);
       if ((members?.length ?? 0) < 2 || members?.some((m) => m.status !== "ready"))
         throw new Error("At least two players must be ready");
       await admin
@@ -206,15 +253,24 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
 
     if (data.action === "advance") {
       // Mastermind: the active player's 3-minute slot ended. Host or active player may pass the baton.
-      const { data: players } = await admin.from("arcade_room_players").select("user_id, seat").eq("room_id", room.id).order("seat");
-      const { data: live } = await admin.from("arcade_rooms").select("active_seat, round_no").eq("id", room.id).single();
+      const { data: players } = await admin
+        .from("arcade_room_players")
+        .select("user_id, seat")
+        .eq("room_id", room.id)
+        .order("seat");
+      const { data: live } = await admin
+        .from("arcade_rooms")
+        .select("active_seat, round_no")
+        .eq("id", room.id)
+        .single();
       const seats = (players ?? []).map((p) => p.seat);
       const activeUser = players?.find((p) => p.seat === live?.active_seat)?.user_id;
-      if (room.host_id !== userId && activeUser !== userId) throw new Error("Only the host or active player can end a turn");
+      if (room.host_id !== userId && activeUser !== userId)
+        throw new Error("Only the host or active player can end a turn");
       const idx = seats.indexOf(live?.active_seat ?? 0);
       const wrap = idx + 1 >= seats.length;
-      const nextSeat = wrap ? seats[0] ?? 0 : seats[idx + 1] ?? 0;
-      const nextRound = wrap ? (live?.round_no ?? 1) + 1 : live?.round_no ?? 1;
+      const nextSeat = wrap ? (seats[0] ?? 0) : (seats[idx + 1] ?? 0);
+      const nextRound = wrap ? (live?.round_no ?? 1) + 1 : (live?.round_no ?? 1);
       await admin
         .from("arcade_rooms")
         .update({
@@ -289,7 +345,13 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       });
     }
     return {
-      question: { id: q.id, prompt, clue, question_type: q.question_type, difficulty_percentile: Number(q.difficulty_percentile) } as FairQuestion,
+      question: {
+        id: q.id,
+        prompt,
+        clue,
+        question_type: q.question_type,
+        difficulty_percentile: Number(q.difficulty_percentile),
+      } as FairQuestion,
     };
   });
 
@@ -334,11 +396,20 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       roomQuestionId = roomQ.id;
     }
 
-    const accepted = (((q.answer_rule as { accepted?: string[] }) ?? {}).accepted ?? []).map(normalise);
-    const correct = !data.passed && data.answer.trim().length > 0 && accepted.includes(normalise(data.answer));
+    const accepted = (((q.answer_rule as { accepted?: string[] }) ?? {}).accepted ?? []).map(
+      normalise,
+    );
+    const correct =
+      !data.passed && data.answer.trim().length > 0 && accepted.includes(normalise(data.answer));
     const movement = correct ? (data.usedClue ? 5 : 6) : 0;
 
-    const { error } = await context.supabase.rpc("record_question_attempt", {
+    // Service-role only: clients cannot forge correct answers or progression points by calling the RPC.
+    const secureRpc = admin.rpc as unknown as (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: { message: string } | null }>;
+    const { error } = await secureRpc("record_verified_question_attempt", {
+      p_user_id: context.userId,
       p_question_id: data.questionId,
       p_room_id: (data.roomId ?? null) as unknown as string,
       p_difficulty: data.difficulty,
@@ -353,7 +424,10 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
 
     if (data.roomId && roomQuestionId) {
       // Reveal to the room, record the submission, move the token / score, and pass the turn.
-      await admin.from("arcade_questions").update({ revealed_answer: true }).eq("id", roomQuestionId);
+      await admin
+        .from("arcade_questions")
+        .update({ revealed_answer: true })
+        .eq("id", roomQuestionId);
       await admin.from("arcade_submissions").insert({
         question_id: roomQuestionId,
         user_id: context.userId,
@@ -367,7 +441,11 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       });
 
       const [{ data: room }, { data: players }] = await Promise.all([
-        admin.from("arcade_rooms").select("id, mode_slug, active_seat, round_no, status").eq("id", data.roomId).single(),
+        admin
+          .from("arcade_rooms")
+          .select("id, mode_slug, active_seat, round_no, status")
+          .eq("id", data.roomId)
+          .single(),
         admin
           .from("arcade_room_players")
           .select("user_id, seat, position, points, passes, correct_answers")
@@ -397,7 +475,8 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
           .eq("user_id", context.userId);
 
         const won =
-          (mode === "quiz-snakes-ladders" && position >= 100) || (mode === "quiz-ludo" && position >= LUDO_HOME);
+          (mode === "quiz-snakes-ladders" && position >= 100) ||
+          (mode === "quiz-ludo" && position >= LUDO_HOME);
         // Mastermind keeps the same player on the clock; the turn ends via the "advance" action.
         if (mode === "sports-mastermind") return { correct, answer, movement };
         // A clean first-time answer in Ludo earns another go, like rolling a six.

@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   SkipForward,
   Sparkles,
+  Trophy,
   Timer,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -74,8 +75,17 @@ function ConnectFourPage() {
   const [sportId, setSportId] = useState<string | null>(null);
   const [difficulty, setDifficulty] = useState(2);
   const botTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
-  const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
+  const {
+    data: sports,
+    isLoading: sportsLoading,
+    isError: sportsError,
+    refetch: retrySports,
+  } = useQuery({ queryKey: ["sports"], queryFn: fetchSports, staleTime: 5 * 60_000 });
+  const { data: bank } = useQuery({
+    queryKey: ["clue-bank"],
+    queryFn: fetchClueBank,
+    staleTime: 5 * 60_000,
+  });
 
   useEffect(() => {
     if (!sportId && sports?.length) setSportId(sports[0]!.id);
@@ -94,7 +104,7 @@ function ConnectFourPage() {
 
   // Turn timer: running out forfeits the match (timeout end reason).
   useEffect(() => {
-    if (result || turn !== "me") return;
+    if (result || turn !== "me" || !sportId) return;
     setSeconds(TURN_SECONDS);
     const id = setInterval(() => {
       setSeconds((s) => {
@@ -107,7 +117,7 @@ function ConnectFourPage() {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [turn, result]);
+  }, [turn, result, sportId]);
 
   useEffect(
     () => () => {
@@ -205,16 +215,20 @@ function ConnectFourPage() {
   const filled = board.filter(Boolean).length;
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-8">
-      <div className="flex items-center justify-between gap-3">
+    <div className="connect-four-arena mx-auto min-h-screen w-full max-w-3xl px-3 py-5 sm:px-4 sm:py-8">
+      <div className="relative flex items-center justify-between gap-2 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-r from-cyan-500/15 via-violet-500/10 to-fuchsia-500/15 p-3 shadow-2xl shadow-black/25 sm:p-4">
         <Button asChild variant="ghost" size="sm">
           <Link to="/arcade">
             <ChevronLeft className="size-4" /> Arcade
           </Link>
         </Button>
         <div className="text-center">
-          <p className="eyebrow">Tactical arena</p>
-          <h1 className="mt-1 text-3xl">Connect Four</h1>
+          <p className="text-[0.6rem] font-black uppercase tracking-[0.22em] text-cyan-300">
+            Tactical arena
+          </p>
+          <h1 className="mt-1 bg-gradient-to-r from-cyan-200 via-white to-fuchsia-200 bg-clip-text text-3xl text-transparent sm:text-4xl">
+            Connect Four
+          </h1>
         </div>
         <Button
           variant="outline"
@@ -226,10 +240,10 @@ function ConnectFourPage() {
         </Button>
       </div>
 
-      <div className="panel mt-6 flex items-center justify-between gap-3 px-5 py-4">
+      <div className="panel mt-4 flex items-center justify-between gap-2 border-white/10 bg-black/20 px-3 py-3 shadow-lg sm:px-5 sm:py-4">
         <PlayerChip label="You" me active={turn === "me" && !result} />
         <div className="text-center">
-          <p className="font-display text-xl text-muted-foreground">VS</p>
+          <p className="font-display text-xl text-amber-300">VS</p>
           <p
             className={`flex items-center justify-center gap-1 font-mono text-sm tabular-nums ${
               seconds <= 5 ? "text-destructive" : "text-foreground"
@@ -242,7 +256,7 @@ function ConnectFourPage() {
         <PlayerChip label="Rival" active={turn === "them" && !result} />
       </div>
 
-      <div className="mt-5">
+      <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-3 sm:p-4">
         <Label>Question setup</Label>
         <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none]">
           {(sports ?? []).map((sport) => (
@@ -259,6 +273,15 @@ function ConnectFourPage() {
           ))}
         </div>
       </div>
+
+      {sportsError && (
+        <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-xs text-red-100">
+          <span>Sports could not load. Check your connection and try again.</span>
+          <Button variant="outline" size="sm" onClick={() => void retrySports()}>
+            Try again
+          </Button>
+        </div>
+      )}
 
       <p className="mt-4 flex items-center justify-center gap-2 text-center text-sm text-muted-foreground">
         <Sparkles className="size-4 text-gold" />
@@ -282,16 +305,23 @@ function ConnectFourPage() {
             type="button"
             onClick={() => chooseColumn(i)}
             disabled={
-              turn !== "me" || !!result || selectedCol !== null || !dropToken(board, i, "me")
+              sportsLoading ||
+              !sportId ||
+              turn !== "me" ||
+              !!result ||
+              selectedCol !== null ||
+              !dropToken(board, i, "me")
             }
-            className={`panel flex min-h-14 flex-col items-center justify-center gap-1 px-1 py-2 text-center text-[0.6rem] font-bold uppercase leading-tight tracking-wide transition-all hover:border-primary/60 active:scale-95 disabled:opacity-45 ${
-              selectedCol === i ? "border-gold bg-gold/12 text-gold ring-2 ring-gold/20" : ""
+            className={`flex min-h-12 flex-col items-center justify-center gap-0.5 rounded-xl border px-1 py-2 text-center text-[0.55rem] font-black uppercase leading-tight tracking-wide transition-all active:scale-90 disabled:opacity-35 ${
+              selectedCol === i
+                ? "border-amber-300 bg-amber-300/20 text-amber-100 ring-2 ring-amber-300/25"
+                : "border-cyan-300/20 bg-cyan-300/8 text-cyan-100 hover:border-cyan-300/50 hover:bg-cyan-300/15"
             }`}
             aria-label={`Choose column ${i + 1}`}
             aria-pressed={selectedCol === i}
           >
-            <ChevronDown className="size-4 text-primary" aria-hidden />
-            <span>Column {i + 1}</span>
+            <ChevronDown className="size-4 text-cyan-300" aria-hidden />
+            <span>Drop {i + 1}</span>
           </button>
         ))}
       </div>
@@ -312,7 +342,7 @@ function ConnectFourPage() {
       )}
 
       <div
-        className="mt-2 grid grid-cols-7 gap-1.5 rounded-2xl border border-border/70 bg-background/60 p-2"
+        className="connect-four-board mt-2 grid grid-cols-7 gap-1.5 rounded-[1.4rem] border border-cyan-200/20 bg-gradient-to-br from-blue-500 via-indigo-600 to-violet-700 p-2.5 shadow-2xl shadow-blue-950/50 sm:gap-2 sm:p-3"
         role="grid"
         aria-label="Connect Four board"
       >
@@ -321,16 +351,16 @@ function ConnectFourPage() {
             key={i}
             role="gridcell"
             aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
-            className={`grid aspect-square place-items-center rounded-full border transition-colors ${
+            className={`connect-four-slot grid aspect-square place-items-center rounded-full border transition-all duration-300 ${
               v === "me"
-                ? "border-primary bg-primary text-primary-foreground"
+                ? "border-yellow-200 bg-gradient-to-br from-yellow-200 via-amber-400 to-orange-500 text-amber-950 shadow-lg shadow-amber-950/35"
                 : v === "them"
-                  ? "border-border bg-surface-strong text-foreground"
-                  : "border-border/60 bg-surface/40"
-            } ${lastIndex === i ? "ring-2 ring-gold/70" : ""}`}
+                  ? "border-rose-200 bg-gradient-to-br from-rose-300 via-pink-500 to-red-600 text-white shadow-lg shadow-red-950/35"
+                  : "border-white/10 bg-slate-950/70 shadow-inner shadow-black/80"
+            } ${lastIndex === i ? "scale-105 ring-2 ring-white/80 ring-offset-2 ring-offset-indigo-600" : ""}`}
           >
-            {v === "me" && <ShieldCheck className="size-4" />}
-            {v === "them" && <Shield className="size-4" />}
+            {v === "me" && <Trophy className="size-3.5 sm:size-5" />}
+            {v === "them" && <Shield className="size-3.5 sm:size-5" />}
           </div>
         ))}
       </div>
@@ -396,19 +426,28 @@ function PlayerChip({ label, me, active }: { label: string; me?: boolean; active
     <div
       className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.12em] ${
         active
-          ? "border-primary bg-primary/12 text-foreground"
+          ? me
+            ? "border-amber-300/60 bg-amber-300/15 text-amber-100 shadow-md shadow-amber-950/30"
+            : "border-pink-300/60 bg-pink-400/15 text-pink-100 shadow-md shadow-pink-950/30"
           : "border-border text-muted-foreground"
       }`}
     >
       <span
         className={`grid size-6 place-items-center rounded-full ${
-          me ? "bg-primary text-primary-foreground" : "bg-surface-strong text-foreground"
+          me
+            ? "bg-gradient-to-br from-yellow-200 to-orange-500 text-amber-950"
+            : "bg-gradient-to-br from-pink-400 to-red-600 text-white"
         }`}
       >
         {me ? <ShieldCheck className="size-3.5" /> : <Shield className="size-3.5" />}
       </span>
       {label}
-      {active && <span className="size-1.5 animate-pulse rounded-full bg-primary" aria-hidden />}
+      {active && (
+        <span
+          className={`size-1.5 animate-pulse rounded-full ${me ? "bg-amber-300" : "bg-pink-300"}`}
+          aria-hidden
+        />
+      )}
     </div>
   );
 }

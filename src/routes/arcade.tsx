@@ -31,7 +31,10 @@ export const Route = createFileRoute("/arcade")({
           "Quiz Ludo, Snakes & Ladders, Sports Mastermind, Connect Four, Territory, Category Tower and more — sports knowledge, tactical twist.",
       },
       { property: "og:title", content: "Tactical Arcade — Fanzeno" },
-      { property: "og:description", content: "Twelve tactical sports games. Board games and Mastermind are live now." },
+      {
+        property: "og:description",
+        content: "Twelve tactical sports games. Board games and Mastermind are live now.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
@@ -55,22 +58,101 @@ type ModeRoute =
   | { to: "/arcade/mastermind" }
   | { to: "/arcade/rooms" }
   | { to: "/arcade/quiz-race"; search: { game: "ludo" | "snakes" } }
-  | { to: "/arcade/board"; search: { mode: "territory" | "501" | "connections" | "draft" | "bingo" } };
+  | {
+      to: "/arcade/board";
+      search: { mode: "territory" | "501" | "connections" | "draft" | "bingo" };
+    };
 
-type ModeMeta = { icon: React.ElementType; tone: string; status: string; route?: ModeRoute | undefined };
+type ModeMeta = {
+  icon: React.ElementType;
+  tone: string;
+  surface: string;
+  status: string;
+  route?: ModeRoute | undefined;
+};
 const meta: Record<string, ModeMeta> = {
-  "tic-tac-toe": { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Arena", route: { to: "/compete" } },
-  "connect-four": { icon: LayoutGrid, tone: "text-primary bg-primary/12", status: "Play now", route: { to: "/arcade/connect-four" } },
-  "quiz-ludo": { icon: Dices, tone: "text-gold bg-gold/12", status: "Local + online", route: { to: "/arcade/quiz-race", search: { game: "ludo" } } },
-  "quiz-snakes-ladders": { icon: TrendingUp, tone: "text-primary bg-primary/12", status: "Local + online", route: { to: "/arcade/quiz-race", search: { game: "snakes" } } },
-  "sports-mastermind": { icon: Brain, tone: "text-gold bg-gold/12", status: "Local + online", route: { to: "/arcade/mastermind" } },
-  territory: { icon: Hexagon, tone: "text-gold bg-gold/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "territory" } } },
-  "category-tower": { icon: Trophy, tone: "text-gold bg-gold/12", status: "1v1" },
-  "sports-501": { icon: Gauge, tone: "text-gold bg-gold/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "501" } } },
-  connections: { icon: Network, tone: "text-primary bg-primary/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "connections" } } },
-  "draft-xi": { icon: Users, tone: "text-gold bg-gold/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "draft" } } },
-  bingo: { icon: Grid2x2, tone: "text-primary bg-primary/12", status: "Play now", route: { to: "/arcade/board", search: { mode: "bingo" } } },
-  "stat-cards": { icon: Layers, tone: "text-gold bg-gold/12", status: "Survival" },
+  "tic-tac-toe": {
+    icon: Grid2x2,
+    tone: "text-cyan-200 bg-cyan-400/15",
+    surface: "from-cyan-500/20 to-blue-700/10",
+    status: "Friend + CPU",
+    route: { to: "/compete" },
+  },
+  "connect-four": {
+    icon: LayoutGrid,
+    tone: "text-violet-100 bg-violet-400/20",
+    surface: "from-violet-500/25 to-blue-700/10",
+    status: "Quiz + CPU",
+    route: { to: "/arcade/connect-four" },
+  },
+  "quiz-ludo": {
+    icon: Dices,
+    tone: "text-amber-100 bg-amber-400/20",
+    surface: "from-amber-500/20 to-orange-700/10",
+    status: "Same phone + online",
+    route: { to: "/arcade/quiz-race", search: { game: "ludo" } },
+  },
+  "quiz-snakes-ladders": {
+    icon: TrendingUp,
+    tone: "text-emerald-100 bg-emerald-400/20",
+    surface: "from-emerald-500/20 to-teal-700/10",
+    status: "Same phone + online",
+    route: { to: "/arcade/quiz-race", search: { game: "snakes" } },
+  },
+  "sports-mastermind": {
+    icon: Brain,
+    tone: "text-fuchsia-100 bg-fuchsia-400/20",
+    surface: "from-fuchsia-500/20 to-purple-800/10",
+    status: "Same phone + online",
+    route: { to: "/arcade/mastermind" },
+  },
+  territory: {
+    icon: Hexagon,
+    tone: "text-orange-100 bg-orange-400/20",
+    surface: "from-orange-500/20 to-red-800/10",
+    status: "Tactical solo",
+    route: { to: "/arcade/board", search: { mode: "territory" } },
+  },
+  "category-tower": {
+    icon: Trophy,
+    tone: "text-yellow-100 bg-yellow-400/20",
+    surface: "from-yellow-500/20 to-amber-800/10",
+    status: "1v1",
+  },
+  "sports-501": {
+    icon: Gauge,
+    tone: "text-rose-100 bg-rose-400/20",
+    surface: "from-rose-500/20 to-red-800/10",
+    status: "Quiz checkout",
+    route: { to: "/arcade/board", search: { mode: "501" } },
+  },
+  connections: {
+    icon: Network,
+    tone: "text-sky-100 bg-sky-400/20",
+    surface: "from-sky-500/20 to-indigo-800/10",
+    status: "Logic puzzle",
+    route: { to: "/arcade/board", search: { mode: "connections" } },
+  },
+  "draft-xi": {
+    icon: Users,
+    tone: "text-lime-100 bg-lime-400/20",
+    surface: "from-lime-500/20 to-emerald-800/10",
+    status: "Build a squad",
+    route: { to: "/arcade/board", search: { mode: "draft" } },
+  },
+  bingo: {
+    icon: Grid2x2,
+    tone: "text-pink-100 bg-pink-400/20",
+    surface: "from-pink-500/20 to-violet-800/10",
+    status: "Complete a line",
+    route: { to: "/arcade/board", search: { mode: "bingo" } },
+  },
+  "stat-cards": {
+    icon: Layers,
+    tone: "text-blue-100 bg-blue-400/20",
+    surface: "from-blue-500/20 to-cyan-800/10",
+    status: "Survival",
+  },
 };
 
 function Arcade() {
@@ -84,7 +166,8 @@ function Arcade() {
           <p className="eyebrow">Fanzeno arcade</p>
           <h1 className="mt-3 text-5xl">Tactical games</h1>
           <p className="mt-3 max-w-lg text-sm text-muted-foreground">
-            Every move is a verified sports answer. Win by out-thinking your rival, not just out-knowing them.
+            Every move is a verified sports answer. Win by out-thinking your rival, not just
+            out-knowing them.
           </p>
         </div>
         <Gamepad2 className="hidden size-10 text-primary sm:block" />
@@ -100,9 +183,9 @@ function Arcade() {
         >
           <Gem className="size-4 shrink-0 text-gold" />
           <span>
-            <span className="font-black uppercase tracking-[0.14em]">Fanzeno Pro</span> unlocks Quiz Ludo,
-            Sports Mastermind and every premium tactical game — one payment, lifetime. Free guests can still
-            join a Pro host&apos;s private match.
+            <span className="font-black uppercase tracking-[0.14em]">Fanzeno Pro</span> unlocks Quiz
+            Ludo, Sports Mastermind and every premium tactical game — one payment, lifetime. Free
+            guests can still join a Pro host&apos;s private match.
           </span>
           <ArrowRight className="ml-auto size-4 shrink-0" />
         </Link>
@@ -114,7 +197,12 @@ function Arcade() {
             <div key={i} className="panel h-44 animate-pulse" aria-hidden />
           ))}
         {(data ?? []).map((mode) => {
-          const m: ModeMeta = meta[mode.slug] ?? { icon: Gamepad2, tone: "text-primary bg-primary/12", status: "Soon" };
+          const m: ModeMeta = meta[mode.slug] ?? {
+            icon: Gamepad2,
+            tone: "text-primary bg-primary/12",
+            surface: "from-primary/15 to-transparent",
+            status: "Soon",
+          };
           const Icon = m.icon;
           const isPro = mode.access_tier === "pro";
           const locked = isPro && !pro;
@@ -133,9 +221,15 @@ function Arcade() {
                 )}
               </span>
               <span className="mt-4 block font-display text-2xl">{mode.name}</span>
-              <span className="mt-1 block flex-1 text-xs text-muted-foreground">{mode.description}</span>
+              <span className="mt-1 block flex-1 text-xs text-muted-foreground">
+                {mode.description}
+              </span>
               <span className="mt-4 flex items-center justify-between text-[0.62rem] font-black uppercase tracking-[0.16em]">
-                <span className={playable ? (locked ? "text-gold" : "text-primary") : "text-muted-foreground"}>
+                <span
+                  className={
+                    playable ? (locked ? "text-gold" : "text-primary") : "text-muted-foreground"
+                  }
+                >
                   {!playable ? `${m.status} · coming soon` : locked ? "Unlock with Pro" : m.status}
                 </span>
                 <span className="text-muted-foreground">
@@ -146,8 +240,10 @@ function Arcade() {
               </span>
             </>
           );
-          const cls = `panel flex min-h-44 flex-col p-5 text-left transition-colors ${
-            playable ? "hover:border-primary/60" : "opacity-70"
+          const cls = `game-launch-card panel relative flex min-h-48 flex-col overflow-hidden bg-gradient-to-br ${m.surface} p-5 text-left transition-all ${
+            playable
+              ? "hover:-translate-y-1 hover:border-white/25 hover:shadow-xl hover:shadow-black/30 active:scale-[0.98]"
+              : "opacity-70"
           }`;
           if (!route) {
             return (
@@ -185,8 +281,8 @@ function Arcade() {
         <span className="min-w-0 flex-1">
           <span className="block font-display text-2xl">Online arcade rooms</span>
           <span className="block text-xs text-muted-foreground">
-            Host a private room for Quiz Ludo, Snakes &amp; Ladders or Mastermind. Friends join by code on their own
-            devices; the server picks fair questions and checks every answer.
+            Host a private room for Quiz Ludo, Snakes &amp; Ladders or Mastermind. Friends join by
+            code on their own devices; the server picks fair questions and checks every answer.
           </span>
         </span>
         <ArrowRight className="size-4 shrink-0 text-primary" />
