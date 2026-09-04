@@ -103,11 +103,22 @@
   --sidebar-accent-foreground: oklch(0.97 0.011 160);
   --sidebar-border: oklch(0.31 0.038 165);
   --sidebar-ring: oklch(0.83 0.168 158);
+
+  --token-gold-light: color-mix(in oklab, var(--gold) 40%, var(--foreground));
+  --token-gold-dark: var(--gold);
+  --token-rival-light: color-mix(in oklab, var(--destructive) 35%, var(--foreground));
+  --token-rival-dark: var(--destructive);
+  --shadow-token: 0 4px 14px color-mix(in oklab, oklch(0 0 0) 30%, transparent);
+  --board-bg: radial-gradient(ellipse 120% 80% at 50% 0%, color-mix(in oklab, var(--primary) 14%, transparent), color-mix(in oklab, var(--surface-strong) 80%, transparent));
 }
 
 .dark {
-  --background: oklch(0.15 0.023 163);
-  --foreground: oklch(0.97 0.011 160);
+  --token-gold-light: color-mix(in oklab, var(--gold) 40%, var(--foreground));
+  --token-gold-dark: var(--gold);
+  --token-rival-light: color-mix(in oklab, var(--destructive) 35%, var(--foreground));
+  --token-rival-dark: var(--destructive);
+  --shadow-token: 0 4px 14px color-mix(in oklab, oklch(0 0 0) 30%, transparent);
+  --board-bg: radial-gradient(ellipse 120% 80% at 50% 0%, color-mix(in oklab, var(--primary) 14%, transparent), color-mix(in oklab, var(--surface-strong) 80%, transparent));
 }
 
 @layer base {
