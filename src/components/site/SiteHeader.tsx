@@ -4,7 +4,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useNotifications } from "@/lib/notifications";
 import logoAsset from "@/assets/fanzeno-horizontal-dark.png.asset.json";
-import markAsset from "@/assets/fanzeno-mark.png.asset.json";
 
 const nav = [
   { to: "/", label: "Home" },
