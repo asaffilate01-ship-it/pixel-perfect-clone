@@ -19,6 +19,7 @@ import { Route as LeaderboardRouteImport } from './routes/leaderboard'
 import { Route as UpgradeRouteImport } from './routes/upgrade'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedNotificationsRouteImport } from './routes/_authenticated/notifications'
+import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authenticated/onboarding'
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
 import { Route as ArcadeMastermindRouteImport } from './routes/arcade_.mastermind'
@@ -80,6 +81,11 @@ const AuthenticatedNotificationsRoute =
     path: '/notifications',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedOnboardingRoute = AuthenticatedOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedProfileRoute = AuthenticatedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
@@ -162,6 +169,7 @@ export interface FileRoutesByTo {
   '/upgrade': typeof UpgradeRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/notifications': typeof AuthenticatedNotificationsRoute
+  '/onboarding': typeof AuthenticatedOnboardingRoute
   '/profile': typeof AuthenticatedProfileRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
@@ -185,6 +193,7 @@ export interface FileRoutesById {
   '/upgrade': typeof UpgradeRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/notifications': typeof AuthenticatedNotificationsRoute
+  '/_authenticated/onboarding': typeof AuthenticatedOnboardingRoute
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/arcade_/connect-four': typeof ArcadeConnectFourRoute
   '/arcade_/mastermind': typeof ArcadeMastermindRoute
@@ -208,6 +217,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/admin'
     | '/notifications'
+    | '/onboarding'
     | '/profile'
     | '/arcade/connect-four'
     | '/arcade/mastermind'
@@ -229,6 +239,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/admin'
     | '/notifications'
+    | '/onboarding'
     | '/profile'
     | '/arcade/connect-four'
     | '/arcade/mastermind'
@@ -251,6 +262,7 @@ export interface FileRouteTypes {
     | '/upgrade'
     | '/_authenticated/admin'
     | '/_authenticated/notifications'
+    | '/_authenticated/onboarding'
     | '/_authenticated/profile'
     | '/arcade_/connect-four'
     | '/arcade_/mastermind'
@@ -355,6 +367,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedNotificationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/onboarding': {
+      id: '/_authenticated/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AuthenticatedOnboardingRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/profile': {
       id: '/_authenticated/profile'
       path: '/profile'
@@ -431,12 +450,14 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
   AuthenticatedNotificationsRoute: typeof AuthenticatedNotificationsRoute
+  AuthenticatedOnboardingRoute: typeof AuthenticatedOnboardingRoute
   AuthenticatedProfileRoute: typeof AuthenticatedProfileRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
   AuthenticatedNotificationsRoute: AuthenticatedNotificationsRoute,
+  AuthenticatedOnboardingRoute: AuthenticatedOnboardingRoute,
   AuthenticatedProfileRoute: AuthenticatedProfileRoute,
 }
 
