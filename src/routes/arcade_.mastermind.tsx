@@ -12,6 +12,8 @@ import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeS
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
+import { ConnectionBanner, PresenceDot } from "@/components/game/RoomPresence";
+import { useArcadePresence } from "@/hooks/useArcadePresence";
 
 type Search = { room?: string };
 
@@ -53,6 +55,7 @@ function MastermindPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { user } = useAuth();
+  const presence = useArcadePresence(roomId, user?.id);
   const { pro, loading: entLoading } = useEntitlements();
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
@@ -386,6 +389,7 @@ function MastermindPage() {
 
   return (
     <Shell onBack={reset} studio>
+      {online && <ConnectionBanner status={presence.myStatus} />}
       <div className="mt-6 flex items-center justify-between text-[0.62rem] font-black uppercase tracking-[0.16em]">
         <span className="text-primary">
           ● Live room{online && room ? ` ${room.code}` : ""} · {n - 1} watching
@@ -400,9 +404,7 @@ function MastermindPage() {
           <div
             key={i}
             className={`relative overflow-hidden rounded-2xl p-3 text-center transition-all ${
-              i === activeIdx
-                ? "studio-chair studio-chair-active"
-                : "studio-chair"
+              i === activeIdx ? "studio-chair studio-chair-active" : "studio-chair"
             }`}
           >
             <div className="flex justify-center">
@@ -411,7 +413,7 @@ function MastermindPage() {
             <p
               className={`mt-1 truncate text-[0.6rem] font-black uppercase tracking-[0.12em] ${SEAT_TEXT[i % 4]}`}
             >
-              {x.name}
+              {x.name} {x.userId && <PresenceDot status={presence.byUser.get(x.userId)} />}
             </p>
             <p className="font-display text-3xl text-white">
               <ScoreDigits value={x.points} />
@@ -478,9 +480,7 @@ function Shell({
   studio?: boolean;
 }) {
   return (
-    <div
-      className={`mx-auto w-full max-w-2xl px-4 py-8 ${studio ? "studio-set rounded-3xl" : ""}`}
-    >
+    <div className={`mx-auto w-full max-w-2xl px-4 py-8 ${studio ? "studio-set rounded-3xl" : ""}`}>
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" aria-label="Back" onClick={onBack}>
           <ChevronLeft className="size-5" />
@@ -513,7 +513,14 @@ function AnalogClock({
   return (
     <div className="relative grid size-32 shrink-0 place-items-center sm:size-36">
       <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90">
-        <circle cx="50" cy="50" r={radius} fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="6" />
+        <circle
+          cx="50"
+          cy="50"
+          r={radius}
+          fill="none"
+          stroke="rgba(255,255,255,0.12)"
+          strokeWidth="6"
+        />
         <circle
           cx="50"
           cy="50"
