@@ -113,7 +113,7 @@ function CrosswordPage() {
             </div>
           </div>
 
-          <div className="board-stage">
+          <div className="board-stage mb-8 mt-2">
             <div className="board-tilt board-rim board-wood mx-auto w-full max-w-xl p-3 sm:p-4">
               <div className="grid aspect-square w-full grid-cols-9 gap-1 sm:gap-1.5">
                 {Array.from({ length: SIZE * SIZE }, (_, index) => {
