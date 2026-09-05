@@ -41,12 +41,14 @@ export function Dartboard({
   highlight = [],
   onPick,
   lastHit,
+  impactKey = 0,
   className = "",
 }: {
   size?: number;
   highlight?: DartboardHighlight[];
   onPick?: ((h: DartboardHighlight) => void) | undefined;
   lastHit?: DartboardHighlight | null;
+  impactKey?: number;
   className?: string;
 }) {
   const uid = useId().replace(/[:]/g, "");
@@ -134,7 +136,14 @@ export function Dartboard({
 
       <g filter={`url(#${uid}-shadow)`}>
         {/* wooden surround / cabinet */}
-        <circle cx={cx} cy={cy} r={230} fill={`url(#${uid}-surround)`} stroke="var(--wood-edge)" strokeWidth={6} />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={230}
+          fill={`url(#${uid}-surround)`}
+          stroke="var(--wood-edge)"
+          strokeWidth={6}
+        />
         <circle cx={cx} cy={cy} r={222} fill="none" stroke="oklch(0 0 0 / 0.25)" strokeWidth={2} />
 
         {/* number ring */}
@@ -172,8 +181,16 @@ export function Dartboard({
             strokeWidth={outerBullHi ? 3 : 0}
             data-segment={25}
             data-ring="outer"
-            onClick={onPick && outerBullHi ? () => onPick({ segment: 25, ring: "outer" }) : undefined}
-            className={[outerBullHi && onPick ? "cursor-pointer" : "", outerBullHi ? "dartbed-glow" : "", outerBullHit ? "dartbed-hit" : ""].filter(Boolean).join(" ")}
+            onClick={
+              onPick && outerBullHi ? () => onPick({ segment: 25, ring: "outer" }) : undefined
+            }
+            className={[
+              outerBullHi && onPick ? "cursor-pointer" : "",
+              outerBullHi ? "dartbed-glow" : "",
+              outerBullHit ? "dartbed-hit" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={outerBullHi ? { filter: `drop-shadow(0 0 6px var(--color-gold))` } : undefined}
           />
           <circle
@@ -186,7 +203,13 @@ export function Dartboard({
             data-segment={50}
             data-ring="bull"
             onClick={onPick && bullHi ? () => onPick({ segment: 50, ring: "bull" }) : undefined}
-            className={[bullHi && onPick ? "cursor-pointer" : "", bullHi ? "dartbed-glow" : "", bullHit ? "dartbed-hit" : ""].filter(Boolean).join(" ")}
+            className={[
+              bullHi && onPick ? "cursor-pointer" : "",
+              bullHi ? "dartbed-glow" : "",
+              bullHit ? "dartbed-hit" : "",
+            ]
+              .filter(Boolean)
+              .join(" ")}
             style={bullHi ? { filter: `drop-shadow(0 0 6px var(--color-gold))` } : undefined}
           />
 
@@ -196,18 +219,60 @@ export function Dartboard({
               <path key={i} d={d} />
             ))}
           </g>
-          <circle cx={cx} cy={cy} r={RING.doubleOuter} fill="none" stroke="var(--dart-wire)" strokeWidth={1.6} />
-          <circle cx={cx} cy={cy} r={RING.doubleInner} fill="none" stroke="var(--dart-wire)" strokeWidth={1.2} />
-          <circle cx={cx} cy={cy} r={RING.trebleOuter} fill="none" stroke="var(--dart-wire)" strokeWidth={1.2} />
-          <circle cx={cx} cy={cy} r={RING.trebleInner} fill="none" stroke="var(--dart-wire)" strokeWidth={1.2} />
-          <circle cx={cx} cy={cy} r={RING.bullOuter} fill="none" stroke="var(--dart-wire)" strokeWidth={1.2} />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={RING.doubleOuter}
+            fill="none"
+            stroke="var(--dart-wire)"
+            strokeWidth={1.6}
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={RING.doubleInner}
+            fill="none"
+            stroke="var(--dart-wire)"
+            strokeWidth={1.2}
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={RING.trebleOuter}
+            fill="none"
+            stroke="var(--dart-wire)"
+            strokeWidth={1.2}
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={RING.trebleInner}
+            fill="none"
+            stroke="var(--dart-wire)"
+            strokeWidth={1.2}
+          />
+          <circle
+            cx={cx}
+            cy={cy}
+            r={RING.bullOuter}
+            fill="none"
+            stroke="var(--dart-wire)"
+            strokeWidth={1.2}
+          />
         </g>
 
         {/* sisal sheen + radial shading */}
-        <circle cx={cx} cy={cy} r={RING.doubleOuter} fill={`url(#${uid}-sheen)`} pointerEvents="none" />
+        <circle
+          cx={cx}
+          cy={cy}
+          r={RING.doubleOuter}
+          fill={`url(#${uid}-sheen)`}
+          pointerEvents="none"
+        />
 
         {lastHit && (
           <DartMarker
+            key={`${lastHit.segment}-${lastHit.ring}-${impactKey}`}
             cx={cx}
             cy={cy}
             segment={lastHit.segment}
@@ -246,10 +311,25 @@ function DartMarker({
   }
   const [x, y] = polar(cx, cy, r, angle);
   return (
-    <g transform={`translate(${x} ${y})`} className="dart-flight-pop">
-      <line x1={0} y1={0} x2={-14} y2={-30} stroke="oklch(0.2 0.01 260)" strokeWidth={2.5} strokeLinecap="round" />
-      <circle cx={0} cy={0} r={3.5} fill="oklch(0.75 0.02 260)" />
-      <path d="M -14 -30 l -6 -10 l 10 3 z" fill="var(--dart-red)" stroke="oklch(0.15 0 0)" strokeWidth={0.6} />
+    <g transform={`translate(${x} ${y})`}>
+      <g className="dart-flight-pop">
+        <line
+          x1={0}
+          y1={0}
+          x2={-14}
+          y2={-30}
+          stroke="oklch(0.2 0.01 260)"
+          strokeWidth={2.5}
+          strokeLinecap="round"
+        />
+        <circle cx={0} cy={0} r={3.5} fill="oklch(0.75 0.02 260)" />
+        <path
+          d="M -14 -30 l -6 -10 l 10 3 z"
+          fill="var(--dart-red)"
+          stroke="oklch(0.15 0 0)"
+          strokeWidth={0.6}
+        />
+      </g>
     </g>
   );
 }
