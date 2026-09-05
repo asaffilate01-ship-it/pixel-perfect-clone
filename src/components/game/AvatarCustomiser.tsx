@@ -1,6 +1,11 @@
+import { lazy, Suspense } from "react";
 import { Glasses, Save, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_AVATAR_SETTINGS, type AvatarSettings } from "@/lib/avatarSettings";
+
+const Avatar3D = lazy(() =>
+  import("@/components/game/Avatar3D").then((module) => ({ default: module.Avatar3D })),
+);
 
 export function CustomAvatar({
   settings,
@@ -9,6 +14,19 @@ export function CustomAvatar({
   settings: AvatarSettings;
   size?: number;
 }) {
+  const fallback = <LegacyAvatar settings={settings} size={size} />;
+  return (
+    <Suspense fallback={fallback}>
+      <Avatar3D
+        settings={{ ...DEFAULT_AVATAR_SETTINGS, ...settings }}
+        size={size}
+        fallback={fallback}
+      />
+    </Suspense>
+  );
+}
+
+function LegacyAvatar({ settings, size = 160 }: { settings: AvatarSettings; size?: number }) {
   settings = { ...DEFAULT_AVATAR_SETTINGS, ...settings };
   const lip =
     settings.makeup === "bold" ? "#B51F5A" : settings.makeup === "natural" ? "#9B4D50" : "#70423A";
