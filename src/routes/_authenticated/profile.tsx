@@ -7,6 +7,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEntitlements } from "@/lib/entitlements";
 import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
+import { AvatarCustomiser, CustomAvatar } from "@/components/game/AvatarCustomiser";
+import {
+  DEFAULT_AVATAR_SETTINGS,
+  parseAvatarSettings,
+  type AvatarSettings,
+} from "@/lib/avatarSettings";
 
 export const Route = createFileRoute("/_authenticated/profile")({
   head: () => ({
@@ -14,7 +20,8 @@ export const Route = createFileRoute("/_authenticated/profile")({
       { title: "Your profile — Fanzeno" },
       {
         name: "description",
-        content: "Your Fanzeno ratings, streaks and per-sport form across every grid you've played.",
+        content:
+          "Your Fanzeno ratings, streaks and per-sport form across every grid you've played.",
       },
       { property: "og:title", content: "Your profile — Fanzeno" },
       { property: "og:description", content: "Your Fanzeno ratings, streaks and per-sport form." },
@@ -34,19 +41,31 @@ async function fetchMyStats(userId: string) {
     .from("clue_attempts")
     .select("solved, score")
     .eq("user_id", userId);
-  const { data: profile } = await supabase.from("profiles").select("avatar_preset").eq("id", userId).maybeSingle();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("avatar_preset, avatar_settings")
+    .eq("id", userId)
+    .maybeSingle();
   const { data: abilities } = await supabase
     .from("player_abilities")
     .select("ability_theta, attempts, category_key, sports!inner(name)")
     .eq("user_id", userId)
     .order("attempts", { ascending: false });
-  return { ratings: ratings ?? [], clues: clues ?? [], avatar: profile?.avatar_preset ?? "captain", abilities: abilities ?? [] };
+  return {
+    ratings: ratings ?? [],
+    clues: clues ?? [],
+    avatar: profile?.avatar_preset ?? "captain",
+    avatarSettings: parseAvatarSettings(profile?.avatar_settings),
+    abilities: abilities ?? [],
+  };
 }
 
 function ProfilePage() {
   const { user, displayName } = useAuth();
   const { pro } = useEntitlements();
   const [avatar, setAvatar] = useState("captain");
+  const [avatarSettings, setAvatarSettings] = useState<AvatarSettings>(DEFAULT_AVATAR_SETTINGS);
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const { data } = useQuery({
     queryKey: ["my-stats", user?.id],
     queryFn: () => fetchMyStats(user!.id),
@@ -59,7 +78,8 @@ function ProfilePage() {
   const cluePoints = (data?.clues ?? []).reduce((sum, c) => sum + c.score, 0);
   useEffect(() => {
     if (data?.avatar) setAvatar(data.avatar);
-  }, [data?.avatar]);
+    if (data?.avatarSettings) setAvatarSettings(data.avatarSettings);
+  }, [data?.avatar, data?.avatarSettings]);
   const saveAvatar = async (id: string) => {
     setAvatar(id);
     const { error } = await supabase
@@ -69,18 +89,39 @@ function ProfilePage() {
     if (error) toast.error(error.message);
     else toast.success("Avatar updated");
   };
+  const saveCustomAvatar = async () => {
+    setSavingAvatar(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_settings: { ...avatarSettings, preset: avatar } })
+      .eq("id", user!.id);
+    setSavingAvatar(false);
+    if (error) toast.error(error.message);
+    else toast.success("Custom avatar saved");
+  };
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <p className="eyebrow">Your profile</p>
       <div className="mt-6 flex items-center gap-4">
-        <Avatar id={avatar} size={64} />
+        <CustomAvatar settings={avatarSettings} size={64} />
         <div className="min-w-0 flex-1">
           <h1 className="text-3xl">{displayName ?? "Fanzeno player"}</h1>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
         </div>
       </div>
-      <AvatarPicker value={avatar} pro={pro} label="Arcade avatar" onChange={(id) => void saveAvatar(id)} />
+      <AvatarPicker
+        value={avatar}
+        pro={pro}
+        label="Arcade avatar"
+        onChange={(id) => void saveAvatar(id)}
+      />
+      <AvatarCustomiser
+        value={avatarSettings}
+        onChange={setAvatarSettings}
+        onSave={() => void saveCustomAvatar()}
+        saving={savingAvatar}
+      />
 
       <div className="panel mt-7 grid grid-cols-3 divide-x divide-border/70">
         <Stat value={String(played)} label="Grids played" />
@@ -92,7 +133,8 @@ function ProfilePage() {
         <>
           <h2 className="mt-9 text-2xl">Quiz form</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Calibrated from your server-checked arcade answers. Positive means you beat the field on that subject.
+            Calibrated from your server-checked arcade answers. Positive means you beat the field on
+            that subject.
           </p>
           <div className="panel mt-4 divide-y divide-border/70">
             {data!.abilities.map((a, i) => (
@@ -101,12 +143,17 @@ function ProfilePage() {
                   <Brain className="size-4 text-gold" />
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-semibold">{(a.sports as unknown as { name: string }).name}</p>
+                  <p className="text-sm font-semibold">
+                    {(a.sports as unknown as { name: string }).name}
+                  </p>
                   <p className="text-[0.62rem] font-bold uppercase tracking-[0.14em] text-muted-foreground">
-                    {a.category_key === "all" ? "All categories" : a.category_key} · {a.attempts} answered
+                    {a.category_key === "all" ? "All categories" : a.category_key} · {a.attempts}{" "}
+                    answered
                   </p>
                 </div>
-                <span className={`font-display text-2xl ${Number(a.ability_theta) >= 0 ? "text-primary" : "text-muted-foreground"}`}>
+                <span
+                  className={`font-display text-2xl ${Number(a.ability_theta) >= 0 ? "text-primary" : "text-muted-foreground"}`}
+                >
                   {Number(a.ability_theta) >= 0 ? "+" : ""}
                   {Number(a.ability_theta).toFixed(2)}
                 </span>
