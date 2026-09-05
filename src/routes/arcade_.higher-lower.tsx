@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronLeft, Heart, RotateCcw, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
@@ -112,8 +112,19 @@ const CARDS: Card[] = [
   },
 ];
 
-function shuffled<T>(items: T[]) {
-  return [...items].sort(() => Math.random() - 0.5);
+function shuffled<T>(items: T[], seed: number) {
+  // Deterministic shuffle so the server and first client render agree.
+  let state = (seed * 9301 + 49297) % 233280 || 1;
+  const rand = () => {
+    state = (state * 9301 + 49297) % 233280;
+    return state / 233280;
+  };
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j] as T, out[i] as T];
+  }
+  return out;
 }
 
 function makeRun(level: number, seed: number) {
@@ -141,12 +152,15 @@ function makeRun(level: number, seed: number) {
         : level === 3
           ? ordered.slice(10, 28)
           : ordered.slice(0, 18);
-  return shuffled(seed % 2 === 0 ? band : [...band].reverse()).slice(0, 15);
+  return shuffled(band, seed + 1).slice(0, 15);
 }
 
 function HigherLowerPage() {
   const [difficulty, setDifficulty] = useState(2);
   const [runSeed, setRunSeed] = useState(0);
+  useEffect(() => {
+    setRunSeed(Math.floor(Math.random() * 100_000));
+  }, []);
   const run = useMemo(() => makeRun(difficulty, runSeed), [difficulty, runSeed]);
   const [round, setRound] = useState(0);
   const [lives, setLives] = useState(3);
@@ -184,7 +198,7 @@ function HigherLowerPage() {
     setBest(0);
     setRevealed(false);
     setLastCorrect(null);
-    setRunSeed((value) => value + 1);
+    setRunSeed(Math.floor(Math.random() * 100_000));
   };
 
   return (
