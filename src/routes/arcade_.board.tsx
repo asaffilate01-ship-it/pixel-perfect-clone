@@ -34,6 +34,7 @@ import { useQuizPrefs } from "@/lib/quizPrefs";
 import { useEntitlements } from "@/lib/entitlements";
 import { SideAdRail } from "@/components/site/AdSlots";
 import { Dartboard, type DartboardHighlight } from "@/components/arcade/Dartboard";
+import type { LucideIcon } from "lucide-react";
 
 type Mode = "territory" | "501" | "connections" | "draft" | "bingo" | "tower" | "cards";
 type Search = { mode: Mode };
@@ -70,7 +71,7 @@ const CONFIG: Record<
   {
     title: string;
     slug: string;
-    icon: React.ElementType;
+    icon: LucideIcon;
     tone: string;
     accent: string;
     rule: string;
@@ -166,7 +167,7 @@ const BINGO = [
   "Super Bowl",
   "Ryder Cup",
 ];
-const BINGO_ICONS: Record<string, React.ElementType> = {
+const BINGO_ICONS: Record<string, LucideIcon> = {
   "World champion": Trophy,
   "Olympic medallist": Medal,
   "Premier League": Flag,
