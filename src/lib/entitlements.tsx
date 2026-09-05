@@ -29,8 +29,7 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     // Server-verified: only entitlements backed by a verified purchase (or an explicit staff grant) count.
     setLoading(true);
-    supabase
-      .rpc("my_entitlement_status")
+    Promise.resolve(supabase.rpc("my_entitlement_status"))
       .then(({ data, error }) => {
         if (cancelled) return;
         const row = Array.isArray(data) ? data[0] : data;
