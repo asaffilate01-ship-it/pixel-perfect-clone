@@ -88,7 +88,11 @@ Deno.serve(async (request) => {
       upsert: true,
     });
     if (saved.error) throw new Error("render_upload_failed");
-    const avatarUrl = admin.storage.from("avatar-renders").getPublicUrl(renderedPath).data.publicUrl;
+    const signed = await admin.storage
+      .from("avatar-renders")
+      .createSignedUrl(renderedPath, 60 * 60 * 24 * 365);
+    if (signed.error || !signed.data?.signedUrl) throw new Error("render_url_failed");
+    const avatarUrl = signed.data.signedUrl;
     await admin.from("profiles").update({ avatar_url: avatarUrl }).eq("id", authData.user.id);
     await admin
       .from("avatar_render_jobs")

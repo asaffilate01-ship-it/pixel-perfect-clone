@@ -20,12 +20,7 @@ grant all on public.avatar_render_jobs to service_role;
 create policy "read own avatar jobs" on public.avatar_render_jobs
   for select to authenticated using(user_id=auth.uid());
 
-insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values('avatar-sources','avatar-sources',false,8388608,array['image/jpeg','image/png','image/webp'])
-on conflict(id) do update set public=false,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
-insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types)
-values('avatar-renders','avatar-renders',true,8388608,array['image/png'])
-on conflict(id) do update set public=true,file_size_limit=excluded.file_size_limit,allowed_mime_types=excluded.allowed_mime_types;
+-- Buckets avatar-sources (private) and avatar-renders (private) are created via the storage API.
 
 drop policy if exists "upload own avatar source" on storage.objects;
 create policy "upload own avatar source" on storage.objects for insert to authenticated
@@ -36,6 +31,9 @@ using(bucket_id='avatar-sources' and (storage.foldername(name))[1]=auth.uid()::t
 drop policy if exists "delete own avatar source" on storage.objects;
 create policy "delete own avatar source" on storage.objects for delete to authenticated
 using(bucket_id='avatar-sources' and (storage.foldername(name))[1]=auth.uid()::text);
+drop policy if exists "read own avatar render" on storage.objects;
+create policy "read own avatar render" on storage.objects for select to authenticated
+using(bucket_id='avatar-renders' and (storage.foldername(name))[1]=auth.uid()::text);
 
 create or replace function public.request_avatar_render(p_source_path text,p_settings jsonb)
 returns uuid language plpgsql security definer set search_path=public,storage as $$
