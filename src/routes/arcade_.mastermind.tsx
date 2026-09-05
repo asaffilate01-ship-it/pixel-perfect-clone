@@ -435,6 +435,7 @@ function MastermindPage() {
       </div>
 
       <QuestionCard
+        modeSlug="sports-mastermind"
         turnKey={turnKey}
         sportId={questionSport}
         categoryKey={currentPhase === 1 ? p.categoryKey : null}

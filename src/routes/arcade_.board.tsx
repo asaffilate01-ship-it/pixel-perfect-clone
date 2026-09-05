@@ -964,6 +964,17 @@ function BoardPage() {
 
           {target !== null && mode !== "connections" && (
             <QuestionCard
+              modeSlug={
+                mode === "501"
+                  ? "sports-501"
+                  : mode === "draft"
+                    ? "draft-xi"
+                    : mode === "tower"
+                      ? "category-tower"
+                      : mode === "cards"
+                        ? "stat-cards"
+                        : mode
+              }
               turnKey={`${mode}-${round}-${target}`}
               sportId={sportId}
               categoryKey={null}
