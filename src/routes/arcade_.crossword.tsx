@@ -133,14 +133,17 @@ function CrosswordPage() {
                   return (
                     <div key={key} className="relative">
                       {number >= 0 && (
-                        <span className="pointer-events-none absolute left-0.5 top-0 z-10 text-[0.45rem] font-black text-foreground/70 sm:text-[0.55rem]">
+                        <span className="pointer-events-none absolute left-0 top-0 z-10 flex min-w-4 items-center justify-center gap-px rounded-br-md bg-primary px-0.5 py-px text-[0.48rem] font-black leading-none text-primary-foreground shadow-sm sm:min-w-5 sm:text-[0.58rem]">
                           {number + 1}
+                          <span aria-hidden="true" className="text-[0.4rem] opacity-85">
+                            {ENTRIES[number]?.vertical ? "↓" : "→"}
+                          </span>
                         </span>
                       )}
                       <input
                         value={letters[key] ?? ""}
                         maxLength={1}
-                        aria-label={`Crossword row ${row + 1}, column ${col + 1}`}
+                        aria-label={`${number >= 0 ? `Clue ${number + 1} ${ENTRIES[number]?.vertical ? "Down" : "Across"}, ` : ""}crossword row ${row + 1}, column ${col + 1}`}
                         onChange={(event) => {
                           const value = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
                           setLetters((current) => ({ ...current, [key]: value }));
