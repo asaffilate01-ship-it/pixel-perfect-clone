@@ -8,6 +8,7 @@ import {
   Eye,
   Infinity as InfinityIcon,
   RotateCcw,
+  Shuffle,
   SlidersHorizontal,
   Smartphone,
   X,
@@ -106,13 +107,35 @@ function PlayPage() {
 
   const competitionId = prefs.sport === sport ? prefs.competitionId : null;
   const gridQuery = useQuery({
-    queryKey: ["grid", sport, search.grid ?? "daily", competitionId],
+    queryKey: [
+      "grid",
+      sport,
+      search.grid ?? (battle && user ? `fresh-${mode}-${search.difficulty ?? 2}` : "daily"),
+      competitionId,
+      user?.id ?? "guest",
+    ],
     queryFn: async () => {
       if (search.grid) {
         const g = await fetchGridById(search.grid);
         return g ? { ...g, scopeFallback: false } : null;
       }
-      return fetchDailyGrid(sport, { competitionId });
+      const daily = await fetchDailyGrid(sport, { competitionId });
+      if (!daily || !battle || !user) return daily;
+
+      // Pass & Play and CPU are replayable modes, so signed-in players should not
+      // silently receive the single scheduled Daily 9 on every new match.
+      try {
+        const id = await generateEndlessGrid({
+          sportId: daily.sport.id,
+          competitionId,
+          difficulty: search.difficulty ?? daily.difficulty ?? 2,
+        });
+        const fresh = await fetchGridById(id);
+        return fresh ? { ...fresh, scopeFallback: false } : daily;
+      } catch {
+        // A thin sport/scope can still be played using its published daily grid.
+        return daily;
+      }
     },
     enabled: hydrated,
   });
@@ -300,6 +323,27 @@ function PlayPage() {
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not generate a grid.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const nextBattleGrid = async () => {
+    if (!grid || !user) return;
+    setGenerating(true);
+    try {
+      const id = await generateEndlessGrid({
+        sportId: grid.sport.id,
+        competitionId,
+        difficulty: difficulty.level,
+      });
+      void navigate({
+        to: "/play/$sport",
+        params: { sport },
+        search: { mode, grid: id, difficulty: difficulty.level },
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not generate a fresh grid.");
     } finally {
       setGenerating(false);
     }
@@ -500,6 +544,11 @@ function PlayPage() {
           <Button onClick={() => void nextEndless()} disabled={generating || !user}>
             <InfinityIcon className="size-4" />{" "}
             {generating ? "Generating…" : "Generate another grid"}
+          </Button>
+        )}
+        {battle && user && (
+          <Button onClick={() => void nextBattleGrid()} disabled={generating}>
+            <Shuffle className="size-4" /> {generating ? "Generating…" : "New question grid"}
           </Button>
         )}
         {finished && (
