@@ -108,43 +108,48 @@ function CrosswordPage() {
                 Tap a square and type. Intersections share letters.
               </p>
             </div>
-            <div className="rounded-2xl bg-primary/10 px-3 py-2 text-right">
-              <p className="text-[.6rem] font-black uppercase tracking-wider text-muted-foreground">
-                Score
-              </p>
-              <p className="font-black text-primary">{score.toLocaleString()}</p>
+            <div className="game-score-ring shrink-0">
+              <div className="game-score-ring-inner text-center"><p className="font-display text-xl text-primary">{score}</p><p className="text-[.5rem] font-black uppercase tracking-wider text-muted-foreground">pts</p></div>
             </div>
           </div>
 
-          <div className="mx-auto grid aspect-square w-full max-w-xl grid-cols-9 gap-0.5 rounded-2xl bg-border p-1 shadow-2xl shadow-primary/10">
-            {Array.from({ length: SIZE * SIZE }, (_, index) => {
-              const row = Math.floor(index / SIZE);
-              const col = index % SIZE;
-              const key = cellKey(row, col);
-              const cell = cells.get(key);
-              if (!cell) return <div key={key} className="rounded-[3px] bg-background/65" />;
-              const wrong = checked && letters[key] && letters[key] !== cell.letter;
-              return (
-                <input
-                  key={key}
-                  value={letters[key] ?? ""}
-                  maxLength={1}
-                  aria-label={`Crossword row ${row + 1}, column ${col + 1}`}
-                  onChange={(event) => {
-                    const value = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
-                    setLetters((current) => ({ ...current, [key]: value }));
-                    setChecked(false);
-                  }}
-                  className={`min-h-0 min-w-0 rounded-[3px] border-0 text-center text-base font-black uppercase outline-none transition sm:text-2xl ${
-                    wrong
-                      ? "bg-destructive text-destructive-foreground"
-                      : letters[key] === cell.letter && checked
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-surface-strong text-foreground focus:bg-gold/25 focus:ring-2 focus:ring-gold"
-                  }`}
-                />
-              );
-            })}
+          <div className="board-stage mb-8 mt-2">
+            <div className="board-tilt board-rim board-wood mx-auto w-full max-w-xl p-3 sm:p-4">
+              <div className="grid aspect-square w-full grid-cols-9 gap-1 sm:gap-1.5">
+                {Array.from({ length: SIZE * SIZE }, (_, index) => {
+                  const row = Math.floor(index / SIZE);
+                  const col = index % SIZE;
+                  const key = cellKey(row, col);
+                  const cell = cells.get(key);
+                  if (!cell) return <div key={key} className="tile-pocket" />;
+                  const wrong = checked && letters[key] && letters[key] !== cell.letter;
+                  const right = checked && letters[key] === cell.letter;
+                  const number = ENTRIES.findIndex((e) => e.row === row && e.col === col);
+                  return (
+                    <div key={key} className="relative">
+                      {number >= 0 && (
+                        <span className="pointer-events-none absolute left-0.5 top-0 z-10 text-[0.45rem] font-black text-foreground/70 sm:text-[0.55rem]">
+                          {number + 1}
+                        </span>
+                      )}
+                      <input
+                        value={letters[key] ?? ""}
+                        maxLength={1}
+                        aria-label={`Crossword row ${row + 1}, column ${col + 1}`}
+                        onChange={(event) => {
+                          const value = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
+                          setLetters((current) => ({ ...current, [key]: value }));
+                          setChecked(false);
+                        }}
+                        className={`tile-ivory size-full min-h-0 min-w-0 border-0 text-center font-display text-lg uppercase outline-none sm:text-3xl ${
+                          wrong ? "tile-ivory-wrong" : right ? "tile-ivory-correct" : ""
+                        }`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -173,7 +178,7 @@ function CrosswordPage() {
         <aside className="space-y-3">
           <p className="eyebrow">Clues</p>
           {ENTRIES.map((entry, index) => (
-            <div key={`${entry.answer}-${index}`} className="panel flex gap-3 p-4">
+            <div key={`${entry.answer}-${index}`} className="game-card game-tile-pop flex gap-3 p-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/12 text-xs font-black text-primary">
                 {index + 1}
               </span>

@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowDown, ArrowUp, ChevronLeft, Heart, RotateCcw, Trophy, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
@@ -112,8 +112,19 @@ const CARDS: Card[] = [
   },
 ];
 
-function shuffled<T>(items: T[]) {
-  return [...items].sort(() => Math.random() - 0.5);
+function shuffled<T>(items: T[], seed: number) {
+  // Deterministic shuffle so the server and first client render agree.
+  let state = (seed * 9301 + 49297) % 233280 || 1;
+  const rand = () => {
+    state = (state * 9301 + 49297) % 233280;
+    return state / 233280;
+  };
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j] as T, out[i] as T];
+  }
+  return out;
 }
 
 function makeRun(level: number, seed: number) {
@@ -141,12 +152,15 @@ function makeRun(level: number, seed: number) {
         : level === 3
           ? ordered.slice(10, 28)
           : ordered.slice(0, 18);
-  return shuffled(seed % 2 === 0 ? band : [...band].reverse()).slice(0, 15);
+  return shuffled(band, seed + 1).slice(0, 15);
 }
 
 function HigherLowerPage() {
   const [difficulty, setDifficulty] = useState(2);
   const [runSeed, setRunSeed] = useState(0);
+  useEffect(() => {
+    setRunSeed(Math.floor(Math.random() * 100_000));
+  }, []);
   const run = useMemo(() => makeRun(difficulty, runSeed), [difficulty, runSeed]);
   const [round, setRound] = useState(0);
   const [lives, setLives] = useState(3);
@@ -184,7 +198,7 @@ function HigherLowerPage() {
     setBest(0);
     setRevealed(false);
     setLastCorrect(null);
-    setRunSeed((value) => value + 1);
+    setRunSeed(Math.floor(Math.random() * 100_000));
   };
 
   return (
@@ -237,10 +251,10 @@ function HigherLowerPage() {
           </div>
           {!revealed ? (
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <Button size="lg" onClick={() => choose(true)}>
+              <Button size="lg" className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-primary)_55%,black)] active:translate-y-1 active:shadow-none" onClick={() => choose(true)}>
                 <ArrowUp className="size-5" /> Higher
               </Button>
-              <Button size="lg" variant="secondary" onClick={() => choose(false)}>
+              <Button size="lg" variant="secondary" className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-gold)_55%,black)] active:translate-y-1 active:shadow-none" onClick={() => choose(false)}>
                 <ArrowDown className="size-5" /> Lower
               </Button>
             </div>
@@ -287,7 +301,7 @@ function HigherLowerPage() {
 
 function StatCard({ card, revealed }: { card: Card; revealed: boolean }) {
   return (
-    <div className="game-card relative min-h-56 overflow-hidden border-t-4 border-primary p-6 text-center">
+    <div className="game-card card-3d relative min-h-56 overflow-hidden border-t-4 border-primary p-6 text-center">
       <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
       <p className="relative text-[0.62rem] font-black uppercase tracking-[0.18em] text-primary">
         {card.sport}
@@ -296,7 +310,7 @@ function StatCard({ card, revealed }: { card: Card; revealed: boolean }) {
       <p className="relative mt-2 text-xs text-muted-foreground">{card.metric}</p>
       <div className="relative mt-5 min-h-14">
         {revealed ? (
-          <p className="font-display text-5xl text-gold">{card.display}</p>
+          <p className="card-flip-in font-display text-5xl text-gold drop-shadow-[0_4px_0_rgba(0,0,0,0.45)]">{card.display}</p>
         ) : (
           <p className="font-display text-5xl text-muted-foreground">?</p>
         )}
