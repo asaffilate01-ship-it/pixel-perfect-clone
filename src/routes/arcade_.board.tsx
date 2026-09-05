@@ -229,6 +229,7 @@ function BoardPage() {
   const sportId = sports?.find((s) => s.slug === prefs.sport)?.id ?? sports?.[0]?.id ?? null;
   const [difficulty, setDifficulty] = useState(2);
   const [lastBed, setLastBed] = useState<DartboardHighlight | null>(null);
+  const [dartThrow, setDartThrow] = useState(0);
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState<number | null>(null);
@@ -321,6 +322,18 @@ function BoardPage() {
     }
     if (mode === "501") {
       const value = checkout ? remaining : (DART_SCORES[target] ?? 25);
+      if (correct) {
+        const hit = checkout
+          ? ({
+              segment: Math.max(1, Math.min(20, remaining / 2)),
+              ring: "double",
+            } as DartboardHighlight)
+          : (DART_BEDS[target] ?? null);
+        setLastBed(hit);
+        setDartThrow((value) => value + 1);
+      } else {
+        setLastBed(null);
+      }
       const projected = remaining - (correct ? value : 0);
       const bust = correct && (projected < 0 || projected === 1 || (projected === 0 && !checkout));
       const lastQuestion = visitQuestion === 2;
@@ -599,6 +612,7 @@ function BoardPage() {
                     className="mx-auto h-full w-full"
                     highlight={target === null ? DART_BEDS : []}
                     lastHit={lastBed}
+                    impactKey={dartThrow}
                     onPick={
                       target !== null
                         ? undefined
@@ -607,7 +621,7 @@ function BoardPage() {
                               (b) => b.segment === bed.segment && b.ring === bed.ring,
                             );
                             if (index === -1) return;
-                            setLastBed(bed);
+                            setLastBed(null);
                             setDifficulty(index + 1);
                           }
                     }
@@ -626,7 +640,7 @@ function BoardPage() {
                     key={level.level}
                     on={difficulty === level.level}
                     onClick={() => {
-                      setLastBed(DART_BEDS[index] ?? null);
+                      setLastBed(null);
                       setDifficulty(level.level);
                     }}
                   >
