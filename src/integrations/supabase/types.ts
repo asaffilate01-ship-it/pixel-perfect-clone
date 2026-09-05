@@ -232,6 +232,27 @@ export type Database = {
           },
         ]
       }
+      arcade_content_exposures: {
+        Row: {
+          content_id: string
+          content_type: string
+          exposed_at: string
+          user_id: string
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          exposed_at?: string
+          user_id: string
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          exposed_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       arcade_matchmaking_queue: {
         Row: {
           category_key: string | null
@@ -1114,6 +1135,45 @@ export type Database = {
           },
         ]
       }
+      crossword_puzzles: {
+        Row: {
+          active: boolean
+          created_at: string
+          difficulty: number
+          entries: Json
+          grid_size: number
+          id: string
+          source_url: string
+          sport_label: string
+          title: string
+          verified: boolean
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          difficulty: number
+          entries: Json
+          grid_size?: number
+          id?: string
+          source_url: string
+          sport_label: string
+          title: string
+          verified?: boolean
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          difficulty?: number
+          entries?: Json
+          grid_size?: number
+          id?: string
+          source_url?: string
+          sport_label?: string
+          title?: string
+          verified?: boolean
+        }
+        Relationships: []
+      }
       data_coverage: {
         Row: {
           athletes: number
@@ -1598,6 +1658,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      higher_lower_cards: {
+        Row: {
+          active: boolean
+          difficulty: number
+          display_value: string
+          id: string
+          metric_key: string
+          metric_label: string
+          name: string
+          source_title: string
+          source_url: string
+          sport_label: string
+          value_numeric: number
+          verified: boolean
+        }
+        Insert: {
+          active?: boolean
+          difficulty: number
+          display_value: string
+          id?: string
+          metric_key: string
+          metric_label: string
+          name: string
+          source_title: string
+          source_url: string
+          sport_label: string
+          value_numeric: number
+          verified?: boolean
+        }
+        Update: {
+          active?: boolean
+          difficulty?: number
+          display_value?: string
+          id?: string
+          metric_key?: string
+          metric_label?: string
+          name?: string
+          source_title?: string
+          source_url?: string
+          sport_label?: string
+          value_numeric?: number
+          verified?: boolean
+        }
+        Relationships: []
       }
       historical_seasons: {
         Row: {
@@ -3704,6 +3809,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      reserve_crossword_puzzle: {
+        Args: { p_difficulty?: number }
+        Returns: Json
+      }
       reserve_fair_question: {
         Args: {
           p_category_key?: string
@@ -3715,6 +3824,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      reserve_higher_lower_cards: {
+        Args: { p_difficulty?: number; p_limit?: number }
+        Returns: Json
       }
       resolve_answer_challenge: {
         Args: { p_accept: boolean; p_challenge_id: string; p_note?: string }
