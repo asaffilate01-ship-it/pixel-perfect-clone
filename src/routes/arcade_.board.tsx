@@ -12,6 +12,8 @@ import {
   Gem,
   Grid2x2,
   Hexagon,
+  Heart,
+  Layers,
   Medal,
   Network,
   RotateCcw,
@@ -33,9 +35,9 @@ import { useEntitlements } from "@/lib/entitlements";
 import { SideAdRail } from "@/components/site/AdSlots";
 import { Dartboard, type DartboardHighlight } from "@/components/arcade/Dartboard";
 
-type Mode = "territory" | "501" | "connections" | "draft" | "bingo";
+type Mode = "territory" | "501" | "connections" | "draft" | "bingo" | "tower" | "cards";
 type Search = { mode: Mode };
-const MODES: Mode[] = ["territory", "501", "connections", "draft", "bingo"];
+const MODES: Mode[] = ["territory", "501", "connections", "draft", "bingo", "tower", "cards"];
 
 export const Route = createFileRoute("/arcade_/board")({
   validateSearch: (raw: Record<string, unknown>): Search => {
@@ -119,6 +121,24 @@ const CONFIG: Record<
     accent: "text-primary",
     rule: "Select a square and answer correctly. Complete a line of four.",
     pro: false,
+  },
+  tower: {
+    title: "Category Tower",
+    slug: "category-tower",
+    icon: Layers,
+    tone: "text-secondary bg-secondary/12",
+    accent: "text-secondary",
+    rule: "Build an eight-answer streak to reach the top. Three wrong answers collapse the run.",
+    pro: true,
+  },
+  cards: {
+    title: "Stat Cards",
+    slug: "stat-cards",
+    icon: BarChart3,
+    tone: "text-secondary bg-secondary/12",
+    accent: "text-secondary",
+    rule: "Win ten question cards before losing both lives. Harder questions earn stronger cards.",
+    pro: true,
   },
 };
 
@@ -224,6 +244,9 @@ function BoardPage() {
   const [solved, setSolved] = useState<string[]>([]);
   const [squad, setSquad] = useState<number[]>([]);
   const [misses, setMisses] = useState(0);
+  const [towerLevel, setTowerLevel] = useState(0);
+  const [cardWins, setCardWins] = useState(0);
+  const [lives, setLives] = useState(mode === "tower" ? 3 : 2);
 
   useEffect(() => {
     setRound(0);
@@ -240,6 +263,9 @@ function BoardPage() {
     setSolved([]);
     setSquad([]);
     setMisses(0);
+    setTowerLevel(0);
+    setCardWins(0);
+    setLives(mode === "tower" ? 3 : 2);
   }, [mode]);
 
   const finished =
@@ -251,8 +277,19 @@ function BoardPage() {
           ? hasLine(mine)
           : mode === "draft"
             ? squad.length === DRAFT.length
-            : solved.length === 4;
-  const won = mode === "territory" ? mine.length >= 10 : finished;
+            : mode === "tower"
+              ? towerLevel >= 8 || lives === 0
+              : mode === "cards"
+                ? cardWins >= 10 || lives === 0
+                : solved.length === 4;
+  const won =
+    mode === "territory"
+      ? mine.length >= 10
+      : mode === "tower"
+        ? towerLevel >= 8
+        : mode === "cards"
+          ? cardWins >= 10
+          : finished;
   const progress =
     mode === "501"
       ? `${remaining}`
@@ -262,7 +299,11 @@ function BoardPage() {
           ? `${squad.length}/5 signed`
           : mode === "territory"
             ? `${mine.length}–${rival.length}`
-            : `${mine.length}/16`;
+            : mode === "tower"
+              ? `${towerLevel}/8 levels`
+              : mode === "cards"
+                ? `${cardWins}/10 cards`
+                : `${mine.length}/16`;
 
   const resolve = (o: QuestionOutcome) => {
     if (target === null) return;
@@ -270,6 +311,14 @@ function BoardPage() {
     if (mode === "territory") (correct ? setMine : setRival)((v) => [...v, target]);
     if (mode === "bingo" && correct) setMine((v) => [...v, target]);
     if (mode === "draft" && correct) setSquad((v) => [...v, target]);
+    if (mode === "tower") {
+      if (correct) setTowerLevel((level) => Math.min(8, level + 1));
+      else setLives((value) => Math.max(0, value - 1));
+    }
+    if (mode === "cards") {
+      if (correct) setCardWins((value) => Math.min(10, value + 1));
+      else setLives((value) => Math.max(0, value - 1));
+    }
     if (mode === "501") {
       const value = checkout ? remaining : (DART_SCORES[target] ?? 25);
       const projected = remaining - (correct ? value : 0);
@@ -353,6 +402,9 @@ function BoardPage() {
     setSolved([]);
     setSquad([]);
     setMisses(0);
+    setTowerLevel(0);
+    setCardWins(0);
+    setLives(mode === "tower" ? 3 : 2);
   };
 
   if (c.pro && !pro) {
@@ -423,7 +475,7 @@ function BoardPage() {
             <div
               className="game-progress-fill"
               style={{
-                width: `${mode === "501" ? Math.max(0, Math.min(100, ((501 - remaining) / 501) * 100)) : mode === "connections" ? (solved.length / 4) * 100 : mode === "draft" ? (squad.length / DRAFT.length) * 100 : mode === "territory" ? Math.min(100, (mine.length / 10) * 100) : Math.min(100, (mine.length / 16) * 100)}%`,
+                width: `${mode === "501" ? Math.max(0, Math.min(100, ((501 - remaining) / 501) * 100)) : mode === "connections" ? (solved.length / 4) * 100 : mode === "draft" ? (squad.length / DRAFT.length) * 100 : mode === "territory" ? Math.min(100, (mine.length / 10) * 100) : mode === "tower" ? (towerLevel / 8) * 100 : mode === "cards" ? (cardWins / 10) * 100 : Math.min(100, (mine.length / 16) * 100)}%`,
               }}
             />
           </div>
@@ -466,7 +518,15 @@ function BoardPage() {
                   ? "Bingo!"
                   : mode === "draft"
                     ? "Full five signed"
-                    : "All four connected"}
+                    : mode === "tower"
+                      ? won
+                        ? "Tower conquered"
+                        : "The tower fell"
+                      : mode === "cards"
+                        ? won
+                          ? "Deck mastered"
+                          : "Out of lives"
+                        : "All four connected"}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             {round} question{round === 1 ? "" : "s"} · {misses} miss{misses === 1 ? "" : "es"}
@@ -488,39 +548,41 @@ function BoardPage() {
             >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
               <div className="board-stage relative">
-              <div
-                className="board-tilt board-rim board-felt grid grid-cols-5 gap-2 p-3"
-                role="group"
-                aria-label="Territory zones"
-              >
-                {Array.from({ length: 19 }, (_, i) => {
-                  const own = mine.includes(i),
-                    theirs = rival.includes(i);
-                  return (
-                    <button
-                      key={i}
-                      type="button"
-                      disabled={own || theirs || target !== null}
-                      onClick={() => setTarget(i)}
-                      aria-label={`Zone ${i + 1}${own ? ", yours" : theirs ? ", rival" : ""}`}
-                      className={`game-tile !bg-transparent !border-white/10 ${
-                        target === i && !own && !theirs ? "game-tile-reward" : "hover:border-primary/60"
-                      } ${i === 15 ? "col-start-2" : ""}`}
-                    >
-                      {(own || theirs) ? (
-                        <span
-                          className={`game-token size-8 ${own ? "game-token-gold" : "game-token-rival"}`}
-                        />
-                      ) : (
-                        <Hexagon className="size-6 text-cream/70" />
-                      )}
-                      <span className="absolute bottom-1 right-1.5 text-[0.55rem] font-bold text-inherit opacity-70">
-                        {i + 1}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                <div
+                  className="board-tilt board-rim board-felt grid grid-cols-5 gap-2 p-3"
+                  role="group"
+                  aria-label="Territory zones"
+                >
+                  {Array.from({ length: 19 }, (_, i) => {
+                    const own = mine.includes(i),
+                      theirs = rival.includes(i);
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        disabled={own || theirs || target !== null}
+                        onClick={() => setTarget(i)}
+                        aria-label={`Zone ${i + 1}${own ? ", yours" : theirs ? ", rival" : ""}`}
+                        className={`game-tile !bg-transparent !border-white/10 ${
+                          target === i && !own && !theirs
+                            ? "game-tile-reward"
+                            : "hover:border-primary/60"
+                        } ${i === 15 ? "col-start-2" : ""}`}
+                      >
+                        {own || theirs ? (
+                          <span
+                            className={`game-token size-8 ${own ? "game-token-gold" : "game-token-rival"}`}
+                          />
+                        ) : (
+                          <Hexagon className="size-6 text-cream/70" />
+                        )}
+                        <span className="absolute bottom-1 right-1.5 text-[0.55rem] font-bold text-inherit opacity-70">
+                          {i + 1}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -641,35 +703,35 @@ function BoardPage() {
             >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
               <div className="board-stage relative">
-              <div className="board-tilt board-rim board-felt grid grid-cols-4 gap-2 p-3">
-                {allConnections.map((x) => {
-                  const done = solvedItems.has(x),
-                    on = selected.includes(x);
-                  return (
-                    <button
-                      key={x}
-                      type="button"
-                      disabled={done}
-                      aria-pressed={on}
-                      onClick={() =>
-                        setSelected((v) =>
-                          v.includes(x) ? v.filter((y) => y !== x) : v.length < 4 ? [...v, x] : v,
-                        )
-                      }
-                      className={`phys-card game-tile text-xs ${
-                        done
-                          ? "phys-card-solved border-primary/40 bg-primary/10 text-primary"
-                          : on
-                            ? "game-tile-completed"
-                            : ""
-                      }`}
-                    >
-                      {done && <Check className="size-3 text-primary" />}
-                      {x}
-                    </button>
-                  );
-                })}
-              </div>
+                <div className="board-tilt board-rim board-felt grid grid-cols-4 gap-2 p-3">
+                  {allConnections.map((x) => {
+                    const done = solvedItems.has(x),
+                      on = selected.includes(x);
+                    return (
+                      <button
+                        key={x}
+                        type="button"
+                        disabled={done}
+                        aria-pressed={on}
+                        onClick={() =>
+                          setSelected((v) =>
+                            v.includes(x) ? v.filter((y) => y !== x) : v.length < 4 ? [...v, x] : v,
+                          )
+                        }
+                        className={`phys-card game-tile text-xs ${
+                          done
+                            ? "phys-card-solved border-primary/40 bg-primary/10 text-primary"
+                            : on
+                              ? "game-tile-completed"
+                              : ""
+                        }`}
+                      >
+                        {done && <Check className="size-3 text-primary" />}
+                        {x}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <Button
                 className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
@@ -695,35 +757,35 @@ function BoardPage() {
             >
               <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
               <div className="board-stage relative">
-              <div className="board-tilt board-rim board-wood relative space-y-2 p-3">
-                {DRAFT.map((x, i) => {
-                  const signed = squad.includes(i);
-                  return (
-                    <button
-                      key={x.name}
-                      type="button"
-                      disabled={signed || target !== null}
-                      onClick={() => setTarget(i)}
-                      className={`card-holder flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "card-slide-in border-gold/60 bg-gold/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
-                    >
-                      <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
-                        <span className="font-display text-xl text-gold">{x.rating}</span>
-                      </span>
-                      <span className="flex-1">
-                        <span className="block font-display text-xl">{x.name}</span>
-                        <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
-                          {x.role}
+                <div className="board-tilt board-rim board-wood relative space-y-2 p-3">
+                  {DRAFT.map((x, i) => {
+                    const signed = squad.includes(i);
+                    return (
+                      <button
+                        key={x.name}
+                        type="button"
+                        disabled={signed || target !== null}
+                        onClick={() => setTarget(i)}
+                        className={`card-holder flex w-full items-center gap-3 p-3 text-left transition-all ${signed ? "card-slide-in border-gold/60 bg-gold/10" : target === i ? "border-gold shadow-gold/20 shadow-lg" : "hover:border-gold/60"}`}
+                      >
+                        <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-gold/12">
+                          <span className="font-display text-xl text-gold">{x.rating}</span>
                         </span>
-                      </span>
-                      {signed && (
-                        <span className="game-feedback game-feedback-success">
-                          <Check className="size-4" /> Signed
+                        <span className="flex-1">
+                          <span className="block font-display text-xl">{x.name}</span>
+                          <span className="block text-[0.62rem] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                            {x.role}
+                          </span>
                         </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
+                        {signed && (
+                          <span className="game-feedback game-feedback-success">
+                            <Check className="size-4" /> Signed
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
@@ -789,6 +851,111 @@ function BoardPage() {
             </div>
           )}
 
+          {mode === "tower" && (
+            <div className="game-panel relative mt-6 overflow-hidden border-t-4 border-secondary p-5">
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative flex items-center justify-between">
+                <div>
+                  <p className="eyebrow">Eight-level challenge</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Every correct answer raises the platform one level.
+                  </p>
+                </div>
+                <div className="flex gap-1" aria-label={`${lives} lives remaining`}>
+                  {[0, 1, 2].map((life) => (
+                    <Heart
+                      key={life}
+                      className={`size-5 ${life < lives ? "fill-destructive text-destructive" : "text-muted"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="relative mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {Array.from({ length: 8 }, (_, index) => {
+                  const level = index + 1;
+                  const cleared = level <= towerLevel;
+                  const current = level === towerLevel + 1;
+                  return (
+                    <div
+                      key={level}
+                      className={`relative flex h-20 flex-col items-center justify-center rounded-2xl border transition-all ${
+                        cleared
+                          ? "border-secondary bg-secondary/20 text-secondary"
+                          : current
+                            ? "border-gold bg-gold/10 text-gold shadow-lg shadow-gold/10"
+                            : "border-border bg-surface/60 text-muted-foreground"
+                      }`}
+                    >
+                      <Layers className="size-5" />
+                      <span className="mt-1 text-[0.6rem] font-black uppercase tracking-[0.16em]">
+                        Level {level}
+                      </span>
+                      {cleared && <Check className="absolute right-2 top-2 size-3.5" />}
+                    </div>
+                  );
+                })}
+              </div>
+              <Button
+                className="relative mt-5 w-full font-bold uppercase tracking-[0.14em]"
+                disabled={target !== null}
+                onClick={() => setTarget(round)}
+              >
+                <Zap className="size-4" /> Answer for level {towerLevel + 1}
+              </Button>
+            </div>
+          )}
+
+          {mode === "cards" && (
+            <div className="game-panel relative mt-6 overflow-hidden border-t-4 border-secondary p-5">
+              <div className="stadium-line pointer-events-none absolute inset-0 opacity-30" />
+              <div className="relative flex items-center justify-between gap-3">
+                <div>
+                  <p className="eyebrow">Survival deck</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Collect ten cards before your two lives run out.
+                  </p>
+                </div>
+                <div className="flex gap-1" aria-label={`${lives} lives remaining`}>
+                  {[0, 1].map((life) => (
+                    <Heart
+                      key={life}
+                      className={`size-5 ${life < lives ? "fill-destructive text-destructive" : "text-muted"}`}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="relative mt-5 grid grid-cols-5 gap-2">
+                {Array.from({ length: 10 }, (_, index) => {
+                  const earned = index < cardWins;
+                  return (
+                    <div
+                      key={index}
+                      className={`aspect-[3/4] rounded-xl border p-1.5 transition-all ${
+                        earned
+                          ? "card-slide-in border-secondary bg-secondary/20 text-secondary"
+                          : "border-border bg-surface/70 text-muted-foreground"
+                      }`}
+                    >
+                      <div className="flex h-full flex-col items-center justify-center rounded-lg border border-current/15">
+                        {earned ? <Trophy className="size-5" /> : <BarChart3 className="size-5" />}
+                        <span className="mt-1 text-[0.52rem] font-black uppercase">
+                          {index + 1}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <Button
+                className="relative mt-5 w-full font-bold uppercase tracking-[0.14em]"
+                disabled={target !== null}
+                onClick={() => setTarget(round)}
+              >
+                <Target className="size-4" /> Challenge next card
+              </Button>
+            </div>
+          )}
+
           {feedback && (
             <p className="mt-4 text-center text-xs font-semibold text-muted-foreground">
               {feedback}
@@ -813,7 +980,11 @@ function BoardPage() {
                       : `${DIFFICULTIES[target]?.label ?? "Question"} · ${DART_SCORES[target] ?? 25} points`
                     : mode === "draft"
                       ? `Sign ${DRAFT[target]?.name ?? "the athlete"}`
-                      : `Square · ${BINGO[target]}`
+                      : mode === "tower"
+                        ? `Level ${towerLevel + 1} · answer to climb`
+                        : mode === "cards"
+                          ? `Card ${cardWins + 1} · answer to collect`
+                          : `Square · ${BINGO[target]}`
               }
             />
           )}
