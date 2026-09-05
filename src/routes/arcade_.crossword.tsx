@@ -108,11 +108,8 @@ function CrosswordPage() {
                 Tap a square and type. Intersections share letters.
               </p>
             </div>
-            <div className="rounded-2xl bg-primary/10 px-3 py-2 text-right">
-              <p className="text-[.6rem] font-black uppercase tracking-wider text-muted-foreground">
-                Score
-              </p>
-              <p className="font-black text-primary">{score.toLocaleString()}</p>
+            <div className="game-score-ring shrink-0">
+              <div className="game-score-ring-inner text-center"><p className="font-display text-xl text-primary">{score}</p><p className="text-[.5rem] font-black uppercase tracking-wider text-muted-foreground">pts</p></div>
             </div>
           </div>
 
@@ -181,7 +178,7 @@ function CrosswordPage() {
         <aside className="space-y-3">
           <p className="eyebrow">Clues</p>
           {ENTRIES.map((entry, index) => (
-            <div key={`${entry.answer}-${index}`} className="panel flex gap-3 p-4">
+            <div key={`${entry.answer}-${index}`} className="game-card game-tile-pop flex gap-3 p-4">
               <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/12 text-xs font-black text-primary">
                 {index + 1}
               </span>
