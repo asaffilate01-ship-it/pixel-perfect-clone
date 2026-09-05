@@ -10,11 +10,11 @@ class WebGLErrorBoundary extends Component<
   { fallback?: ReactNode; children: ReactNode },
   { failed: boolean }
 > {
-  state = { failed: false };
+  override state = { failed: false };
   static getDerivedStateFromError() {
     return { failed: true };
   }
-  render() {
+  override render() {
     return this.state.failed ? this.props.fallback : this.props.children;
   }
 }
@@ -270,7 +270,7 @@ function Hair({ settings: s }: { settings: AvatarSettings }) {
           [-0.35, 0.88, 0.1],
           [0.1, 0.98, 0.14],
           [0.45, 0.83, 0.1],
-        ].map(([x, y, z], i) => (
+        ].map(([x = 0, y = 0, z = 0], i) => (
           <mesh
             key={i}
             position={[x, y, z]}

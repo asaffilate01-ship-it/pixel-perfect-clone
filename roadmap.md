@@ -93,3 +93,6 @@
 - [x] 2026-09-05: batch-audit migration applied live (batch blocked 96/1000); two-device room create/join proven; fixed entitlements typecheck
 
 - [x] 2026-09-05: 3D crossword board (wooden frame, ivory tiles), chunky Higher/Lower cards + buttons; fixed Higher/Lower load glitch
+
+- Applied rotating crossword/higher-lower content, verified question depth phase 6, and avatar render queue to live DB (2026-09-05).
+- OPENAI_API_KEY saved; render-avatar function deployed. avatar-renders bucket is private (workspace blocks public buckets) so portraits use long-lived signed URLs.

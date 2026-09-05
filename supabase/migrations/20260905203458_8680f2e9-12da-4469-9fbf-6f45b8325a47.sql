@@ -1,4 +1,3 @@
--- Private selfie intake and server-owned portrait rendering queue.
 create table if not exists public.avatar_render_jobs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users on delete cascade,
@@ -17,10 +16,9 @@ create index if not exists avatar_render_jobs_owner_created
 alter table public.avatar_render_jobs enable row level security;
 grant select on public.avatar_render_jobs to authenticated;
 grant all on public.avatar_render_jobs to service_role;
+drop policy if exists "read own avatar jobs" on public.avatar_render_jobs;
 create policy "read own avatar jobs" on public.avatar_render_jobs
   for select to authenticated using(user_id=auth.uid());
-
--- Buckets avatar-sources (private) and avatar-renders (private) are created via the storage API.
 
 drop policy if exists "upload own avatar source" on storage.objects;
 create policy "upload own avatar source" on storage.objects for insert to authenticated
@@ -56,6 +54,3 @@ begin
 end $$;
 revoke all on function public.request_avatar_render(text,jsonb) from public,anon;
 grant execute on function public.request_avatar_render(text,jsonb) to authenticated,service_role;
-
--- The service-role renderer must delete avatar-sources/source_path after processing,
--- then set profiles.avatar_url to the final moderated portrait URL.

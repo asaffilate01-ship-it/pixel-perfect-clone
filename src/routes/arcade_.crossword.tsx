@@ -62,8 +62,8 @@ function CrosswordPage() {
   const clueNumbers = useMemo(() => {
     const starts = [...new Set(entries.map((entry) => cellKey(entry.row, entry.col)))].sort(
       (a, b) => {
-        const [ar, ac] = a.split(":").map(Number);
-        const [br, bc] = b.split(":").map(Number);
+        const [ar = 0, ac = 0] = a.split(":").map(Number);
+        const [br = 0, bc = 0] = b.split(":").map(Number);
         return ar - br || ac - bc;
       },
     );
@@ -224,7 +224,7 @@ function CrosswordPage() {
                     .map((entry, entryIndex) => ({ entry, entryIndex }))
                     .filter(({ entry }) => entry.row === row && entry.col === col);
                   const firstStart = startingEntries[0];
-                  const number = firstStart ? clueNumbers[firstStart.entryIndex] : 0;
+                  const number = (firstStart ? clueNumbers[firstStart.entryIndex] : 0) ?? 0;
                   return (
                     <div key={key} className="relative">
                       {number > 0 && (
