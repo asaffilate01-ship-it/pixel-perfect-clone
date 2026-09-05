@@ -20,7 +20,8 @@ export async function fetchClueBank(): Promise<ClueBank> {
 
 /** Random prompt for a sport; falls back to the whole bank when a sport has no criteria yet. */
 export function pickPrompt(bank: ClueBank, sportId: string | null): string {
-  const pool = (sportId && bank[sportId]?.length ? bank[sportId] : Object.values(bank).flat()) ?? [];
+  const pool =
+    (sportId && bank[sportId]?.length ? bank[sportId] : Object.values(bank).flat()) ?? [];
   if (!pool.length) return "Name an athlete who fits this verified fact.";
   return `Name an athlete: ${pool[Math.floor(Math.random() * pool.length)]}`;
 }
@@ -53,12 +54,18 @@ export type RoomPlayer = {
 export async function fetchRoomPlayers(roomId: string): Promise<RoomPlayer[]> {
   const { data, error } = await supabase
     .from("arcade_room_players")
-    .select("user_id, seat, display_name, status, points, passes, position, correct_answers, sport_id, category_key, settings")
+    .select(
+      "user_id, seat, display_name, status, points, passes, position, correct_answers, sport_id, category_key, settings",
+    )
     .eq("room_id", roomId)
     .order("seat");
   if (error) throw error;
   return (data ?? []).map((p) => {
-    const s = (p.settings ?? {}) as { avatar_id?: string; sport_id?: string | null; category_key?: string | null };
+    const s = (p.settings ?? {}) as {
+      avatar_id?: string;
+      sport_id?: string | null;
+      category_key?: string | null;
+    };
     return {
       user_id: p.user_id,
       seat: p.seat,
@@ -91,7 +98,9 @@ export type RoomRow = {
 export async function fetchRoom(roomId: string): Promise<RoomRow | null> {
   const { data, error } = await supabase
     .from("arcade_rooms")
-    .select("id, code, host_id, mode_slug, difficulty, status, active_seat, round_no, turn_ends_at, settings")
+    .select(
+      "id, code, host_id, mode_slug, difficulty, status, active_seat, round_no, turn_ends_at, settings",
+    )
     .eq("id", roomId)
     .maybeSingle();
   if (error) throw error;
@@ -99,5 +108,9 @@ export async function fetchRoom(roomId: string): Promise<RoomRow | null> {
 }
 
 export function modeName(slug: string) {
-  return slug === "quiz-ludo" ? "Quiz Ludo" : slug === "sports-mastermind" ? "Sports Mastermind" : "Quiz Snakes & Ladders";
+  return slug === "quiz-ludo"
+    ? "Quiz Ludo"
+    : slug === "sports-mastermind"
+      ? "Sports Mastermind"
+      : "Quiz Snakes & Ladders";
 }

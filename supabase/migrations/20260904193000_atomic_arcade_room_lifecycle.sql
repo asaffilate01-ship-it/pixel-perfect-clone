@@ -142,4 +142,3 @@ revoke all on function public.leave_arcade_room(uuid,uuid) from public, anon, au
 grant execute on function public.create_arcade_room(uuid,text,smallint,smallint,uuid,text) to service_role;
 grant execute on function public.join_arcade_room(uuid,text) to service_role;
 grant execute on function public.leave_arcade_room(uuid,uuid) to service_role;
-
