@@ -3617,6 +3617,7 @@ export type Database = {
       }
       has_staff_role: { Args: never; Returns: boolean }
       is_arcade_member: { Args: { p_room: string }; Returns: boolean }
+      is_arcade_participant: { Args: { p_room: string }; Returns: boolean }
       join_arcade_room: {
         Args: { p_code: string; p_user_id: string }
         Returns: {
