@@ -890,6 +890,45 @@ export type Database = {
         }
         Relationships: []
       }
+      avatar_render_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          rendered_path: string | null
+          requested_settings: Json
+          source_deleted_at: string | null
+          source_path: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          rendered_path?: string | null
+          requested_settings: Json
+          source_deleted_at?: string | null
+          source_path: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          rendered_path?: string | null
+          requested_settings?: Json
+          source_deleted_at?: string | null
+          source_path?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       clue_attempts: {
         Row: {
           clues_revealed: number
@@ -3808,6 +3847,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      request_avatar_render: {
+        Args: { p_settings: Json; p_source_path: string }
+        Returns: string
       }
       reserve_crossword_puzzle: {
         Args: { p_difficulty?: number }
