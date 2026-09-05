@@ -3559,6 +3559,15 @@ export type Database = {
         }
         Returns: Json
       }
+      fz_find_room: {
+        Args: { p_code: string }
+        Returns: {
+          code: string
+          grid_id: string
+          id: string
+          sport_slug: string
+        }[]
+      }
       fz_norm: { Args: { t: string }; Returns: string }
       fz_play_move: {
         Args: {
