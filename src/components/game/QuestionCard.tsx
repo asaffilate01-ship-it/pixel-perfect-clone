@@ -39,6 +39,7 @@ export function QuestionCard({
   categoryKey,
   difficulty,
   roomId,
+  modeSlug,
   canAnswer = true,
   bank,
   accentClass,
@@ -50,6 +51,7 @@ export function QuestionCard({
   categoryKey?: string | null | undefined;
   difficulty: number;
   roomId?: string | null | undefined;
+  modeSlug?: string | null | undefined;
   canAnswer?: boolean;
   bank: ClueBank | undefined;
   accentClass: string;
@@ -78,6 +80,7 @@ export function QuestionCard({
     categoryKey ?? "all-categories",
     difficulty,
     roomId ?? "solo",
+    modeSlug ?? "standard",
     canAnswer ? "active" : "waiting",
     reload,
   ].join(":");
@@ -103,7 +106,13 @@ export function QuestionCard({
       if (user && sportId && canAnswer) {
         try {
           const request = nextFairQuestion({
-            data: { sportId, category: categoryKey ?? null, difficulty, roomId: roomId ?? null },
+            data: {
+              sportId,
+              category: categoryKey ?? null,
+              difficulty,
+              roomId: roomId ?? null,
+              modeSlug: roomId ? null : (modeSlug ?? null),
+            },
           });
           const timeout = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error("Question request timed out")), 8_000),
@@ -131,7 +140,7 @@ export function QuestionCard({
         setLoading(false);
       }
     })();
-  }, [loadKey, bank, canAnswer, categoryKey, difficulty, roomId, sportId, user]);
+  }, [loadKey, bank, canAnswer, categoryKey, difficulty, modeSlug, roomId, sportId, user]);
 
   const resolveServer = async (input: AnswerInput | null) => {
     if (!question) return;

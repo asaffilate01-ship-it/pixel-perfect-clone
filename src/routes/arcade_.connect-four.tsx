@@ -255,7 +255,9 @@ function ConnectFourPage() {
           </Link>
         </Button>
         <div className="relative z-10 text-center">
-          <p className="text-[0.6rem] font-black uppercase tracking-[0.22em] text-primary">Tactical arena</p>
+          <p className="text-[0.6rem] font-black uppercase tracking-[0.22em] text-primary">
+            Tactical arena
+          </p>
           <h1 className="font-display mt-1 text-3xl sm:text-4xl">Connect Four</h1>
         </div>
         <Button
@@ -356,7 +358,10 @@ function ConnectFourPage() {
               aria-label={`Choose column ${i + 1}`}
               aria-pressed={selectedCol === i}
             >
-              <ChevronDown className={`size-4 ${selectedCol === i ? "text-gold-foreground" : "text-primary"}`} aria-hidden />
+              <ChevronDown
+                className={`size-4 ${selectedCol === i ? "text-gold-foreground" : "text-primary"}`}
+                aria-hidden
+              />
               <span>Drop {i + 1}</span>
             </button>
           ))}
@@ -365,6 +370,7 @@ function ConnectFourPage() {
 
       {selectedCol !== null && turn === "me" && !result && (
         <QuestionCard
+          modeSlug="connect-four"
           turnKey={`connect-four-${filled}-${selectedCol}`}
           sportId={sportId}
           categoryKey={null}
@@ -418,7 +424,9 @@ function ConnectFourPage() {
                     role="gridcell"
                     aria-label={v === "me" ? "Your token" : v === "them" ? "Rival token" : "Empty"}
                     className={`board-hole relative aspect-square overflow-hidden transition-colors duration-200 ${
-                      isHoveredCol && !v ? "outline outline-2 outline-offset-1 outline-primary/40" : ""
+                      isHoveredCol && !v
+                        ? "outline outline-2 outline-offset-1 outline-primary/40"
+                        : ""
                     }`}
                   >
                     {v && (
@@ -426,7 +434,11 @@ function ConnectFourPage() {
                         className={`disc-3d absolute inset-[4%] ${v === "me" ? "disc-red" : "disc-yellow"} ${
                           isLast ? "disc-dropping" : ""
                         } ${isWinning ? "ring-4 ring-[var(--color-gold)] animate-pulse" : ""}`}
-                        style={isLast ? ({ "--drop-distance": `${(row + 1) * 52}px` } as React.CSSProperties) : undefined}
+                        style={
+                          isLast
+                            ? ({ "--drop-distance": `${(row + 1) * 52}px` } as React.CSSProperties)
+                            : undefined
+                        }
                       />
                     )}
                   </div>

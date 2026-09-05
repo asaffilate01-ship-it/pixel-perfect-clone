@@ -28,13 +28,24 @@ export function EntitlementsProvider({ children }: { children: ReactNode }) {
     }
     let cancelled = false;
     // Server-verified: only entitlements backed by a verified purchase (or an explicit staff grant) count.
-    supabase.rpc("my_entitlement_status").then(({ data }) => {
-      if (cancelled) return;
-      const row = Array.isArray(data) ? data[0] : data;
-      setAdFree(Boolean(row?.ad_free));
-      setPro(Boolean(row?.pro_active));
-      setLoading(false);
-    });
+    setLoading(true);
+    supabase
+      .rpc("my_entitlement_status")
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        const row = Array.isArray(data) ? data[0] : data;
+        // Fail closed on an unavailable/invalid entitlement response.
+        setAdFree(!error && Boolean(row?.ad_free));
+        setPro(!error && Boolean(row?.pro_active));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setAdFree(false);
+        setPro(false);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
     return () => {
       cancelled = true;
     };

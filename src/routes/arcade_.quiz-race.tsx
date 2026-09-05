@@ -477,6 +477,7 @@ function QuizRacePage() {
       </div>
 
       <QuestionCard
+        modeSlug={game === "ludo" ? "quiz-ludo" : "quiz-snakes-ladders"}
         turnKey={onlineTurnKey}
         sportId={active.sportId}
         categoryKey={active.categoryKey}
