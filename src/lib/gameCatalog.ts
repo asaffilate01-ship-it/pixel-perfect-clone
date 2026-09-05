@@ -9,6 +9,7 @@ import {
   Layers,
   LayoutGrid,
   Link,
+  Puzzle,
   Target,
   Trophy,
   Users,
@@ -125,6 +126,15 @@ export const GAME_ART: Record<string, GameArt> = {
     kind: "solo",
     kindLabel: "Logic puzzle",
     time: "4 min",
+    isNew: true,
+  },
+  "crossword-quiz": {
+    art: connections,
+    icon: Puzzle,
+    tone: "primary",
+    kind: "solo",
+    kindLabel: "Clue puzzle",
+    time: "6 min",
     isNew: true,
   },
   "draft-xi": {

@@ -53,6 +53,7 @@ async function fetchGameModes() {
 type ModeRoute =
   | { to: "/arcade/connect-four" }
   | { to: "/arcade/higher-lower" }
+  | { to: "/arcade/crossword" }
   | { to: "/compete" }
   | { to: "/arcade/mastermind" }
   | { to: "/arcade/rooms" }
@@ -66,6 +67,7 @@ type ModeRoute =
 
 const ROUTES: Record<string, ModeRoute> = {
   "higher-lower": { to: "/arcade/higher-lower" },
+  "crossword-quiz": { to: "/arcade/crossword" },
   "tic-tac-toe": { to: "/compete" },
   "connect-four": { to: "/arcade/connect-four" },
   "quiz-ludo": { to: "/arcade/quiz-race", search: { game: "ludo" } },
