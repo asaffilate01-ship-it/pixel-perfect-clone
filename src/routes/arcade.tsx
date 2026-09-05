@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
   ArrowRight,
+  BookOpen,
   Clock,
   Gamepad2,
   Gem,
@@ -129,7 +130,12 @@ function Arcade() {
             Every move is a verified sports answer. {liveCount} games live now, more on the way.
           </p>
         </div>
-        <Gamepad2 className="hidden size-10 text-primary sm:block" />
+        <Button asChild variant="outline" className="shrink-0">
+          <Link to="/arcade/rules">
+            <BookOpen className="size-4" /> <span className="hidden sm:inline">How to play</span>
+            <span className="sm:hidden">Rules</span>
+          </Link>
+        </Button>
       </div>
 
       <TopAdBanner placement="arcade" />

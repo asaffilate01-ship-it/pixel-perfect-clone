@@ -29,6 +29,7 @@ import { Route as ArcadeHigherLowerRouteImport } from './routes/arcade_.higher-l
 import { Route as ArcadeMastermindRouteImport } from './routes/arcade_.mastermind'
 import { Route as ArcadeQuizRaceRouteImport } from './routes/arcade_.quiz-race'
 import { Route as ArcadeRoomsRouteImport } from './routes/arcade_.rooms'
+import { Route as ArcadeRulesRouteImport } from './routes/arcade_.rules'
 import { Route as ClueSportRouteImport } from './routes/clue.$sport'
 import { Route as EndlessSportRouteImport } from './routes/endless.$sport'
 import { Route as ModesSportRouteImport } from './routes/modes.$sport'
@@ -135,6 +136,11 @@ const ArcadeRoomsRoute = ArcadeRoomsRouteImport.update({
   path: '/arcade/rooms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArcadeRulesRoute = ArcadeRulesRouteImport.update({
+  id: '/arcade_/rules',
+  path: '/arcade/rules',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ClueSportRoute = ClueSportRouteImport.update({
   id: '/clue/$sport',
   path: '/clue/$sport',
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
   '/arcade/rooms': typeof ArcadeRoomsRoute
+  '/arcade/rules': typeof ArcadeRulesRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
   '/arcade/rooms': typeof ArcadeRoomsRoute
+  '/arcade/rules': typeof ArcadeRulesRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
@@ -235,6 +243,7 @@ export interface FileRoutesById {
   '/arcade_/mastermind': typeof ArcadeMastermindRoute
   '/arcade_/quiz-race': typeof ArcadeQuizRaceRoute
   '/arcade_/rooms': typeof ArcadeRoomsRoute
+  '/arcade_/rules': typeof ArcadeRulesRoute
   '/clue/$sport': typeof ClueSportRoute
   '/endless/$sport': typeof EndlessSportRoute
   '/modes/$sport': typeof ModesSportRoute
@@ -263,6 +272,7 @@ export interface FileRouteTypes {
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
     | '/arcade/rooms'
+    | '/arcade/rules'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
     | '/arcade/rooms'
+    | '/arcade/rules'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
@@ -316,6 +327,7 @@ export interface FileRouteTypes {
     | '/arcade_/mastermind'
     | '/arcade_/quiz-race'
     | '/arcade_/rooms'
+    | '/arcade_/rules'
     | '/clue/$sport'
     | '/endless/$sport'
     | '/modes/$sport'
@@ -340,6 +352,7 @@ export interface RootRouteChildren {
   ArcadeMastermindRoute: typeof ArcadeMastermindRoute
   ArcadeQuizRaceRoute: typeof ArcadeQuizRaceRoute
   ArcadeRoomsRoute: typeof ArcadeRoomsRoute
+  ArcadeRulesRoute: typeof ArcadeRulesRoute
   ClueSportRoute: typeof ClueSportRoute
   EndlessSportRoute: typeof EndlessSportRoute
   ModesSportRoute: typeof ModesSportRoute
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArcadeRoomsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/arcade_/rules': {
+      id: '/arcade_/rules'
+      path: '/arcade/rules'
+      fullPath: '/arcade/rules'
+      preLoaderRoute: typeof ArcadeRulesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/clue/$sport': {
       id: '/clue/$sport'
       path: '/clue/$sport'
@@ -561,6 +581,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArcadeMastermindRoute: ArcadeMastermindRoute,
   ArcadeQuizRaceRoute: ArcadeQuizRaceRoute,
   ArcadeRoomsRoute: ArcadeRoomsRoute,
+  ArcadeRulesRoute: ArcadeRulesRoute,
   ClueSportRoute: ClueSportRoute,
   EndlessSportRoute: EndlessSportRoute,
   ModesSportRoute: ModesSportRoute,
