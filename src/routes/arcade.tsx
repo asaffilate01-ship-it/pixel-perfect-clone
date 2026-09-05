@@ -16,13 +16,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
 import { useEntitlements } from "@/lib/entitlements";
-import {
-  GAME_ART,
-  GAME_FILTERS,
-  TONE_GRADIENT,
-  TONE_TEXT,
-  type GameArt,
-} from "@/lib/gameCatalog";
+import { GAME_ART, GAME_FILTERS, TONE_GRADIENT, TONE_TEXT, type GameArt } from "@/lib/gameCatalog";
 import statCards from "@/assets/games/stat-cards.jpg";
 
 export const Route = createFileRoute("/arcade")({
@@ -58,16 +52,20 @@ async function fetchGameModes() {
 
 type ModeRoute =
   | { to: "/arcade/connect-four" }
+  | { to: "/arcade/higher-lower" }
   | { to: "/compete" }
   | { to: "/arcade/mastermind" }
   | { to: "/arcade/rooms" }
   | { to: "/arcade/quiz-race"; search: { game: "ludo" | "snakes" } }
   | {
       to: "/arcade/board";
-      search: { mode: "territory" | "501" | "connections" | "draft" | "bingo" };
+      search: {
+        mode: "territory" | "501" | "connections" | "draft" | "bingo" | "tower" | "cards";
+      };
     };
 
 const ROUTES: Record<string, ModeRoute> = {
+  "higher-lower": { to: "/arcade/higher-lower" },
   "tic-tac-toe": { to: "/compete" },
   "connect-four": { to: "/arcade/connect-four" },
   "quiz-ludo": { to: "/arcade/quiz-race", search: { game: "ludo" } },
@@ -78,6 +76,8 @@ const ROUTES: Record<string, ModeRoute> = {
   connections: { to: "/arcade/board", search: { mode: "connections" } },
   "draft-xi": { to: "/arcade/board", search: { mode: "draft" } },
   bingo: { to: "/arcade/board", search: { mode: "bingo" } },
+  "category-tower": { to: "/arcade/board", search: { mode: "tower" } },
+  "stat-cards": { to: "/arcade/board", search: { mode: "cards" } },
 };
 
 const FALLBACK_ART: GameArt = {
@@ -242,7 +242,9 @@ function Arcade() {
                 )}
               </span>
               <span className="flex flex-1 flex-col p-4 pt-2">
-                <span className="font-display text-2xl leading-none tracking-wide">{mode.name}</span>
+                <span className="font-display text-2xl leading-none tracking-wide">
+                  {mode.name}
+                </span>
                 <span className="mt-1.5 line-clamp-2 flex-1 text-xs text-muted-foreground">
                   {mode.description}
                 </span>
@@ -336,7 +338,13 @@ function Arcade() {
   );
 }
 
-function Badge({ tone, children }: { tone: "primary" | "gold" | "muted"; children: React.ReactNode }) {
+function Badge({
+  tone,
+  children,
+}: {
+  tone: "primary" | "gold" | "muted";
+  children: React.ReactNode;
+}) {
   const cls =
     tone === "gold"
       ? "border-gold/50 bg-gold/90 text-gold-foreground"
