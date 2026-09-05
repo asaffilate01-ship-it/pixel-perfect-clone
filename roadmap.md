@@ -89,3 +89,5 @@
 
 ## Done (Sep 5 phase merge)
 - Higher or Lower game registered live; question quality depth phase 1 applied (40 new sourced questions across 10 sports, editorial difficulty + play-based recalibration, staff pool-readiness report, 18 unsourced legacy questions parked for review)
+
+- [x] 2026-09-05: batch-audit migration applied live (batch blocked 96/1000); two-device room create/join proven; fixed entitlements typecheck
