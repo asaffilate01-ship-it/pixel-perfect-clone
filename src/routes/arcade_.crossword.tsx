@@ -1,8 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Check, ChevronLeft, Lightbulb, Puzzle, RotateCcw, Trophy } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Check,
+  ChevronLeft,
+  Lightbulb,
+  LoaderCircle,
+  Puzzle,
+  RefreshCw,
+  RotateCcw,
+  Trophy,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
+import { reserveCrossword, type CrosswordEntry as Entry } from "@/lib/arcadeContent";
+import { DIFFICULTIES } from "@/lib/fanzeno";
+import { Chip } from "@/components/game/ArcadeSetup";
 
 export const Route = createFileRoute("/arcade_/crossword")({
   head: () => ({
@@ -14,9 +26,7 @@ export const Route = createFileRoute("/arcade_/crossword")({
   component: CrosswordPage,
 });
 
-type Entry = { answer: string; clue: string; row: number; col: number; vertical?: boolean };
-
-const ENTRIES: Entry[] = [
+const FALLBACK_ENTRIES: Entry[] = [
   { answer: "SKI", clue: "Equipment used to glide across snow", row: 2, col: 4, vertical: true },
   { answer: "WICKET", clue: "A dismissal target in cricket", row: 3, col: 1 },
   { answer: "TENNIS", clue: "Sport played at Wimbledon", row: 3, col: 6, vertical: true },
@@ -24,16 +34,21 @@ const ENTRIES: Entry[] = [
   { answer: "PIT", clue: "Where a racing car stops for service", row: 7, col: 5 },
 ];
 
-const SIZE = 9;
-
 function cellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
 
 function CrosswordPage() {
+  const [entries, setEntries] = useState(FALLBACK_ENTRIES);
+  const [size, setSize] = useState(9);
+  const [difficulty, setDifficulty] = useState(2);
+  const [puzzleLabel, setPuzzleLabel] = useState("Mixed sports");
+  const [loadingPuzzle, setLoadingPuzzle] = useState(true);
+  const [loadNotice, setLoadNotice] = useState<string | null>(null);
+  const [puzzleVersion, setPuzzleVersion] = useState(0);
   const cells = useMemo(() => {
     const result = new Map<string, { letter: string; entries: number[] }>();
-    ENTRIES.forEach((entry, entryIndex) => {
+    entries.forEach((entry, entryIndex) => {
       [...entry.answer].forEach((letter, offset) => {
         const row = entry.row + (entry.vertical ? offset : 0);
         const col = entry.col + (entry.vertical ? 0 : offset);
@@ -43,10 +58,45 @@ function CrosswordPage() {
       });
     });
     return result;
-  }, []);
+  }, [entries]);
+  const clueNumbers = useMemo(() => {
+    const starts = [...new Set(entries.map((entry) => cellKey(entry.row, entry.col)))].sort(
+      (a, b) => {
+        const [ar, ac] = a.split(":").map(Number);
+        const [br, bc] = b.split(":").map(Number);
+        return ar - br || ac - bc;
+      },
+    );
+    const byCell = new Map(starts.map((key, index) => [key, index + 1]));
+    return entries.map((entry) => byCell.get(cellKey(entry.row, entry.col)) ?? 0);
+  }, [entries]);
   const [letters, setLetters] = useState<Record<string, string>>({});
   const [checked, setChecked] = useState(false);
   const [hints, setHints] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    let live = true;
+    setLoadingPuzzle(true);
+    setLoadNotice(null);
+    void reserveCrossword(difficulty)
+      .then((puzzle) => {
+        if (!live) return;
+        if (puzzle?.entries.length) {
+          setEntries(puzzle.entries);
+          setSize(puzzle.size);
+          setPuzzleLabel(puzzle.sportLabel);
+        } else {
+          setLoadNotice("Verified puzzles are still being populated; showing the offline puzzle.");
+        }
+      })
+      .catch(() => {
+        if (live) setLoadNotice("Offline puzzle loaded. Your next online game will rotate again.");
+      })
+      .finally(() => live && setLoadingPuzzle(false));
+    return () => {
+      live = false;
+    };
+  }, [difficulty, puzzleVersion]);
 
   const correct = [...cells].filter(([key, cell]) => letters[key] === cell.letter).length;
   const complete = correct === cells.size;
@@ -54,7 +104,7 @@ function CrosswordPage() {
 
   const revealHint = (entryIndex: number) => {
     if (hints.has(entryIndex)) return;
-    const entry = ENTRIES[entryIndex];
+    const entry = entries[entryIndex];
     if (!entry) return;
     const offset = [...entry.answer].findIndex((_, index) => {
       const key = cellKey(
@@ -80,6 +130,11 @@ function CrosswordPage() {
     setChecked(false);
   };
 
+  const newPuzzle = () => {
+    reset();
+    setPuzzleVersion((value) => value + 1);
+  };
+
   return (
     <div className="mx-auto w-full max-w-5xl px-3 py-6 sm:px-4 sm:py-9">
       <SideAdRail placement="arcade-crossword" />
@@ -102,7 +157,7 @@ function CrosswordPage() {
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <p className="text-xs font-black uppercase tracking-[.16em] text-primary">
-                Mixed sports · Medium
+                {puzzleLabel} · {DIFFICULTIES.find((item) => item.level === difficulty)?.label}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Tap a square and type. Intersections share letters.
@@ -117,33 +172,77 @@ function CrosswordPage() {
               </div>
             </div>
           </div>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            {DIFFICULTIES.map((item) => (
+              <Chip
+                key={item.level}
+                on={difficulty === item.level}
+                onClick={() => {
+                  reset();
+                  setDifficulty(item.level);
+                }}
+              >
+                {item.label}
+              </Chip>
+            ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={newPuzzle}
+              disabled={loadingPuzzle}
+              className="ml-auto"
+            >
+              {loadingPuzzle ? (
+                <LoaderCircle className="size-4 animate-spin" />
+              ) : (
+                <RefreshCw className="size-4" />
+              )}{" "}
+              New puzzle
+            </Button>
+          </div>
+          {loadNotice && (
+            <p className="mb-3 rounded-xl bg-gold/10 px-3 py-2 text-xs text-muted-foreground">
+              {loadNotice}
+            </p>
+          )}
 
           <div className="board-stage mb-8 mt-2">
             <div className="board-tilt board-rim board-wood mx-auto w-full max-w-xl p-3 sm:p-4">
-              <div className="grid aspect-square w-full grid-cols-9 gap-1 sm:gap-1.5">
-                {Array.from({ length: SIZE * SIZE }, (_, index) => {
-                  const row = Math.floor(index / SIZE);
-                  const col = index % SIZE;
+              <div
+                className="grid aspect-square w-full gap-1 sm:gap-1.5"
+                style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))` }}
+              >
+                {Array.from({ length: size * size }, (_, index) => {
+                  const row = Math.floor(index / size);
+                  const col = index % size;
                   const key = cellKey(row, col);
                   const cell = cells.get(key);
                   if (!cell) return <div key={key} className="tile-pocket" />;
                   const wrong = checked && letters[key] && letters[key] !== cell.letter;
                   const right = checked && letters[key] === cell.letter;
-                  const number = ENTRIES.findIndex((e) => e.row === row && e.col === col);
+                  const startingEntries = entries
+                    .map((entry, entryIndex) => ({ entry, entryIndex }))
+                    .filter(({ entry }) => entry.row === row && entry.col === col);
+                  const firstStart = startingEntries[0];
+                  const number = firstStart ? clueNumbers[firstStart.entryIndex] : 0;
                   return (
                     <div key={key} className="relative">
-                      {number >= 0 && (
+                      {number > 0 && (
                         <span className="pointer-events-none absolute left-0 top-0 z-10 flex min-w-4 items-center justify-center gap-px rounded-br-md bg-primary px-0.5 py-px text-[0.48rem] font-black leading-none text-primary-foreground shadow-sm sm:min-w-5 sm:text-[0.58rem]">
-                          {number + 1}
+                          {number}
                           <span aria-hidden="true" className="text-[0.4rem] opacity-85">
-                            {ENTRIES[number]?.vertical ? "↓" : "→"}
+                            {startingEntries.length > 1
+                              ? "↕"
+                              : firstStart?.entry.vertical
+                                ? "↓"
+                                : "→"}
                           </span>
                         </span>
                       )}
                       <input
                         value={letters[key] ?? ""}
                         maxLength={1}
-                        aria-label={`${number >= 0 ? `Clue ${number + 1} ${ENTRIES[number]?.vertical ? "Down" : "Across"}, ` : ""}crossword row ${row + 1}, column ${col + 1}`}
+                        aria-label={`${number > 0 ? `Clue ${number}, ` : ""}crossword row ${row + 1}, column ${col + 1}`}
                         onChange={(event) => {
                           const value = event.target.value.toUpperCase().replace(/[^A-Z]/g, "");
                           setLetters((current) => ({ ...current, [key]: value }));
@@ -192,7 +291,8 @@ function CrosswordPage() {
                 </span>
                 <p className="eyebrow">{vertical ? "Down" : "Across"}</p>
               </div>
-              {ENTRIES.map((entry, index) => ({ entry, index }))
+              {entries
+                .map((entry, index) => ({ entry, index }))
                 .filter(({ entry }) => Boolean(entry.vertical) === vertical)
                 .map(({ entry, index }) => (
                   <div
@@ -200,7 +300,7 @@ function CrosswordPage() {
                     className="game-card game-tile-pop flex gap-3 p-4"
                   >
                     <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/12 text-xs font-black text-primary">
-                      {index + 1}
+                      {clueNumbers[index]}
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold">{entry.clue}</p>
@@ -211,7 +311,7 @@ function CrosswordPage() {
                     <button
                       type="button"
                       onClick={() => revealHint(index)}
-                      aria-label={`Hint for clue ${index + 1}`}
+                      aria-label={`Hint for clue ${clueNumbers[index]}`}
                       className="self-start rounded-lg p-2 text-gold hover:bg-gold/10"
                     >
                       <Lightbulb className="size-4" />
