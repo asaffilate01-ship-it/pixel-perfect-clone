@@ -320,6 +320,7 @@ export type FairQuestion = {
 
 const questionSchema = z.object({
   roomId: z.string().uuid().nullable().optional(),
+  modeSlug: z.string().min(1).max(80).nullable().optional(),
   sportId: z.string().uuid(),
   competitionId: z.string().uuid().nullable().optional(),
   category: z.string().nullable().optional(),
@@ -332,6 +333,18 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => questionSchema.parse(data))
   .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    if (!data.roomId && data.modeSlug) {
+      const secureRpc = admin.rpc.bind(admin) as unknown as (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+      const { data: allowed, error: accessError } = await secureRpc("can_host_game", {
+        p_user_id: context.userId,
+        p_mode_slug: data.modeSlug,
+      });
+      if (accessError || !allowed) throw new Error("Fanzeno Pro is required for this game");
+    }
     const { data: id, error } = await context.supabase.rpc("reserve_fair_question", {
       p_user_id: context.userId,
       p_room_id: (data.roomId ?? null) as unknown as string,
@@ -342,7 +355,6 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       ...(data.questionTypes ? { p_question_types: data.questionTypes } : {}),
     });
     if (error) throw new Error(error.message);
-    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
     const { data: q } = await admin
       .from("question_bank")
       .select("id, prompt_i18n, clue_i18n, question_type, difficulty_percentile")
