@@ -328,12 +328,35 @@ const questionSchema = z.object({
   questionTypes: z.array(z.string()).nullable().optional(),
 });
 
+async function requireActiveRoomTurn(
+  admin: typeof import("@/integrations/supabase/client.server").supabaseAdmin,
+  roomId: string,
+  userId: string,
+) {
+  const [{ data: room }, { data: player }] = await Promise.all([
+    admin.from("arcade_rooms").select("status, active_seat").eq("id", roomId).maybeSingle(),
+    admin
+      .from("arcade_room_players")
+      .select("seat, status")
+      .eq("room_id", roomId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+  ]);
+  if (!room || !player) throw new Error("You are not a participant in this room");
+  if (room.status !== "active") throw new Error("This room is not active");
+  if (room.active_seat !== null && room.active_seat !== player.seat)
+    throw new Error("It is not your turn");
+  if (player.status === "disconnected" || player.status === "finished")
+    throw new Error("This player cannot take a turn");
+}
+
 /** Reserve a fair, never-recently-seen verified question. Only prompt + clue are returned. */
 export const nextFairQuestion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => questionSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    if (data.roomId) await requireActiveRoomTurn(admin, data.roomId, context.userId);
     if (!data.roomId && data.modeSlug) {
       const secureRpc = admin.rpc.bind(admin) as unknown as (
         name: string,
@@ -451,6 +474,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => answerSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    if (data.roomId) await requireActiveRoomTurn(admin, data.roomId, context.userId);
     const { data: q } = await admin
       .from("question_bank")
       .select("answer_rule, answer_display_i18n")
