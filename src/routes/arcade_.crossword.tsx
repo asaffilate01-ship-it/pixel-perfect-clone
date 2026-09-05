@@ -55,6 +55,7 @@ function CrosswordPage() {
   const revealHint = (entryIndex: number) => {
     if (hints.has(entryIndex)) return;
     const entry = ENTRIES[entryIndex];
+    if (!entry) return;
     const offset = [...entry.answer].findIndex((_, index) => {
       const key = cellKey(
         entry.row + (entry.vertical ? index : 0),
@@ -67,7 +68,8 @@ function CrosswordPage() {
       entry.row + (entry.vertical ? offset : 0),
       entry.col + (entry.vertical ? 0 : offset),
     );
-    setLetters((current) => ({ ...current, [key]: entry.answer[offset] }));
+    const letter = entry.answer[offset] ?? "";
+    setLetters((current) => ({ ...current, [key]: letter }));
     setHints((current) => new Set(current).add(entryIndex));
     setChecked(false);
   };

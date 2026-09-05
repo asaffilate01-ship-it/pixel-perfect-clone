@@ -2663,6 +2663,88 @@ export type Database = {
         }
         Relationships: []
       }
+      question_content_campaign_batches: {
+        Row: {
+          batch_id: string | null
+          campaign_id: string
+          created_at: string
+          sequence_no: number
+          status: string
+          target_count: number
+        }
+        Insert: {
+          batch_id?: string | null
+          campaign_id: string
+          created_at?: string
+          sequence_no: number
+          status?: string
+          target_count: number
+        }
+        Update: {
+          batch_id?: string | null
+          campaign_id?: string
+          created_at?: string
+          sequence_no?: number
+          status?: string
+          target_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_content_campaign_batches_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: true
+            referencedRelation: "question_content_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_content_campaign_batches_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "question_content_campaign_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_content_campaign_batches_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "question_content_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_content_campaigns: {
+        Row: {
+          batch_size: number
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          status: string
+          target_count: number
+        }
+        Insert: {
+          batch_size?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label: string
+          status?: string
+          target_count: number
+        }
+        Update: {
+          batch_size?: number
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          status?: string
+          target_count?: number
+        }
+        Relationships: []
+      }
       question_exposures: {
         Row: {
           exposed_at: string
@@ -2704,6 +2786,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      question_fact_imports: {
+        Row: {
+          created_at: string
+          fetched_at: string
+          id: string
+          imported_at: string | null
+          imported_question_count: number
+          licence_notes: string
+          payload: Json
+          payload_hash: string
+          provider: string
+          source_key: string
+          source_title: string
+          source_url: string
+          sport_slug: string
+          status: string
+          validated_at: string | null
+          validation_issues: string[]
+        }
+        Insert: {
+          created_at?: string
+          fetched_at: string
+          id?: string
+          imported_at?: string | null
+          imported_question_count?: number
+          licence_notes: string
+          payload: Json
+          payload_hash: string
+          provider: string
+          source_key: string
+          source_title: string
+          source_url: string
+          sport_slug: string
+          status?: string
+          validated_at?: string | null
+          validation_issues?: string[]
+        }
+        Update: {
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          imported_at?: string | null
+          imported_question_count?: number
+          licence_notes?: string
+          payload?: Json
+          payload_hash?: string
+          provider?: string
+          source_key?: string
+          source_title?: string
+          source_url?: string
+          sport_slug?: string
+          status?: string
+          validated_at?: string | null
+          validation_issues?: string[]
+        }
+        Relationships: []
       }
       question_pool_targets: {
         Row: {
@@ -3255,6 +3394,21 @@ export type Database = {
           },
         ]
       }
+      question_content_campaign_progress: {
+        Row: {
+          batch_size: number | null
+          completion_percent: number | null
+          id: string | null
+          label: string | null
+          planned_batches: number | null
+          published_batches: number | null
+          published_questions: number | null
+          questions_remaining: number | null
+          status: string | null
+          target_count: number | null
+        }
+        Relationships: []
+      }
       question_pool_coverage: {
         Row: {
           category_key: string | null
@@ -3363,6 +3517,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      create_question_content_campaign: {
+        Args: {
+          p_batch_size?: number
+          p_label: string
+          p_target_count?: number
+        }
+        Returns: string
       }
       entitlement_verified: { Args: { p_user_id: string }; Returns: boolean }
       fill_verified_question_pools: {
@@ -3493,6 +3655,10 @@ export type Database = {
           pro_active: boolean
           verified_at: string
         }[]
+      }
+      prepare_next_campaign_batch: {
+        Args: { p_campaign_id: string }
+        Returns: Json
       }
       prepare_verified_question_batch: {
         Args: { p_label: string; p_target?: number }
