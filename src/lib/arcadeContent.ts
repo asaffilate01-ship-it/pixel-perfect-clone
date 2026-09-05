@@ -35,6 +35,25 @@ export type HigherLowerCard = {
   sport: string;
 };
 
+export function isValidCrossword(entries: CrosswordEntry[], size: number): boolean {
+  if (!Number.isInteger(size) || size < 7 || size > 15 || entries.length < 2) return false;
+  const letters = new Map<string, string>();
+  for (const entry of entries) {
+    const answer = entry.answer.trim().toUpperCase();
+    if (!answer || !/^[A-Z]+$/.test(answer) || !entry.clue.trim()) return false;
+    for (const [offset, letter] of [...answer].entries()) {
+      const row = entry.row + (entry.vertical ? offset : 0);
+      const col = entry.col + (entry.vertical ? 0 : offset);
+      if (row < 0 || col < 0 || row >= size || col >= size) return false;
+      const key = `${row}:${col}`;
+      const existing = letters.get(key);
+      if (existing && existing !== letter) return false;
+      letters.set(key, letter);
+    }
+  }
+  return true;
+}
+
 export async function reserveCrossword(difficulty: number): Promise<CrosswordPuzzle | null> {
   const { data, error } = await contentApi.rpc("reserve_crossword_puzzle", {
     p_difficulty: difficulty,
@@ -42,7 +61,7 @@ export async function reserveCrossword(difficulty: number): Promise<CrosswordPuz
   if (error) throw error;
   if (!data || typeof data !== "object") return null;
   const row = data as Record<string, unknown>;
-  return {
+  const puzzle = {
     id: String(row.id),
     title: String(row.title ?? "Sports Crossword"),
     sportLabel: String(row.sport_label ?? "Mixed sports"),
@@ -50,6 +69,7 @@ export async function reserveCrossword(difficulty: number): Promise<CrosswordPuz
     size: Number(row.grid_size ?? 9),
     entries: Array.isArray(row.entries) ? (row.entries as CrosswordEntry[]) : [],
   };
+  return isValidCrossword(puzzle.entries, puzzle.size) ? puzzle : null;
 }
 
 export async function fetchHigherLowerCards(difficulty: number): Promise<HigherLowerCard[]> {
