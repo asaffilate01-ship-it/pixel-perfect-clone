@@ -17,10 +17,10 @@ export const Route = createFileRoute("/arcade_/crossword")({
 type Entry = { answer: string; clue: string; row: number; col: number; vertical?: boolean };
 
 const ENTRIES: Entry[] = [
+  { answer: "SKI", clue: "Equipment used to glide across snow", row: 2, col: 4, vertical: true },
   { answer: "WICKET", clue: "A dismissal target in cricket", row: 3, col: 1 },
   { answer: "TENNIS", clue: "Sport played at Wimbledon", row: 3, col: 6, vertical: true },
   { answer: "ARENA", clue: "A venue for indoor sporting contests", row: 5, col: 3 },
-  { answer: "SKI", clue: "Equipment used to glide across snow", row: 2, col: 4, vertical: true },
   { answer: "PIT", clue: "Where a racing car stops for service", row: 7, col: 5 },
 ];
 
@@ -109,7 +109,12 @@ function CrosswordPage() {
               </p>
             </div>
             <div className="game-score-ring shrink-0">
-              <div className="game-score-ring-inner text-center"><p className="font-display text-xl text-primary">{score}</p><p className="text-[.5rem] font-black uppercase tracking-wider text-muted-foreground">pts</p></div>
+              <div className="game-score-ring-inner text-center">
+                <p className="font-display text-xl text-primary">{score}</p>
+                <p className="text-[.5rem] font-black uppercase tracking-wider text-muted-foreground">
+                  pts
+                </p>
+              </div>
             </div>
           </div>
 
@@ -175,28 +180,42 @@ function CrosswordPage() {
           )}
         </section>
 
-        <aside className="space-y-3">
-          <p className="eyebrow">Clues</p>
-          {ENTRIES.map((entry, index) => (
-            <div key={`${entry.answer}-${index}`} className="game-card game-tile-pop flex gap-3 p-4">
-              <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/12 text-xs font-black text-primary">
-                {index + 1}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold">{entry.clue}</p>
-                <p className="mt-1 text-[.65rem] font-black uppercase tracking-wider text-muted-foreground">
-                  {entry.vertical ? "Down" : "Across"} · {entry.answer.length} letters
-                </p>
+        <aside className="space-y-5">
+          {([false, true] as const).map((vertical) => (
+            <section key={vertical ? "down" : "across"} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="grid size-7 place-items-center rounded-lg bg-primary text-xs font-black text-primary-foreground">
+                  {vertical ? "↓" : "→"}
+                </span>
+                <p className="eyebrow">{vertical ? "Down" : "Across"}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => revealHint(index)}
-                aria-label={`Hint for clue ${index + 1}`}
-                className="self-start rounded-lg p-2 text-gold hover:bg-gold/10"
-              >
-                <Lightbulb className="size-4" />
-              </button>
-            </div>
+              {ENTRIES.map((entry, index) => ({ entry, index }))
+                .filter(({ entry }) => Boolean(entry.vertical) === vertical)
+                .map(({ entry, index }) => (
+                  <div
+                    key={`${entry.answer}-${index}`}
+                    className="game-card game-tile-pop flex gap-3 p-4"
+                  >
+                    <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-primary/12 text-xs font-black text-primary">
+                      {index + 1}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold">{entry.clue}</p>
+                      <p className="mt-1 text-[.65rem] font-black uppercase tracking-wider text-muted-foreground">
+                        {entry.answer.length} letters
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => revealHint(index)}
+                      aria-label={`Hint for clue ${index + 1}`}
+                      className="self-start rounded-lg p-2 text-gold hover:bg-gold/10"
+                    >
+                      <Lightbulb className="size-4" />
+                    </button>
+                  </div>
+                ))}
+            </section>
           ))}
         </aside>
       </div>
