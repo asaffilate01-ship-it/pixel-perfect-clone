@@ -2446,14 +2446,17 @@ export type Database = {
           content_hash: string | null
           created_at: string
           difficulty_b: number
+          difficulty_confidence: number
           difficulty_percentile: number
           discrimination_a: number
+          editorial_difficulty_percentile: number
           entity_ids: string[]
           format_key: string
           id: string
           max_answers: number
           media_assets: Json
           median_response_ms: number | null
+          needs_difficulty_review: boolean
           prompt_i18n: Json
           quality_score: number
           question_type: string
@@ -2481,14 +2484,17 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           difficulty_b?: number
+          difficulty_confidence?: number
           difficulty_percentile?: number
           discrimination_a?: number
+          editorial_difficulty_percentile: number
           entity_ids?: string[]
           format_key?: string
           id?: string
           max_answers?: number
           media_assets?: Json
           median_response_ms?: number | null
+          needs_difficulty_review?: boolean
           prompt_i18n: Json
           quality_score?: number
           question_type: string
@@ -2516,14 +2522,17 @@ export type Database = {
           content_hash?: string | null
           created_at?: string
           difficulty_b?: number
+          difficulty_confidence?: number
           difficulty_percentile?: number
           discrimination_a?: number
+          editorial_difficulty_percentile?: number
           entity_ids?: string[]
           format_key?: string
           id?: string
           max_answers?: number
           media_assets?: Json
           median_response_ms?: number | null
+          needs_difficulty_review?: boolean
           prompt_i18n?: Json
           quality_score?: number
           question_type?: string
@@ -3178,6 +3187,27 @@ export type Database = {
             referencedRelation: "competitions"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "question_bank_sport_id_fkey"
+            columns: ["sport_id"]
+            isOneToOne: false
+            referencedRelation: "sports"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_pool_readiness: {
+        Row: {
+          category_key: string | null
+          depth_target_met: boolean | null
+          easy: number | null
+          expert: number | null
+          hard: number | null
+          launch_ready: boolean | null
+          medium: number | null
+          sport_id: string | null
+        }
+        Relationships: [
           {
             foreignKeyName: "question_bank_sport_id_fkey"
             columns: ["sport_id"]
