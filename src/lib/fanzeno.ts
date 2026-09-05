@@ -394,15 +394,20 @@ export async function createRoom(gridId: string) {
 }
 
 export async function findRoom(code: string) {
-  const { data, error } = await supabase
-    .from("rooms")
-    .select("id, code, grid_id, grids!inner(sports!inner(slug))")
-    .eq("code", code.toUpperCase())
-    .maybeSingle();
+  // Exact-code lookup through a server-side helper; the rooms table itself is only
+  // readable by hosts, participants and public rooms.
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    name: string,
+    args: Record<string, unknown>,
+  ) => PromiseLike<{
+    data: { id: string; code: string; grid_id: string; sport_slug: string }[] | null;
+    error: { message: string } | null;
+  }>;
+  const { data, error } = await rpc("fz_find_room", { p_code: code.toUpperCase() });
   if (error) throw error;
-  if (!data) return null;
-  const slug = (data.grids as unknown as { sports: { slug: string } }).sports.slug;
-  return { id: data.id, code: data.code, gridId: data.grid_id, sportSlug: slug };
+  const row = data?.[0];
+  if (!row) return null;
+  return { id: row.id, code: row.code, gridId: row.grid_id, sportSlug: row.sport_slug };
 }
 
 export type LeaderRow = {
