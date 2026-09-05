@@ -27,7 +27,13 @@ export const Route = createFileRoute("/arcade_/crossword")({
 });
 
 const FALLBACK_ENTRIES: Entry[] = [
-  { answer: "SKI", clue: "Equipment used to glide across snow", row: 2, col: 4, vertical: true },
+  {
+    answer: "SKI",
+    clue: "One piece of equipment used to glide across snow",
+    row: 2,
+    col: 4,
+    vertical: true,
+  },
   { answer: "WICKET", clue: "A dismissal target in cricket", row: 3, col: 1 },
   { answer: "TENNIS", clue: "Sport played at Wimbledon", row: 3, col: 6, vertical: true },
   { answer: "ARENA", clue: "A venue for indoor sporting contests", row: 5, col: 3 },
