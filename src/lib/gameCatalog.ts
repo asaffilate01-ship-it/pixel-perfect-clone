@@ -43,6 +43,15 @@ export type GameArt = {
 };
 
 export const GAME_ART: Record<string, GameArt> = {
+  "higher-lower": {
+    art: statCards,
+    icon: ArrowUpDown,
+    tone: "accent",
+    kind: "solo",
+    kindLabel: "Higher or lower",
+    time: "3 min",
+    isNew: true,
+  },
   "tic-tac-toe": {
     art: ticTacToe,
     icon: Grid3x3,
@@ -96,8 +105,8 @@ export const GAME_ART: Record<string, GameArt> = {
     art: categoryTower,
     icon: Layers,
     tone: "secondary",
-    kind: "live",
-    kindLabel: "1v1 climb",
+    kind: "solo",
+    kindLabel: "Quiz climb",
     time: "10 min",
   },
   "sports-501": {
