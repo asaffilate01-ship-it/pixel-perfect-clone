@@ -24,6 +24,7 @@ import { Route as AuthenticatedOnboardingRouteImport } from './routes/_authentic
 import { Route as AuthenticatedProfileRouteImport } from './routes/_authenticated/profile'
 import { Route as ArcadeBoardRouteImport } from './routes/arcade_.board'
 import { Route as ArcadeConnectFourRouteImport } from './routes/arcade_.connect-four'
+import { Route as ArcadeHigherLowerRouteImport } from './routes/arcade_.higher-lower'
 import { Route as ArcadeMastermindRouteImport } from './routes/arcade_.mastermind'
 import { Route as ArcadeQuizRaceRouteImport } from './routes/arcade_.quiz-race'
 import { Route as ArcadeRoomsRouteImport } from './routes/arcade_.rooms'
@@ -108,6 +109,11 @@ const ArcadeConnectFourRoute = ArcadeConnectFourRouteImport.update({
   path: '/arcade/connect-four',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArcadeHigherLowerRoute = ArcadeHigherLowerRouteImport.update({
+  id: '/arcade_/higher-lower',
+  path: '/arcade/higher-lower',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArcadeMastermindRoute = ArcadeMastermindRouteImport.update({
   id: '/arcade_/mastermind',
   path: '/arcade/mastermind',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/profile': typeof AuthenticatedProfileRoute
   '/arcade/board': typeof ArcadeBoardRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
+  '/arcade/higher-lower': typeof ArcadeHigherLowerRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
   '/arcade/rooms': typeof ArcadeRoomsRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/profile': typeof AuthenticatedProfileRoute
   '/arcade/board': typeof ArcadeBoardRoute
   '/arcade/connect-four': typeof ArcadeConnectFourRoute
+  '/arcade/higher-lower': typeof ArcadeHigherLowerRoute
   '/arcade/mastermind': typeof ArcadeMastermindRoute
   '/arcade/quiz-race': typeof ArcadeQuizRaceRoute
   '/arcade/rooms': typeof ArcadeRoomsRoute
@@ -214,6 +222,7 @@ export interface FileRoutesById {
   '/_authenticated/profile': typeof AuthenticatedProfileRoute
   '/arcade_/board': typeof ArcadeBoardRoute
   '/arcade_/connect-four': typeof ArcadeConnectFourRoute
+  '/arcade_/higher-lower': typeof ArcadeHigherLowerRoute
   '/arcade_/mastermind': typeof ArcadeMastermindRoute
   '/arcade_/quiz-race': typeof ArcadeQuizRaceRoute
   '/arcade_/rooms': typeof ArcadeRoomsRoute
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/arcade/board'
     | '/arcade/connect-four'
+    | '/arcade/higher-lower'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
     | '/arcade/rooms'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/profile'
     | '/arcade/board'
     | '/arcade/connect-four'
+    | '/arcade/higher-lower'
     | '/arcade/mastermind'
     | '/arcade/quiz-race'
     | '/arcade/rooms'
@@ -289,6 +300,7 @@ export interface FileRouteTypes {
     | '/_authenticated/profile'
     | '/arcade_/board'
     | '/arcade_/connect-four'
+    | '/arcade_/higher-lower'
     | '/arcade_/mastermind'
     | '/arcade_/quiz-race'
     | '/arcade_/rooms'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   UpgradeRoute: typeof UpgradeRoute
   ArcadeBoardRoute: typeof ArcadeBoardRoute
   ArcadeConnectFourRoute: typeof ArcadeConnectFourRoute
+  ArcadeHigherLowerRoute: typeof ArcadeHigherLowerRoute
   ArcadeMastermindRoute: typeof ArcadeMastermindRoute
   ArcadeQuizRaceRoute: typeof ArcadeQuizRaceRoute
   ArcadeRoomsRoute: typeof ArcadeRoomsRoute
@@ -428,6 +441,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArcadeConnectFourRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/arcade_/higher-lower': {
+      id: '/arcade_/higher-lower'
+      path: '/arcade/higher-lower'
+      fullPath: '/arcade/higher-lower'
+      preLoaderRoute: typeof ArcadeHigherLowerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/arcade_/mastermind': {
       id: '/arcade_/mastermind'
       path: '/arcade/mastermind'
@@ -516,6 +536,7 @@ const rootRouteChildren: RootRouteChildren = {
   UpgradeRoute: UpgradeRoute,
   ArcadeBoardRoute: ArcadeBoardRoute,
   ArcadeConnectFourRoute: ArcadeConnectFourRoute,
+  ArcadeHigherLowerRoute: ArcadeHigherLowerRoute,
   ArcadeMastermindRoute: ArcadeMastermindRoute,
   ArcadeQuizRaceRoute: ArcadeQuizRaceRoute,
   ArcadeRoomsRoute: ArcadeRoomsRoute,
