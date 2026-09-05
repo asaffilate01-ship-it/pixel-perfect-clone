@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
 import { DIFFICULTIES } from "@/lib/fanzeno";
 import { Chip, Label } from "@/components/game/ArcadeSetup";
+import { fetchHigherLowerCards } from "@/lib/arcadeContent";
 
 export const Route = createFileRoute("/arcade_/higher-lower")({
   head: () => ({
@@ -127,8 +128,8 @@ function shuffled<T>(items: T[], seed: number) {
   return out;
 }
 
-function makeRun(level: number, seed: number) {
-  const grouped = CARDS.reduce<Record<string, Card[]>>((result, card) => {
+function makeRun(cards: Card[], level: number, seed: number) {
+  const grouped = cards.reduce<Record<string, Card[]>>((result, card) => {
     (result[card.metric] ??= []).push(card);
     return result;
   }, {});
@@ -158,10 +159,34 @@ function makeRun(level: number, seed: number) {
 function HigherLowerPage() {
   const [difficulty, setDifficulty] = useState(2);
   const [runSeed, setRunSeed] = useState(0);
+  const [cards, setCards] = useState(CARDS);
+  const [loadingCards, setLoadingCards] = useState(true);
+  const [loadNotice, setLoadNotice] = useState<string | null>(null);
   useEffect(() => {
     setRunSeed(Math.floor(Math.random() * 100_000));
   }, []);
-  const run = useMemo(() => makeRun(difficulty, runSeed), [difficulty, runSeed]);
+  useEffect(() => {
+    let live = true;
+    setLoadingCards(true);
+    setLoadNotice(null);
+    void fetchHigherLowerCards(difficulty)
+      .then((next) => {
+        if (!live) return;
+        if (next.length >= 4) setCards(next);
+        else
+          setLoadNotice("The verified online pool is still growing; offline records are in play.");
+        setRunSeed(Math.floor(Math.random() * 100_000));
+      })
+      .catch(() => {
+        if (live)
+          setLoadNotice("Offline records loaded. Online rotation will resume automatically.");
+      })
+      .finally(() => live && setLoadingCards(false));
+    return () => {
+      live = false;
+    };
+  }, [difficulty]);
+  const run = useMemo(() => makeRun(cards, difficulty, runSeed), [cards, difficulty, runSeed]);
   const [round, setRound] = useState(0);
   const [lives, setLives] = useState(3);
   const [score, setScore] = useState(0);
@@ -230,13 +255,16 @@ function HigherLowerPage() {
                     key={d.level}
                     on={difficulty === d.level}
                     onClick={() => {
-                      if (round === 0) setDifficulty(d.level);
+                      if (round === 0 && !loadingCards) setDifficulty(d.level);
                     }}
                   >
                     {d.label}
                   </Chip>
                 ))}
               </div>
+              {loadNotice && (
+                <p className="mt-2 max-w-md text-xs text-muted-foreground">{loadNotice}</p>
+              )}
             </div>
             <div className="text-right">
               <p className="font-display text-3xl text-primary">{score}</p>
@@ -251,10 +279,19 @@ function HigherLowerPage() {
           </div>
           {!revealed ? (
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <Button size="lg" className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-primary)_55%,black)] active:translate-y-1 active:shadow-none" onClick={() => choose(true)}>
+              <Button
+                size="lg"
+                className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-primary)_55%,black)] active:translate-y-1 active:shadow-none"
+                onClick={() => choose(true)}
+              >
                 <ArrowUp className="size-5" /> Higher
               </Button>
-              <Button size="lg" variant="secondary" className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-gold)_55%,black)] active:translate-y-1 active:shadow-none" onClick={() => choose(false)}>
+              <Button
+                size="lg"
+                variant="secondary"
+                className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-gold)_55%,black)] active:translate-y-1 active:shadow-none"
+                onClick={() => choose(false)}
+              >
                 <ArrowDown className="size-5" /> Lower
               </Button>
             </div>
@@ -310,7 +347,9 @@ function StatCard({ card, revealed }: { card: Card; revealed: boolean }) {
       <p className="relative mt-2 text-xs text-muted-foreground">{card.metric}</p>
       <div className="relative mt-5 min-h-14">
         {revealed ? (
-          <p className="card-flip-in font-display text-5xl text-gold drop-shadow-[0_4px_0_rgba(0,0,0,0.45)]">{card.display}</p>
+          <p className="card-flip-in font-display text-5xl text-gold drop-shadow-[0_4px_0_rgba(0,0,0,0.45)]">
+            {card.display}
+          </p>
         ) : (
           <p className="font-display text-5xl text-muted-foreground">?</p>
         )}

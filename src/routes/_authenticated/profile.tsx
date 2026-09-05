@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEntitlements } from "@/lib/entitlements";
 import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
-import { AvatarCustomiser, CustomAvatar } from "@/components/game/AvatarCustomiser";
+import { AvatarCustomiser } from "@/components/game/AvatarCustomiser";
+import { PhotoAvatarStudio } from "@/components/game/PhotoAvatarStudio";
 import {
   DEFAULT_AVATAR_SETTINGS,
   parseAvatarSettings,
@@ -43,7 +44,7 @@ async function fetchMyStats(userId: string) {
     .eq("user_id", userId);
   const { data: profile } = await supabase
     .from("profiles")
-    .select("avatar_preset, avatar_settings")
+    .select("avatar_preset, avatar_settings, avatar_url")
     .eq("id", userId)
     .maybeSingle();
   const { data: abilities } = await supabase
@@ -55,6 +56,7 @@ async function fetchMyStats(userId: string) {
     ratings: ratings ?? [],
     clues: clues ?? [],
     avatar: profile?.avatar_preset ?? "captain",
+    avatarUrl: profile?.avatar_url ?? null,
     avatarSettings: parseAvatarSettings(profile?.avatar_settings),
     abilities: abilities ?? [],
   };
@@ -104,7 +106,15 @@ function ProfilePage() {
     <div className="mx-auto w-full max-w-2xl px-4 py-10">
       <p className="eyebrow">Your profile</p>
       <div className="mt-6 flex items-center gap-4">
-        <CustomAvatar settings={avatarSettings} size={64} />
+        {data?.avatarUrl ? (
+          <img
+            src={data.avatarUrl}
+            alt="Your generated avatar"
+            className="size-16 shrink-0 rounded-[1.3rem] object-cover shadow-xl"
+          />
+        ) : (
+          <Avatar id={avatar} size={64} />
+        )}
         <div className="min-w-0 flex-1">
           <h1 className="text-3xl">{displayName ?? "Fanzeno player"}</h1>
           <p className="text-xs text-muted-foreground">{user?.email}</p>
@@ -118,10 +128,12 @@ function ProfilePage() {
       />
       <AvatarCustomiser
         value={avatarSettings}
+        preset={avatar}
         onChange={setAvatarSettings}
         onSave={() => void saveCustomAvatar()}
         saving={savingAvatar}
       />
+      {user && <PhotoAvatarStudio pro={pro} userId={user.id} settings={avatarSettings} />}
 
       <div className="panel mt-7 grid grid-cols-3 divide-x divide-border/70">
         <Stat value={String(played)} label="Grids played" />
