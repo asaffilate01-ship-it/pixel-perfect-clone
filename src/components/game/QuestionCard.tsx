@@ -125,10 +125,11 @@ export function QuestionCard({
           return;
         } catch (e) {
           if (!isStale()) {
+            const raw = e instanceof Error ? e.message : "";
             setLoadError(
-              e instanceof Error
-                ? e.message
-                : "A verified question is not available for this exact sport and level.",
+              /No verified .* question is available/i.test(raw)
+                ? `${raw}. Our verified bank for this sport and level is small right now — pick an easier level or another sport, or check back soon.`
+                : raw || "A verified question is not available for this exact sport and level.",
             );
             setLoading(false);
           }
