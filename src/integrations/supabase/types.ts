@@ -2579,6 +2579,90 @@ export type Database = {
           },
         ]
       }
+      question_content_batch_items: {
+        Row: {
+          audit_issues: string[]
+          audit_passed: boolean | null
+          audited_at: string | null
+          batch_id: string
+          question_id: string
+        }
+        Insert: {
+          audit_issues?: string[]
+          audit_passed?: boolean | null
+          audited_at?: string | null
+          batch_id: string
+          question_id: string
+        }
+        Update: {
+          audit_issues?: string[]
+          audit_passed?: boolean | null
+          audited_at?: string | null
+          batch_id?: string
+          question_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_content_batch_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "question_content_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_content_batch_items_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_content_batches: {
+        Row: {
+          audit_summary: Json
+          audited_at: string | null
+          candidate_count: number
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          id: string
+          label: string
+          passed_count: number
+          published_at: string | null
+          status: string
+          target_count: number
+        }
+        Insert: {
+          audit_summary?: Json
+          audited_at?: string | null
+          candidate_count?: number
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          label: string
+          passed_count?: number
+          published_at?: string | null
+          status?: string
+          target_count: number
+        }
+        Update: {
+          audit_summary?: Json
+          audited_at?: string | null
+          candidate_count?: number
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          label?: string
+          passed_count?: number
+          published_at?: string | null
+          status?: string
+          target_count?: number
+        }
+        Relationships: []
+      }
       question_exposures: {
         Row: {
           exposed_at: string
@@ -3240,6 +3324,10 @@ export type Database = {
       }
     }
     Functions: {
+      audit_question_content_batch: {
+        Args: { p_batch_id: string }
+        Returns: Json
+      }
       can_host_game: {
         Args: { p_mode_slug: string; p_user_id: string }
         Returns: boolean
@@ -3405,6 +3493,10 @@ export type Database = {
           pro_active: boolean
           verified_at: string
         }[]
+      }
+      prepare_verified_question_batch: {
+        Args: { p_label: string; p_target?: number }
+        Returns: Json
       }
       publish_question: { Args: { p_question_id: string }; Returns: undefined }
       question_difficulty_band: {
