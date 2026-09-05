@@ -69,8 +69,28 @@ type Player = {
   categoryKey: string | null;
   position: number;
   tokens: number[];
+  tokenStyle: TokenStyle;
+  tokenColor: string;
   userId?: string;
 };
+
+type TokenStyle = "pawn" | "orb" | "gem" | "crown";
+const TOKEN_STYLES: { id: TokenStyle; label: string }[] = [
+  { id: "pawn", label: "Classic" },
+  { id: "orb", label: "Orb" },
+  { id: "gem", label: "Gem" },
+  { id: "crown", label: "Crown" },
+];
+const TOKEN_COLORS = [
+  "#EF4444",
+  "#22C55E",
+  "#FACC15",
+  "#3B82F6",
+  "#A855F7",
+  "#F97316",
+  "#14B8A6",
+  "#EC4899",
+];
 
 function QuizRacePage() {
   const { game, room: roomId } = Route.useSearch();
@@ -100,6 +120,7 @@ function QuizRacePage() {
   const [turn, setTurn] = useState(0);
   const [turnKey, setTurnKey] = useState(0);
   const [rolling, setRolling] = useState(false);
+  const [moving, setMoving] = useState(false);
   const [players, setPlayers] = useState<Player[]>(() =>
     Array.from({ length: 4 }, (_, i) => ({
       name: `Player ${i + 1}`,
@@ -108,6 +129,8 @@ function QuizRacePage() {
       categoryKey: null,
       position: 0,
       tokens: [0, 0, 0, 0],
+      tokenStyle: TOKEN_STYLES[i % TOKEN_STYLES.length]!.id,
+      tokenColor: TOKEN_COLORS[i]!,
     })),
   );
 
@@ -157,6 +180,8 @@ function QuizRacePage() {
         categoryKey: p.category_key,
         position: p.position,
         tokens: [p.position, 0, 0, 0],
+        tokenStyle: "pawn",
+        tokenColor: TOKEN_COLORS[p.seat % TOKEN_COLORS.length]!,
         userId: p.user_id,
       })),
     [roomPlayers],
@@ -219,32 +244,55 @@ function QuizRacePage() {
     setPlayers((x) => x.map((p) => ({ ...p, position: 0, tokens: [0, 0, 0, 0] })));
   };
 
-  const resolveLocal = ({ correct, usedClue }: QuestionOutcome) => {
+  const resolveLocal = async ({ correct, usedClue }: QuestionOutcome) => {
     const move = correct ? (usedClue ? 5 : 6) : 0;
-    setPlayers((current) => {
+    if (move > 0) {
+      setMoving(true);
       if (game !== "ludo") {
-        return current.map((p, i) => {
-          if (i !== turn) return p;
-          const raw = Math.min(100, p.position + move);
-          return { ...p, position: JUMPS[raw] ?? raw };
-        });
+        for (let step = 0; step < move; step += 1) {
+          setPlayers((current) =>
+            current.map((p, i) =>
+              i === turn ? { ...p, position: Math.min(100, p.position + 1) } : p,
+            ),
+          );
+          await new Promise((resolve) => setTimeout(resolve, 135));
+        }
+        setPlayers((current) =>
+          current.map((p, i) =>
+            i === turn ? { ...p, position: JUMPS[p.position] ?? p.position } : p,
+          ),
+        );
+      } else {
+        const mine = players[turn]!;
+        const tokenIndex =
+          move === 6 && mine.tokens.some((t) => t === 0)
+            ? mine.tokens.findIndex((t) => t === 0)
+            : mine.tokens.findIndex((t) => t > 0 && t < LUDO_HOME && t + move <= LUDO_HOME);
+        if (tokenIndex >= 0) {
+          for (let step = 0; step < move; step += 1) {
+            setPlayers((current) =>
+              current.map((p, i) => {
+                if (i !== turn) return p;
+                const tokens = [...p.tokens];
+                tokens[tokenIndex] =
+                  tokens[tokenIndex] === 0 ? 1 : Math.min(LUDO_HOME, tokens[tokenIndex]! + 1);
+                return { ...p, tokens, position: Math.max(...tokens) };
+              }),
+            );
+            await new Promise((resolve) => setTimeout(resolve, 135));
+          }
+          setPlayers((current) => {
+            const landed = current[turn]!.tokens[tokenIndex]!;
+            return current.map((p, i) => {
+              if (i === turn || LUDO_SAFE.has(landed) || landed === LUDO_HOME) return p;
+              const tokens = p.tokens.map((token) => (token === landed ? 0 : token));
+              return { ...p, tokens, position: Math.max(...tokens) };
+            });
+          });
+        }
       }
-      const mine = current[turn]!;
-      const tokenIndex =
-        move === 6 && mine.tokens.some((t) => t === 0)
-          ? mine.tokens.findIndex((t) => t === 0)
-          : mine.tokens.findIndex((t) => t > 0 && t < LUDO_HOME && t + move <= LUDO_HOME);
-      if (move === 0 || tokenIndex < 0) return current;
-      const tokens = [...mine.tokens];
-      tokens[tokenIndex] = tokens[tokenIndex] === 0 ? 1 : tokens[tokenIndex]! + move;
-      const landed = tokens[tokenIndex]!;
-      return current.map((p, i) => {
-        if (i === turn) return { ...p, tokens, position: Math.max(...tokens) };
-        if (!LUDO_SAFE.has(landed) && landed !== LUDO_HOME)
-          return { ...p, tokens: p.tokens.map((t) => (t === landed ? 0 : t)) };
-        return p;
-      });
-    });
+      setMoving(false);
+    }
     // A clean first-time answer (6) earns another go, like rolling a six.
     setTurn(move === 6 ? turn : (turn + 1) % count);
     setTurnKey((k) => k + 1);
@@ -337,6 +385,16 @@ function QuizRacePage() {
                 label={`${p.name} avatar`}
                 onChange={(avatar) =>
                   setPlayers((x) => x.map((v, j) => (j === i ? { ...v, avatar } : v)))
+                }
+              />
+              <TokenPicker
+                style={p.tokenStyle}
+                color={p.tokenColor}
+                onStyle={(tokenStyle) =>
+                  setPlayers((x) => x.map((v, j) => (j === i ? { ...v, tokenStyle } : v)))
+                }
+                onColor={(tokenColor) =>
+                  setPlayers((x) => x.map((v, j) => (j === i ? { ...v, tokenColor } : v)))
                 }
               />
             </PlayerCard>
@@ -483,14 +541,64 @@ function QuizRacePage() {
         categoryKey={active.categoryKey}
         difficulty={onlineDifficulty}
         roomId={roomId ?? null}
-        canAnswer={myTurn}
+        canAnswer={myTurn && !moving}
         bank={bank}
         accentClass={SEAT_TEXT[activeIdx % 4]!}
         onResolved={(o) => {
-          if (!online) resolveLocal(o);
+          if (!online) void resolveLocal(o);
         }}
       />
     </Shell>
+  );
+}
+
+function TokenPicker({
+  style,
+  color,
+  onStyle,
+  onColor,
+}: {
+  style: TokenStyle;
+  color: string;
+  onStyle: (style: TokenStyle) => void;
+  onColor: (color: string) => void;
+}) {
+  return (
+    <div className="mt-3 rounded-xl border border-border/70 bg-background/45 p-3">
+      <p className="text-[.56rem] font-black uppercase tracking-[.16em] text-muted-foreground">
+        3D counter
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {TOKEN_STYLES.map((token) => (
+          <button
+            key={token.id}
+            type="button"
+            onClick={() => onStyle(token.id)}
+            aria-pressed={style === token.id}
+            className={`flex items-center gap-2 rounded-xl border px-2.5 py-2 text-[.58rem] font-bold uppercase ${style === token.id ? "border-primary bg-primary/10" : "border-border"}`}
+          >
+            <span
+              className={`pawn-3d pawn-${token.id} relative block size-6`}
+              style={{ "--pawn-color": color } as React.CSSProperties}
+            />
+            {token.label}
+          </button>
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {TOKEN_COLORS.map((swatch) => (
+          <button
+            key={swatch}
+            type="button"
+            onClick={() => onColor(swatch)}
+            aria-label={`Choose counter colour ${swatch}`}
+            aria-pressed={color === swatch}
+            className={`size-7 rounded-full border-2 shadow-inner ${color === swatch ? "scale-110 border-primary ring-2 ring-primary/25" : "border-white/40"}`}
+            style={{ background: swatch }}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -634,18 +742,22 @@ function LudoPawn({
   seat,
   cell,
   tokenIdx,
+  style = "pawn",
+  color,
 }: {
   seat: number;
   cell: [number, number];
   tokenIdx: number;
+  style?: TokenStyle;
+  color?: string;
 }) {
   const isYard = cell[0] > 15 || cell[1] > 15; // never true; kept for clarity
   void isYard;
   const pct = ludoPct(cell);
   return (
     <span
-      className="pawn-3d absolute z-10 size-[6.4%] -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out"
-      style={{ ...pct, "--pawn-color": LUDO_COLORS[seat % 4] } as React.CSSProperties}
+      className={`pawn-3d pawn-${style} absolute z-10 size-[6.4%] -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out`}
+      style={{ ...pct, "--pawn-color": color ?? LUDO_COLORS[seat % 4] } as React.CSSProperties}
       title={`Player ${seat + 1} token ${tokenIdx + 1}`}
     />
   );
@@ -655,7 +767,7 @@ function LudoBoard({
   players,
   online,
 }: {
-  players: { tokens: number[]; position: number }[];
+  players: { tokens: number[]; position: number; tokenStyle: TokenStyle; tokenColor: string }[];
   online: boolean;
 }) {
   return (
@@ -760,6 +872,8 @@ function LudoBoard({
                 seat={seat}
                 tokenIdx={tokenIdx}
                 cell={ludoTokenCell(seat, v, tokenIdx)!}
+                style={p.tokenStyle}
+                color={p.tokenColor}
               />
             )),
           )}
@@ -777,7 +891,13 @@ function slSquarePct(square: number) {
   return { x: (colInRow + 0.5) * 10, y: (visualRow + 0.5) * 10 };
 }
 
-function SnakesBoard({ cells, players }: { cells: number[]; players: { position: number }[] }) {
+function SnakesBoard({
+  cells,
+  players,
+}: {
+  cells: number[];
+  players: { position: number; tokenStyle: TokenStyle; tokenColor: string }[];
+}) {
   const ladderEntries = Object.entries(LADDERS).map(([from, to]) => ({
     from: Number(from),
     to,
@@ -882,12 +1002,12 @@ function SnakesBoard({ cells, players }: { cells: number[]; players: { position:
             return (
               <span
                 key={seat}
-                className="pawn-3d absolute z-10 size-[6%] -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out"
+                className={`pawn-3d pawn-${p.tokenStyle} absolute z-10 size-[6%] -translate-x-1/2 -translate-y-1/2 transition-all duration-500 ease-out`}
                 style={
                   {
                     left: `${x + jitter}%`,
                     top: `${y}%`,
-                    "--pawn-color": LUDO_COLORS[seat % 4],
+                    "--pawn-color": p.tokenColor,
                   } as React.CSSProperties
                 }
               />
