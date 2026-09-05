@@ -86,3 +86,6 @@
 - Atomic create/join/leave room RPCs (`create_arcade_room`, `join_arcade_room`, `leave_arcade_room`) applied live; fixed `gen_random_bytes` schema + unbound `rpc` call
 - Arcade presence heartbeat (`useArcadePresence`) with online dots + reconnect banner in lobby, Quiz Race and Mastermind
 - `/auth?next=` redirect back to rooms after sign-in
+
+## Done (Sep 5 phase merge)
+- Higher or Lower game registered live; question quality depth phase 1 applied (40 new sourced questions across 10 sports, editorial difficulty + play-based recalibration, staff pool-readiness report, 18 unsourced legacy questions parked for review)
