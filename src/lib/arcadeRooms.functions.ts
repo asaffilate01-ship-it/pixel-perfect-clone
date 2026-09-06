@@ -418,7 +418,7 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
         question_type: q.question_type,
         difficulty_percentile: Number(q.difficulty_percentile),
       } as FairQuestion,
-    };
+    } as { question: FairQuestion | null; unavailable?: string };
   });
 
 const answerSchema = z.object({
