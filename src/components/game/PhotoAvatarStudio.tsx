@@ -75,8 +75,10 @@ export function PhotoAvatarStudio({
     setPhoto(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(undefined);
-    if (rendered.error)
-      return toast.error("Portrait rendering failed. Your source photo was deleted.");
+    if (rendered.error) {
+      toast.error("Portrait rendering failed. Your source photo was deleted.");
+      return;
+    }
     toast.success("Premium portrait created. Refreshing your profile…");
     window.location.reload();
   };
