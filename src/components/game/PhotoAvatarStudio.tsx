@@ -32,9 +32,15 @@ export function PhotoAvatarStudio({
     setPreview(URL.createObjectURL(file));
   };
 
-  const requestPortrait = async () => {
-    if (!pro) return toast.error("Photo portraits are included with Pro.");
-    if (!photo) return toast.error("Take or choose a clear front-facing photo first.");
+  const requestPortrait = async (): Promise<void> => {
+    if (!pro) {
+      toast.error("Photo portraits are included with Pro.");
+      return;
+    }
+    if (!photo) {
+      toast.error("Take or choose a clear front-facing photo first.");
+      return;
+    }
     setSending(true);
     const extension =
       photo.type === "image/png" ? "png" : photo.type === "image/webp" ? "webp" : "jpg";
@@ -45,7 +51,8 @@ export function PhotoAvatarStudio({
     });
     if (uploaded.error) {
       setSending(false);
-      return toast.error(uploaded.error.message);
+      toast.error(uploaded.error.message);
+      return;
     }
     const rpc = supabase.rpc as unknown as (
       name: string,
@@ -58,7 +65,8 @@ export function PhotoAvatarStudio({
     if (queued.error || typeof queued.data !== "string") {
       await supabase.storage.from("avatar-sources").remove([sourcePath]);
       setSending(false);
-      return toast.error(queued.error.message);
+      toast.error(queued.error?.message ?? "Could not queue your portrait.");
+      return;
     }
     const rendered = await supabase.functions.invoke("render-avatar", {
       body: { jobId: queued.data },
@@ -67,8 +75,10 @@ export function PhotoAvatarStudio({
     setPhoto(null);
     if (preview) URL.revokeObjectURL(preview);
     setPreview(undefined);
-    if (rendered.error)
-      return toast.error("Portrait rendering failed. Your source photo was deleted.");
+    if (rendered.error) {
+      toast.error("Portrait rendering failed. Your source photo was deleted.");
+      return;
+    }
     toast.success("Premium portrait created. Refreshing your profile…");
     window.location.reload();
   };

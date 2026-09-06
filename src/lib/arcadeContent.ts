@@ -62,12 +62,12 @@ export async function reserveCrossword(difficulty: number): Promise<CrosswordPuz
   if (!data || typeof data !== "object") return null;
   const row = data as Record<string, unknown>;
   const puzzle = {
-    id: String(row.id),
-    title: String(row.title ?? "Sports Crossword"),
-    sportLabel: String(row.sport_label ?? "Mixed sports"),
-    difficulty: Number(row.difficulty ?? difficulty),
-    size: Number(row.grid_size ?? 9),
-    entries: Array.isArray(row.entries) ? (row.entries as CrosswordEntry[]) : [],
+    id: String(row['id']),
+    title: String(row['title'] ?? "Sports Crossword"),
+    sportLabel: String(row['sport_label'] ?? "Mixed sports"),
+    difficulty: Number(row['difficulty'] ?? difficulty),
+    size: Number(row['grid_size'] ?? 9),
+    entries: Array.isArray(row['entries']) ? (row['entries'] as CrosswordEntry[]) : [],
   };
   return isValidCrossword(puzzle.entries, puzzle.size) ? puzzle : null;
 }
@@ -82,12 +82,12 @@ export async function fetchHigherLowerCards(difficulty: number): Promise<HigherL
   return data.map((row) => {
     const value = row as Record<string, unknown>;
     return {
-      id: String(value.id),
-      name: String(value.name),
-      value: Number(value.value),
-      display: String(value.display_value),
-      metric: String(value.metric_label),
-      sport: String(value.sport_label),
+      id: String(value['id']),
+      name: String(value['name']),
+      value: Number(value['value']),
+      display: String(value['display_value']),
+      metric: String(value['metric_label']),
+      sport: String(value['sport_label']),
     };
   });
 }
