@@ -51,7 +51,8 @@ export function PhotoAvatarStudio({
     });
     if (uploaded.error) {
       setSending(false);
-      return toast.error(uploaded.error.message);
+      toast.error(uploaded.error.message);
+      return;
     }
     const rpc = supabase.rpc as unknown as (
       name: string,
@@ -64,7 +65,8 @@ export function PhotoAvatarStudio({
     if (queued.error || typeof queued.data !== "string") {
       await supabase.storage.from("avatar-sources").remove([sourcePath]);
       setSending(false);
-      return toast.error(queued.error.message);
+      toast.error(queued.error?.message ?? "Could not queue your portrait.");
+      return;
     }
     const rendered = await supabase.functions.invoke("render-avatar", {
       body: { jobId: queued.data },
