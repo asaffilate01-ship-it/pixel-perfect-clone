@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Bell, BellOff, Check, Dices, Flame, Moon, Radio, Sparkles, Trophy, Volume2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useNotificationPrefs, useNotifications, type Notification, type NotificationPrefs } from "@/lib/notifications";
