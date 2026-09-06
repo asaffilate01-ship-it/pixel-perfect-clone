@@ -377,7 +377,17 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       p_difficulty: data.difficulty,
       ...(data.questionTypes ? { p_question_types: data.questionTypes } : {}),
     });
-    if (error) throw new Error(error.message);
+    if (error) {
+      // An empty verified pool is an expected outcome, not a server fault — report it
+      // as data so the client can show guidance instead of a runtime error.
+      if (/No verified .* question is available/i.test(error.message)) {
+        return { question: null, unavailable: error.message } as {
+          question: FairQuestion | null;
+          unavailable?: string;
+        };
+      }
+      throw new Error(error.message);
+    }
     const { data: q } = await admin
       .from("question_bank")
       .select("id, prompt_i18n, clue_i18n, question_type, difficulty_percentile")
