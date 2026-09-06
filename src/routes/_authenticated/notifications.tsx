@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated/notifications")({
   component: NotificationsPage,
 });
 
-const ICONS: Record<Notification["kind"], React.ElementType> = {
+const ICONS: Record<Notification["kind"], LucideIcon> = {
   turn: Dices,
   room: Radio,
   daily: Sparkles,
@@ -28,7 +28,7 @@ const ICONS: Record<Notification["kind"], React.ElementType> = {
   system: Bell,
 };
 
-const TOGGLES: { key: keyof NotificationPrefs; label: string; sub: string; icon: React.ElementType }[] = [
+const TOGGLES: { key: keyof NotificationPrefs; label: string; sub: string; icon: LucideIcon }[] = [
   { key: "match_turns", label: "Match turns", sub: "When it is your move in an online room", icon: Dices },
   { key: "room_invites", label: "Room invitations", sub: "When a friend seats you in a private room", icon: Radio },
   { key: "daily_challenge", label: "Daily challenge", sub: "A nudge when today's grid and clue ladder go live", icon: Sparkles },
