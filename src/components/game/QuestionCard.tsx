@@ -117,9 +117,15 @@ export function QuestionCard({
           const timeout = new Promise<never>((_, reject) =>
             setTimeout(() => reject(new Error("Question request timed out")), 8_000),
           );
-          const { question: q } = await Promise.race([request, timeout]);
+          const { question: q, unavailable } = await Promise.race([request, timeout]);
           if (!isStale()) {
-            setQuestion(q);
+            if (q) {
+              setQuestion(q);
+            } else {
+              setLoadError(
+                `${unavailable ?? "No verified question is available for this exact scope"}. Our verified bank for this sport and level is small right now — pick an easier level or another sport, or check back soon.`,
+              );
+            }
             setLoading(false);
           }
           return;
