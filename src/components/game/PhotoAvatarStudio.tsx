@@ -32,9 +32,15 @@ export function PhotoAvatarStudio({
     setPreview(URL.createObjectURL(file));
   };
 
-  const requestPortrait = async () => {
-    if (!pro) return toast.error("Photo portraits are included with Pro.");
-    if (!photo) return toast.error("Take or choose a clear front-facing photo first.");
+  const requestPortrait = async (): Promise<void> => {
+    if (!pro) {
+      toast.error("Photo portraits are included with Pro.");
+      return;
+    }
+    if (!photo) {
+      toast.error("Take or choose a clear front-facing photo first.");
+      return;
+    }
     setSending(true);
     const extension =
       photo.type === "image/png" ? "png" : photo.type === "image/webp" ? "webp" : "jpg";
