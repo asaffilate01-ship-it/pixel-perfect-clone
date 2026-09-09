@@ -4,7 +4,12 @@ import { Component, type ReactNode, useRef } from "react";
 import type { Group } from "three";
 import type { AvatarSettings } from "@/lib/avatarSettings";
 
-type Props = { settings: AvatarSettings; size?: number; fallback?: ReactNode };
+type Props = {
+  settings: AvatarSettings;
+  size?: number;
+  fallback?: ReactNode;
+  transparent?: boolean;
+};
 
 class WebGLErrorBoundary extends Component<
   { fallback?: ReactNode; children: ReactNode },
@@ -19,15 +24,17 @@ class WebGLErrorBoundary extends Component<
   }
 }
 
-export function Avatar3D({ settings, size = 160, fallback }: Props) {
+export function Avatar3D({ settings, size = 160, fallback, transparent = false }: Props) {
   return (
     <div
-      className="relative isolate overflow-hidden rounded-[28%] bg-gradient-to-br from-cyan-300 via-violet-400 to-indigo-950 shadow-[0_22px_45px_-20px_rgba(67,56,202,.8)] ring-1 ring-white/45"
+      className={`relative isolate overflow-hidden rounded-[28%] shadow-[0_22px_45px_-20px_rgba(67,56,202,.8)] ring-1 ring-white/45 ${transparent ? "bg-[linear-gradient(45deg,rgba(255,255,255,.09)_25%,transparent_25%),linear-gradient(-45deg,rgba(255,255,255,.09)_25%,transparent_25%),linear-gradient(45deg,transparent_75%,rgba(255,255,255,.09)_75%),linear-gradient(-45deg,transparent_75%,rgba(255,255,255,.09)_75%)] bg-[length:20px_20px] bg-[position:0_0,0_10px,10px_-10px,-10px_0px]" : "bg-gradient-to-br from-cyan-300 via-violet-400 to-indigo-950"}`}
       style={{ width: size, height: size }}
       role="img"
       aria-label="Your customised 3D avatar"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,.55),transparent_28%)]" />
+      {!transparent && (
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_28%_18%,rgba(255,255,255,.55),transparent_28%)]" />
+      )}
       <WebGLErrorBoundary fallback={fallback}>
         <Canvas
           camera={{ position: [0, 0.18, 5.4], fov: 31 }}

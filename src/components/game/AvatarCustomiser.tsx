@@ -2,6 +2,7 @@ import { Glasses, Save, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_AVATAR_SETTINGS, type AvatarSettings } from "@/lib/avatarSettings";
 import { Avatar } from "@/components/game/AvatarPicker";
+import { Avatar3D } from "@/components/game/Avatar3D";
 
 const SKINS = ["#F6D0B1", "#E8B184", "#C9895D", "#A76643", "#70402F", "#40251D"];
 const HAIR = ["#17120F", "#4B2C20", "#8B552B", "#C89A56", "#D9D4C5", "#7A263A"];
@@ -30,11 +31,16 @@ export function AvatarCustomiser({
         <div className="relative flex flex-col items-center justify-center overflow-hidden rounded-[2rem] border border-white/30 bg-gradient-to-b from-violet-500/15 via-cyan-400/10 to-background/50 p-4 lg:sticky lg:top-20 lg:self-start">
           <div className="absolute inset-x-8 top-8 h-32 rounded-full bg-primary/25 blur-3xl" />
           <div className="relative transition-transform duration-300 hover:scale-[1.03]">
-            <Avatar id={preset} size={200} className="ring-1 ring-white/30" />
+            <Avatar3D
+              settings={value}
+              size={200}
+              transparent
+              fallback={<Avatar id={preset} size={200} className="ring-1 ring-white/30" />}
+            />
           </div>
           <p className="mt-3 flex items-center gap-1 text-[.6rem] font-black uppercase tracking-[.16em] text-primary">
             <Sparkles className="size-3" />
-            Portrait quality reference
+            Live transparent preview
           </p>
         </div>
         <div className="space-y-4">
