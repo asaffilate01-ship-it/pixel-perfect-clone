@@ -9,6 +9,7 @@ import { useEntitlements } from "@/lib/entitlements";
 import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
 import { AvatarCustomiser } from "@/components/game/AvatarCustomiser";
 import { PhotoAvatarStudio } from "@/components/game/PhotoAvatarStudio";
+import { Avatar3D } from "@/components/game/Avatar3D";
 import {
   DEFAULT_AVATAR_SETTINGS,
   parseAvatarSettings,
@@ -86,7 +87,7 @@ function ProfilePage() {
     setAvatar(id);
     const { error } = await supabase
       .from("profiles")
-      .update({ avatar_preset: id, avatar_settings: { preset: id, frame: "standard" } })
+      .update({ avatar_preset: id })
       .eq("id", user!.id);
     if (error) toast.error(error.message);
     else toast.success("Avatar updated");
@@ -110,10 +111,10 @@ function ProfilePage() {
           <img
             src={data.avatarUrl}
             alt="Your generated avatar"
-            className="size-16 shrink-0 rounded-[1.3rem] object-cover shadow-xl"
+            className="size-16 shrink-0 rounded-[1.3rem] bg-transparent object-contain shadow-xl"
           />
         ) : (
-          <Avatar id={avatar} size={64} />
+          <Avatar3D settings={avatarSettings} size={64} transparent fallback={<Avatar id={avatar} size={64} />} />
         )}
         <div className="min-w-0 flex-1">
           <h1 className="text-3xl">{displayName ?? "Fanzeno player"}</h1>
