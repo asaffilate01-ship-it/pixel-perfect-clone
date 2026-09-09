@@ -59,9 +59,12 @@ Deno.serve(async (request) => {
     const prompt = [
       "Create a premium, friendly 3D-illustrated head-and-shoulders sports-game avatar from this photo.",
       "Preserve the person's recognizable identity, facial proportions, skin tone, age presentation and expression.",
-      "Use polished cinematic lighting, clean detail, a transparent background, no text, no logos, no club marks and no trademarks.",
+      "Isolate the character completely. The output must be a PNG with a genuinely transparent alpha background: no backdrop, scenery, gradient, halo, coloured square or floor.",
+      "Use polished cinematic lighting and clean detail, with no text, logos, club marks or trademarks.",
+      `Skin tone: ${colour(s.skin, "#B97850")}. Face: ${allowed(s.faceShape, ["oval", "round", "square"], "oval")} shape, ${allowed(s.browStyle, ["soft", "straight", "bold"], "soft")} brows, ${allowed(s.noseStyle, ["small", "classic", "wide"], "classic")} nose and ${allowed(s.mouthStyle, ["smile", "neutral", "grin"], "smile")} expression.`,
       `Hair: ${allowed(s.hairStyle, ["short", "buzz", "waves", "curls", "afro", "long", "bun", "mohawk", "covered", "bald"], "short")} in ${colour(s.hairColor, "#24170F")}.`,
       `Facial hair: ${allowed(s.facialHair, ["none", "stubble", "moustache", "goatee", "boxed", "beard"], "none")}.`,
+      `Eye colour: ${colour(s.eyeColor, "#3B2416")}.`,
       `Glasses: ${s.glasses === true ? allowed(s.glassesStyle, ["round", "square", "sport"], "round") : "none"}.`,
       `Make-up: ${allowed(s.makeup, ["none", "natural", "bold"], "none")}.`,
       `Sportswear: ${allowed(s.outfitStyle, ["tee", "hoodie", "jersey"], "jersey")} in ${colour(s.clothesColor, "#18A66A")} with subtle gold trim.`,
@@ -72,6 +75,7 @@ Deno.serve(async (request) => {
     form.append("prompt", prompt);
     form.append("size", "1024x1024");
     form.append("background", "transparent");
+    form.append("output_format", "png");
     const generated = await fetch("https://api.openai.com/v1/images/edits", {
       method: "POST",
       headers: { Authorization: `Bearer ${imageKey}` },
