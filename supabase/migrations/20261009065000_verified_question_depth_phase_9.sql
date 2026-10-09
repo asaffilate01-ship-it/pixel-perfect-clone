@@ -64,7 +64,7 @@ seed(sport_slug,category_key,prompt,clue,accepted,display,percentile,source_url,
 ('boxing-pro','heavyweight','Who defeated Jack Dempsey in the 1926 Fight of the Century?','He was known as the Fighting Marine.','["Gene Tunney","Tunney"]'::jsonb,'Gene Tunney',0.9,'https://www.ibhof.com/pages/about/inductees/oldtimer/tunney.html','International Boxing Hall of Fame'),
 ('ufc','champions','Who became the UFC’s first women’s champion?','She was awarded the inaugural bantamweight belt.','["Ronda Rousey","Rousey"]'::jsonb,'Ronda Rousey',0.12,'https://www.ufc.com/history','UFC history'),
 ('ufc','champions','Who ended Anderson Silva’s long UFC middleweight title reign in 2013?','He won by knockout at UFC 162.','["Chris Weidman","Weidman"]'::jsonb,'Chris Weidman',0.38,'https://www.ufc.com/history','UFC history'),
-('ufc','champions','Who became the inaugural UFC women’s flyweight champion in 2017?','She won the title at UFC 231 the following year after an inaugural-title bout ended vacant.','["Valentina Shevchenko","Shevchenko"]'::jsonb,'Valentina Shevchenko',0.65,'https://www.ufc.com/athlete/valentina-shevchenko','UFC athlete record'),
+('ufc','champions','Who became the inaugural UFC women’s flyweight champion in 2017?','She won The Ultimate Fighter 26 finale.','["Nicco Montano","Nicco Montaño","Montano","Montaño"]'::jsonb,'Nicco Montano',0.65,'https://www.ufc.com/athlete/nicco-montano','UFC athlete record'),
 ('ufc','champions','Who won the inaugural UFC lightweight tournament at UFC 12?','He defeated Jerry Bohlander in the final.','["Mark Kerr","Kerr"]'::jsonb,'Mark Kerr',0.9,'https://www.ufc.com/history','UFC history')
 ),
 validated as (
