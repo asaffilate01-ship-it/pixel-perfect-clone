@@ -6,6 +6,7 @@ import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
 import { DIFFICULTIES } from "@/lib/fanzeno";
 import { Chip, Label } from "@/components/game/ArcadeSetup";
 import { fetchHigherLowerCards } from "@/lib/arcadeContent";
+import { scoreQuestion } from "@/lib/arcadeQuiz";
 
 export const Route = createFileRoute("/arcade_/higher-lower")({
   head: () => ({
@@ -21,6 +22,7 @@ export const Route = createFileRoute("/arcade_/higher-lower")({
 });
 
 type Card = { name: string; value: number; display: string; metric: string; sport: string };
+type Guess = "higher" | "same" | "lower";
 
 const CARDS: Card[] = [
   {
@@ -193,20 +195,40 @@ function HigherLowerPage() {
   const [streak, setStreak] = useState(0);
   const [best, setBest] = useState(0);
   const [revealed, setRevealed] = useState(false);
+
+  useEffect(() => {
+    const saved = Number(window.localStorage.getItem(`fanzeno:higher-lower:best:${difficulty}`) ?? 0);
+    setBest(Number.isFinite(saved) ? saved : 0);
+  }, [difficulty]);
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
   const pair = run[round];
   const finished = lives === 0 || round >= run.length;
 
-  const choose = (higher: boolean) => {
+  const choose = (guess: Guess) => {
     if (!pair || revealed) return;
-    const correct = higher ? pair.b.value >= pair.a.value : pair.b.value <= pair.a.value;
+    const comparison = Math.sign(pair.b.value - pair.a.value);
+    const correct =
+      (guess === "higher" && comparison > 0) ||
+      (guess === "lower" && comparison < 0) ||
+      (guess === "same" && comparison === 0);
     const nextStreak = correct ? streak + 1 : 0;
     setRevealed(true);
     setLastCorrect(correct);
     setStreak(nextStreak);
-    setBest((value) => Math.max(value, nextStreak));
-    if (correct) setScore((value) => value + difficulty * 100 + nextStreak * 10);
-    else setLives((value) => Math.max(0, value - 1));
+    if (correct) {
+      const nextScore = score + scoreQuestion(difficulty, nextStreak);
+      setScore(nextScore);
+      setBest((value) => {
+        const nextBest = Math.max(value, nextStreak);
+        window.localStorage.setItem(
+          `fanzeno:higher-lower:best:${difficulty}`,
+          String(nextBest),
+        );
+        return nextBest;
+      });
+    } else {
+      setLives((value) => Math.max(0, value - 1));
+    }
   };
 
   const next = () => {
@@ -220,7 +242,6 @@ function HigherLowerPage() {
     setLives(3);
     setScore(0);
     setStreak(0);
-    setBest(0);
     setRevealed(false);
     setLastCorrect(null);
     setRunSeed(Math.floor(Math.random() * 100_000));
@@ -278,19 +299,27 @@ function HigherLowerPage() {
             <StatCard card={pair.b} revealed={revealed} />
           </div>
           {!revealed ? (
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
               <Button
                 size="lg"
-                className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-primary)_55%,black)] active:translate-y-1 active:shadow-none"
-                onClick={() => choose(true)}
+                className="h-16 px-2 font-display text-xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-primary)_55%,black)] active:translate-y-1 active:shadow-none sm:text-2xl"
+                onClick={() => choose("higher")}
               >
                 <ArrowUp className="size-5" /> Higher
               </Button>
               <Button
                 size="lg"
+                variant="outline"
+                className="h-16 px-2 font-display text-xl tracking-wide active:translate-y-1 sm:text-2xl"
+                onClick={() => choose("same")}
+              >
+                Same
+              </Button>
+              <Button
+                size="lg"
                 variant="secondary"
-                className="h-16 font-display text-2xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-gold)_55%,black)] active:translate-y-1 active:shadow-none"
-                onClick={() => choose(false)}
+                className="h-16 px-2 font-display text-xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-gold)_55%,black)] active:translate-y-1 active:shadow-none sm:text-2xl"
+                onClick={() => choose("lower")}
               >
                 <ArrowDown className="size-5" /> Lower
               </Button>
@@ -325,7 +354,7 @@ function HigherLowerPage() {
           <p className="eyebrow mt-4">Run complete</p>
           <h2 className="mt-2 text-5xl">{score}</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Best streak {best} · {Math.min(round, run.length)} comparisons
+            Best streak at this level {best} · {Math.min(round, run.length)} comparisons
           </p>
           <Button className="mt-6 w-full" onClick={reset}>
             <RotateCcw className="size-4" /> Play again
