@@ -36,3 +36,8 @@ with editorial as (select id from public.data_sources where name='Fanzeno source
 insert into public.question_bank(sport_id,category_key,question_type,format_key,prompt_i18n,clue_i18n,answer_rule,answer_display_i18n,difficulty_b,difficulty_percentile,editorial_difficulty_percentile,difficulty_confidence,quality_score,ambiguity_score,verification_status,source_id,source_url,source_title,content_hash,reviewed_at,active)
 select s.id,v.category_key,'typed_single','classic_trivia',jsonb_build_object('en',v.prompt),jsonb_build_object('en',v.clue),jsonb_build_object('accepted',v.accepted),jsonb_build_object('en',v.display),case when v.percentile<.25 then -1.3 when v.percentile<.5 then -.3 when v.percentile<.75 then .7 else 1.5 end,v.percentile,v.percentile,0,1,0,'verified',editorial.id,v.source_url,v.source_title,encode(extensions.digest(v.prompt,'sha256'),'hex'),now(),true from validated v join public.sports s on s.slug=v.sport_slug cross join editorial on conflict do nothing;
 select public.prepare_verified_question_batch('Verified expansion 13 — cups, awards and classic records',32);
+
+-- Correct phase 10 clue for databases where that migration was already applied.
+update public.question_bank
+set clue_i18n = jsonb_build_object('en','He won the UFC 12 heavyweight tournament.'), reviewed_at = now()
+where content_hash = encode(extensions.digest('Who became the inaugural UFC heavyweight champion in 1997?','sha256'),'hex');
