@@ -18,12 +18,45 @@ export async function fetchClueBank(): Promise<ClueBank> {
   return bank;
 }
 
-/** Random prompt for a sport; falls back to the whole bank when a sport has no criteria yet. */
+const recentPrompts = new Map<string, string[]>();
+const OFFLINE_RECENT_LIMIT = 8;
+
+/**
+ * Random offline/pass-and-play prompt with a small in-session cooldown.
+ * This prevents the same criterion appearing on consecutive turns even when
+ * a sport's local fallback pool is still small.
+ */
 export function pickPrompt(bank: ClueBank, sportId: string | null): string {
   const pool =
     (sportId && bank[sportId]?.length ? bank[sportId] : Object.values(bank).flat()) ?? [];
   if (!pool.length) return "Name an athlete who fits this verified fact.";
-  return `Name an athlete: ${pool[Math.floor(Math.random() * pool.length)]}`;
+
+  const scope = sportId ?? "all";
+  const recent = recentPrompts.get(scope) ?? [];
+  const fresh = pool.filter((prompt) => !recent.includes(prompt));
+  const candidates = fresh.length ? fresh : pool;
+  const selected = candidates[Math.floor(Math.random() * candidates.length)]!;
+  recentPrompts.set(scope, [...recent, selected].slice(-Math.min(OFFLINE_RECENT_LIMIT, pool.length - 1)));
+  return `Name an athlete: ${selected}`;
+}
+
+export const DIFFICULTY_RULES = {
+  1: { label: "Easy", basePoints: 100, turnSeconds: 45 },
+  2: { label: "Medium", basePoints: 200, turnSeconds: 35 },
+  3: { label: "Hard", basePoints: 350, turnSeconds: 30 },
+  4: { label: "Expert", basePoints: 550, turnSeconds: 25 },
+} as const;
+
+export function scoreQuestion(
+  difficulty: number,
+  streak = 0,
+  usedClue = false,
+  passed = false,
+): number {
+  if (passed) return 0;
+  const rule = DIFFICULTY_RULES[difficulty as keyof typeof DIFFICULTY_RULES] ?? DIFFICULTY_RULES[2];
+  const clueMultiplier = usedClue ? 0.6 : 1;
+  return Math.round((rule.basePoints + Math.max(0, streak) * 15) * clueMultiplier);
 }
 
 export const SEAT_COLORS = ["bg-primary", "bg-gold", "bg-chart-3", "bg-chart-4"] as const;
