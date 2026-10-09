@@ -65,7 +65,7 @@ seed(sport_slug,category_key,prompt,clue,accepted,display,percentile,source_url,
 ('ufc','lightweight','Who defeated Conor McGregor at UFC 229?','He won by fourth-round submission.','["Khabib Nurmagomedov","Khabib","Nurmagomedov"]'::jsonb,'Khabib Nurmagomedov',0.12,'https://www.ufc.com/event/ufc-229','UFC 229 results'),
 ('ufc','champions','Who defeated Miesha Tate to win the UFC women’s bantamweight title in 2016?','The Brazilian won by first-round submission.','["Amanda Nunes","Nunes"]'::jsonb,'Amanda Nunes',0.38,'https://www.ufc.com/athlete/amanda-nunes','UFC athlete record'),
 ('ufc','ultimate-fighter','Who won the light-heavyweight final at The Ultimate Fighter 1 Finale?','His bout with Stephan Bonnar became historic.','["Forrest Griffin","Griffin"]'::jsonb,'Forrest Griffin',0.65,'https://www.ufc.com/history','UFC history'),
-('ufc','champions','Who became the inaugural UFC heavyweight champion in 1997?','He won the UFC 14 heavyweight tournament.','["Mark Coleman","Coleman"]'::jsonb,'Mark Coleman',0.9,'https://www.ufc.com/history','UFC history')
+('ufc','champions','Who became the inaugural UFC heavyweight champion in 1997?','He won the UFC 12 heavyweight tournament.','["Mark Coleman","Coleman"]'::jsonb,'Mark Coleman',0.9,'https://www.ufc.com/history','UFC history')
 ),
 validated as (
   select seed.*
