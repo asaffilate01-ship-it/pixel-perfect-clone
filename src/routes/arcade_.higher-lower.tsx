@@ -7,6 +7,7 @@ import { DIFFICULTIES } from "@/lib/fanzeno";
 import { Chip, Label } from "@/components/game/ArcadeSetup";
 import { fetchHigherLowerCards } from "@/lib/arcadeContent";
 import { scoreQuestion } from "@/lib/arcadeQuiz";
+import { makeHigherLowerRun } from "@/lib/higherLower";
 
 export const Route = createFileRoute("/arcade_/higher-lower")({
   head: () => ({
@@ -115,49 +116,6 @@ const CARDS: Card[] = [
   },
 ];
 
-function shuffled<T>(items: T[], seed: number) {
-  // Deterministic shuffle so the server and first client render agree.
-  let state = (seed * 9301 + 49297) % 233280 || 1;
-  const rand = () => {
-    state = (state * 9301 + 49297) % 233280;
-    return state / 233280;
-  };
-  const out = [...items];
-  for (let i = out.length - 1; i > 0; i -= 1) {
-    const j = Math.floor(rand() * (i + 1));
-    [out[i], out[j]] = [out[j] as T, out[i] as T];
-  }
-  return out;
-}
-
-function makeRun(cards: Card[], level: number, seed: number) {
-  const grouped = cards.reduce<Record<string, Card[]>>((result, card) => {
-    (result[card.metric] ??= []).push(card);
-    return result;
-  }, {});
-  const pools = Object.values(grouped);
-  const pairs = pools.flatMap((pool) => {
-    const list = pool ?? [];
-    return list.flatMap((a, index) =>
-      list.slice(index + 1).map((b) => ({
-        a,
-        b,
-        gap: Math.abs(a.value - b.value) / Math.max(a.value, b.value),
-      })),
-    );
-  });
-  const ordered = pairs.sort((a, b) => (level <= 2 ? b.gap - a.gap : a.gap - b.gap));
-  const band =
-    level === 1
-      ? ordered.slice(0, 14)
-      : level === 2
-        ? ordered.slice(5, 22)
-        : level === 3
-          ? ordered.slice(10, 28)
-          : ordered.slice(0, 18);
-  return shuffled(band, seed + 1).slice(0, 15);
-}
-
 function HigherLowerPage() {
   const [difficulty, setDifficulty] = useState(2);
   const [runSeed, setRunSeed] = useState(0);
@@ -175,8 +133,10 @@ function HigherLowerPage() {
       .then((next) => {
         if (!live) return;
         if (next.length >= 4) setCards(next);
-        else
+        else {
+          setCards(CARDS);
           setLoadNotice("The verified online pool is still growing; offline records are in play.");
+        }
         setRunSeed(Math.floor(Math.random() * 100_000));
       })
       .catch(() => {
@@ -188,7 +148,7 @@ function HigherLowerPage() {
       live = false;
     };
   }, [difficulty]);
-  const run = useMemo(() => makeRun(cards, difficulty, runSeed), [cards, difficulty, runSeed]);
+  const run = useMemo(() => makeHigherLowerRun(cards, difficulty, runSeed), [cards, difficulty, runSeed]);
   const [round, setRound] = useState(0);
   const [lives, setLives] = useState(3);
   const [score, setScore] = useState(0);
@@ -205,7 +165,7 @@ function HigherLowerPage() {
   const finished = lives === 0 || round >= run.length;
 
   const choose = (guess: Guess) => {
-    if (!pair || revealed) return;
+    if (!pair || revealed || loadingCards || finished) return;
     const comparison = Math.sign(pair.b.value - pair.a.value);
     const correct =
       (guess === "higher" && comparison > 0) ||
@@ -276,7 +236,10 @@ function HigherLowerPage() {
                     key={d.level}
                     on={difficulty === d.level}
                     onClick={() => {
-                      if (round === 0 && !loadingCards) setDifficulty(d.level);
+                      if (round === 0 && !loadingCards && difficulty !== d.level) {
+                        setDifficulty(d.level);
+                        reset();
+                      }
                     }}
                   >
                     {d.label}
@@ -298,11 +261,13 @@ function HigherLowerPage() {
             <StatCard card={pair.a} revealed />
             <StatCard card={pair.b} revealed={revealed} />
           </div>
+          {loadingCards && <p className="mt-3 text-center text-xs text-muted-foreground">Refreshing verified records…</p>}
           {!revealed ? (
             <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-3">
               <Button
                 size="lg"
                 className="h-16 px-2 font-display text-xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-primary)_55%,black)] active:translate-y-1 active:shadow-none sm:text-2xl"
+                disabled={loadingCards}
                 onClick={() => choose("higher")}
               >
                 <ArrowUp className="size-5" /> Higher
@@ -311,6 +276,7 @@ function HigherLowerPage() {
                 size="lg"
                 variant="outline"
                 className="h-16 px-2 font-display text-xl tracking-wide active:translate-y-1 sm:text-2xl"
+                disabled={loadingCards}
                 onClick={() => choose("same")}
               >
                 Same
@@ -319,6 +285,7 @@ function HigherLowerPage() {
                 size="lg"
                 variant="secondary"
                 className="h-16 px-2 font-display text-xl tracking-wide shadow-[0_6px_0_color-mix(in_oklab,var(--color-gold)_55%,black)] active:translate-y-1 active:shadow-none sm:text-2xl"
+                disabled={loadingCards}
                 onClick={() => choose("lower")}
               >
                 <ArrowDown className="size-5" /> Lower
