@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "test:logic": "node --experimental-strip-types --test tests/*.test.mjs"
+    "test:logic": "node --experimental-strip-types --test tests/*.test.mjs",
+    "test:content": "node scripts/audit-question-content.mjs",
+    "smoke:live": "node scripts/smoke-fanzeno-live.mjs"
   },
   "overrides": {
     "rolldown": "1.2.1"

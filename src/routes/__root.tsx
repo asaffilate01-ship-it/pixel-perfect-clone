@@ -82,6 +82,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Fanzeno — The global sports grid" },
+      { name: "fanzeno-release", content: "2026-10-16-q14-hardened" },
       {
         name: "description",
         content:
