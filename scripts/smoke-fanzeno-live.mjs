@@ -7,7 +7,7 @@ import fs from "node:fs";
 import process from "node:process";
 
 const base = (process.env.FANZENO_LIVE_URL || "https://amerfangame.lovable.app").replace(/\/$/, "");
-const requiredMarker = "2026-10-16-q14-hardened";
+const requiredMarker = "2026-10-16-q15-multiplayer-hardened";
 const routes = ["/", "/arcade", "/arcade/higher-lower", "/arcade/crossword", "/upgrade"];
 const results = [];
 for (const path of routes) {
