@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeSetup";
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard } from "@/components/game/QuestionCard";
+import { isArcadeRoomComplete } from "@/lib/roomLifecycle";
 import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
 import { ConnectionBanner, PresenceDot } from "@/components/game/RoomPresence";
 import { useArcadePresence } from "@/hooks/useArcadePresence";
@@ -146,7 +147,7 @@ function MastermindPage() {
   const n = online ? list.length : count;
   const activeIdx = online ? Math.max(0, seatOrder.indexOf(room?.active_seat ?? 0)) : active;
   const currentPhase: 1 | 2 = online ? ((room?.round_no ?? 1) >= 2 ? 2 : 1) : phase;
-  const isFinished = online ? room?.status === "complete" || room?.status === "finished" : finished;
+  const isFinished = online ? isArcadeRoomComplete(room?.status) : finished;
   const myTurn = online ? list[activeIdx]?.userId === user?.id : true;
   const [onlineSeconds, setOnlineSeconds] = useState(ROUND_SECONDS);
 
