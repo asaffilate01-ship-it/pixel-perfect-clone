@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
+import { nextMastermindTurn, ROOM_COMPLETE_STATUS } from "@/lib/roomLifecycle";
 
 /**
  * Online arcade room actions (v0.11). Rooms, seats, questions and answers are all
@@ -293,18 +294,17 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
       const activeUser = players?.find((p) => p.seat === live?.active_seat)?.user_id;
       if (room.host_id !== userId && activeUser !== userId)
         throw new Error("Only the host or active player can end a turn");
-      const idx = seats.indexOf(live?.active_seat ?? 0);
-      const wrap = idx + 1 >= seats.length;
-      const nextSeat = wrap ? (seats[0] ?? 0) : (seats[idx + 1] ?? 0);
-      const nextRound = wrap ? (live?.round_no ?? 1) + 1 : (live?.round_no ?? 1);
+      const progression = nextMastermindTurn(seats, live.active_seat, live.round_no);
+      const nextSeat = progression.seat;
+      const nextRound = progression.round;
       const { data: advanced, error: advanceError } = await admin
         .from("arcade_rooms")
         .update({
           active_seat: nextSeat,
           round_no: nextRound,
-          status: nextRound > 2 ? "complete" : "active",
+          status: progression.complete ? ROOM_COMPLETE_STATUS : "active",
           turn_started_at: new Date().toISOString(),
-          turn_ends_at: nextRound > 2 ? null : new Date(Date.now() + 180_000).toISOString(),
+          turn_ends_at: progression.complete ? null : new Date(Date.now() + 180_000).toISOString(),
         })
         .eq("id", room.id)
         .eq("status", "active")
@@ -314,7 +314,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         .maybeSingle();
       if (advanceError) throw new Error(advanceError.message);
       if (!advanced) throw new Error("This round was already advanced");
-      return { advanced: true, finished: nextRound > 2 };
+      return { advanced: true, finished: progression.complete };
     }
 
     // leave
@@ -681,7 +681,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         const { error: turnError } = await admin
           .from("arcade_rooms")
           .update({
-            status: won ? "complete" : room.status,
+            status: won ? ROOM_COMPLETE_STATUS : room.status,
             active_seat: nextSeat,
             round_no: nextSeat <= me.seat && !again ? room.round_no + 1 : room.round_no,
             turn_started_at: new Date().toISOString(),
