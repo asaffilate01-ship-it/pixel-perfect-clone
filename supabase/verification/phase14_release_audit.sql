@@ -47,12 +47,13 @@ values
      and verification_status='verified' and active
      and question_type=expected_type
      and source_url like 'https://%'
-     and jsonb_typeof(answer_rule->'accepted')='array'
-     and jsonb_array_length(answer_rule->'accepted')>0
+     and case when jsonb_typeof(answer_rule->'accepted')='array'
+       then jsonb_array_length(answer_rule->'accepted')>0 else false end
      and (expected_type <> 'single_choice' or
-       (jsonb_typeof(answer_rule->'options')='array'
-       and jsonb_array_length(answer_rule->'options') between 2 and 6
-       and answer_rule->'options' @> jsonb_build_array(answer_display_i18n->>'en'))))
+       (case when jsonb_typeof(answer_rule->'options')='array'
+       then jsonb_array_length(answer_rule->'options') between 2 and 6
+          and answer_rule->'options' @> jsonb_build_array(answer_display_i18n->>'en')
+       else false end)))
      as is_playable,
    public.question_difficulty_band(difficulty_percentile) as difficulty
  from matches
