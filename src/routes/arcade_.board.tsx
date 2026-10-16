@@ -257,6 +257,7 @@ function BoardPage() {
   const [visitQuestion, setVisitQuestion] = useState(0);
   const [visitScore, setVisitScore] = useState(0);
   const [checkout, setCheckout] = useState(false);
+  const [setupDart, setSetupDart] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [solved, setSolved] = useState<string[]>([]);
@@ -278,6 +279,7 @@ function BoardPage() {
     setVisitQuestion(0);
     setVisitScore(0);
     setCheckout(false);
+    setSetupDart(false);
     setFeedback(null);
     setSelected([]);
     setSolved([]);
@@ -340,14 +342,11 @@ function BoardPage() {
       else setLives((value) => Math.max(0, value - 1));
     }
     if (mode === "501") {
-      const value = checkout ? remaining : (DART_SCORES[target] ?? 25);
+      const value = checkout ? remaining : setupDart ? 1 : (DART_SCORES[target] ?? 25);
       if (correct) {
         const hit = checkout
-          ? ({
-              segment: Math.max(1, Math.min(20, remaining / 2)),
-              ring: "double",
-            } as DartboardHighlight)
-          : (DART_BEDS[target] ?? null);
+          ? ({ segment: remaining === 50 ? 50 : remaining / 2, ring: remaining === 50 ? "bull" : "double" } as DartboardHighlight)
+          : setupDart ? ({ segment: 1, ring: "single" } as DartboardHighlight) : (DART_BEDS[target] ?? null);
         setLastBed(hit);
         setDartThrow((value) => value + 1);
       } else {
@@ -360,7 +359,7 @@ function BoardPage() {
       if (correct && checkout) {
         setRemaining(0);
         setVisitScore((score) => score + value);
-        setFeedback(`Checkout! Double ${value / 2} — game won.`);
+        setFeedback(value === 50 ? "Checkout! Bullseye — game won." : `Checkout! Double ${value / 2} — game won.`);
       } else if (bust) {
         setRemaining(visitStart);
         setVisitScore(0);
@@ -386,6 +385,7 @@ function BoardPage() {
         }
       }
       setCheckout(false);
+      setSetupDart(false);
     }
     if (!correct) setMisses((m) => m + 1);
     if (mode !== "501") {
@@ -432,6 +432,7 @@ function BoardPage() {
     setVisitQuestion(0);
     setVisitScore(0);
     setCheckout(false);
+    setSetupDart(false);
     setFeedback(null);
     setSelected([]);
     setSolved([]);
@@ -662,6 +663,7 @@ function BoardPage() {
                     key={level.level}
                     on={difficulty === level.level}
                     onClick={() => {
+                      if (target !== null) return;
                       setLastBed(null);
                       setDifficulty(level.level);
                     }}
@@ -690,13 +692,14 @@ function BoardPage() {
                   </span>
                 </div>
               </div>
-              {remaining <= 40 && remaining % 2 === 0 ? (
+              {((remaining <= 40 && remaining % 2 === 0) || remaining === 50) ? (
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <Button
                     variant="outline"
                     disabled={target !== null}
                     onClick={() => {
                       setCheckout(false);
+                      setSetupDart(false);
                       setTarget(difficulty - 1);
                     }}
                   >
@@ -706,19 +709,33 @@ function BoardPage() {
                     disabled={target !== null}
                     onClick={() => {
                       setCheckout(true);
+                      setSetupDart(false);
                       setTarget(difficulty - 1);
                     }}
                     className="bg-gold text-background hover:bg-gold/90"
                   >
-                    Checkout · Double {remaining / 2}
+                    {remaining === 50 ? "Checkout · Bullseye 50" : `Checkout · Double ${remaining / 2}`}
                   </Button>
                 </div>
+              ) : remaining < 25 && remaining % 2 === 1 ? (
+                <Button
+                  className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
+                  disabled={target !== null}
+                  onClick={() => {
+                    setCheckout(false);
+                    setSetupDart(true);
+                    setTarget(difficulty - 1);
+                  }}
+                >
+                  Setup dart · Single 1 · leave {remaining - 1} for a double
+                </Button>
               ) : (
                 <Button
                   className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
                   disabled={target !== null}
                   onClick={() => {
                     setCheckout(false);
+                    setSetupDart(false);
                     setTarget(difficulty - 1);
                   }}
                 >
@@ -1023,8 +1040,8 @@ function BoardPage() {
                   ? `Zone ${target + 1} · answer to capture`
                   : mode === "501"
                     ? checkout
-                      ? `Checkout · Double ${remaining / 2}`
-                      : `${DIFFICULTIES[target]?.label ?? "Question"} · ${DART_SCORES[target] ?? 25} points`
+                      ? remaining === 50 ? "Checkout · Bullseye 50" : `Checkout · Double ${remaining / 2}`
+                      : setupDart ? "Set-up · Single 1" : `${DIFFICULTIES[target]?.label ?? "Question"} · ${DART_SCORES[target] ?? 25} points`
                     : mode === "draft"
                       ? `Sign ${DRAFT[target]?.name ?? "the athlete"}`
                       : mode === "tower"
