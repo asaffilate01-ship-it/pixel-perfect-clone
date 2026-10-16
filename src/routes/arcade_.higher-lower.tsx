@@ -132,16 +132,20 @@ function HigherLowerPage() {
     void fetchHigherLowerCards(difficulty)
       .then((next) => {
         if (!live) return;
-        if (next.length >= 4) setCards(next);
+        // Four unrelated cards cannot form a fair comparison round. Require a
+        // real, like-for-like pair pool before switching away from offline play.
+        const pairs = makeHigherLowerRun(next, difficulty, 1, 15);
+        if (pairs.length >= 4) setCards(next);
         else {
           setCards(CARDS);
-          setLoadNotice("The verified online pool is still growing; offline records are in play.");
+          setLoadNotice("Not enough comparable verified records at this level; using offline practice cards.");
         }
         setRunSeed(Math.floor(Math.random() * 100_000));
       })
       .catch(() => {
-        if (live)
-          setLoadNotice("Offline records loaded. Online rotation will resume automatically.");
+        if (!live) return;
+        setCards(CARDS);
+        setLoadNotice("Offline practice records loaded; verified online comparisons are temporarily unavailable.");
       })
       .finally(() => live && setLoadingCards(false));
     return () => {
