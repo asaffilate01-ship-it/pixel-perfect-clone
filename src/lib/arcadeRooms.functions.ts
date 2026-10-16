@@ -507,7 +507,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
     if (data.roomId) await requireActiveRoomTurn(admin, data.roomId, context.userId);
     const { data: q } = await admin
       .from("question_bank")
-      .select("answer_rule, answer_display_i18n")
+      .select("answer_rule, answer_display_i18n, question_type")
       .eq("id", data.questionId)
       .eq("verification_status", "verified")
       .maybeSingle();
@@ -525,13 +525,59 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         .maybeSingle();
       if (!roomQ || roomQ.active_user_id !== context.userId || roomQ.revealed_answer)
         throw new Error("Not your active question");
+      if (roomQ.expires_at && Date.parse(roomQ.expires_at) <= Date.now()) {
+        throw new Error("This question has expired");
+      }
       roomQuestionId = roomQ.id;
+    } else {
+      // A solo player can only submit an actively reserved question. Prevent
+      // repeated submits against an old ID from inflating their scoring history.
+      const { data: exposure, error: exposureError } = await admin
+        .from("question_exposures")
+        .select("id, exposed_at")
+        .eq("user_id", context.userId)
+        .eq("question_id", data.questionId)
+        .gte("exposed_at", new Date(Date.now() - 30 * 60_000).toISOString())
+        .order("exposed_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (exposureError) throw new Error(exposureError.message);
+      if (!exposure) throw new Error("Reserve a new question before submitting an answer");
+      const { data: previous, error: attemptsError } = await admin
+        .from("question_attempts")
+        .select("id")
+        .eq("user_id", context.userId)
+        .eq("question_id", data.questionId)
+        .gte("created_at", exposure.exposed_at)
+        .limit(1)
+        .maybeSingle();
+      if (attemptsError) throw new Error(attemptsError.message);
+      if (previous) throw new Error("You already answered this question");
     }
 
-    const accepted = ((q.answer_rule as { accepted?: string[] }) ?? {}).accepted ?? [];
-    const correct =
-      !data.passed && data.answer.trim().length > 0 && answerMatches(data.answer, accepted);
+    const rule = q.answer_rule as { accepted?: string[]; options?: string[] } | null;
+    const accepted = Array.isArray(rule?.accepted) ? rule.accepted : [];
+    const isValidChoice = q.question_type !== "single_choice" ||
+      (Array.isArray(rule?.options) &&
+        rule.options.some((option) => option === data.answer));
+    const correct = !data.passed && data.answer.trim().length > 0 &&
+      isValidChoice && answerMatches(data.answer, accepted);
     const movement = correct ? (data.usedClue ? 5 : 6) : 0;
+
+    if (data.roomId && roomQuestionId) {
+      // Conditional claim makes two simultaneous submissions for one room
+      // question mutually exclusive. Claim before awarding points.
+      const { data: claimed, error: claimError } = await admin
+        .from("arcade_questions")
+        .update({ revealed_answer: true })
+        .eq("id", roomQuestionId)
+        .eq("active_user_id", context.userId)
+        .eq("revealed_answer", false)
+        .select("id")
+        .maybeSingle();
+      if (claimError) throw new Error(claimError.message);
+      if (!claimed) throw new Error("This question was already answered");
+    }
 
     // Service-role only: clients cannot forge correct answers or progression points by calling the RPC.
     const secureRpc = admin.rpc.bind(admin) as unknown as (
@@ -553,12 +599,8 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
     const answer = (q.answer_display_i18n as Record<string, string> | null)?.["en"] ?? "";
 
     if (data.roomId && roomQuestionId) {
-      // Reveal to the room, record the submission, move the token / score, and pass the turn.
-      await admin
-        .from("arcade_questions")
-        .update({ revealed_answer: true })
-        .eq("id", roomQuestionId);
-      await admin.from("arcade_submissions").insert({
+      // The room question has already been exclusively claimed above.
+      const { error: submissionError } = await admin.from("arcade_submissions").insert({
         question_id: roomQuestionId,
         user_id: context.userId,
         action: data.passed ? "pass" : "answer",
@@ -569,6 +611,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         input_method: data.inputMethod,
         transcript_confidence: data.transcriptConfidence ?? null,
       });
+      if (submissionError) throw new Error(submissionError.message);
 
       const [{ data: room }, { data: players }] = await Promise.all([
         admin
