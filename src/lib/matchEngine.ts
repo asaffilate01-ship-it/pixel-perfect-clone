@@ -43,6 +43,10 @@ export function dropToken(
   cols = COLS,
   rows = ROWS,
 ): { board: (Side | null)[]; index: number } | null {
+  if (!Number.isInteger(column) || !Number.isInteger(cols) || !Number.isInteger(rows) ||
+      cols < 4 || rows < 4 || column < 0 || column >= cols || board.length !== cols * rows) {
+    return null;
+  }
   const next = [...board];
   for (let row = rows - 1; row >= 0; row--) {
     const i = row * cols + column;

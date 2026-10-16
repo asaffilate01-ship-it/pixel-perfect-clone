@@ -33,7 +33,7 @@ export const Route = createFileRoute("/arcade")({
       { property: "og:title", content: "Tactical Arcade — Fanzeno" },
       {
         property: "og:description",
-        content: "Twelve tactical sports games. Board games and Mastermind are live now.",
+        content: "Play sports trivia, tactical boards, quiz races and puzzle challenges.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -128,7 +128,7 @@ function Arcade() {
           <p className="eyebrow">Fanzeno arcade</p>
           <h1 className="mt-3 text-5xl">Pick a game</h1>
           <p className="mt-3 max-w-lg text-sm text-muted-foreground">
-            Every move is a verified sports answer. {liveCount} games live now, more on the way.
+            Play {liveCount} arcade modes, from verified questions to casual practice puzzles.
           </p>
         </div>
         <Button asChild variant="outline" className="shrink-0">
@@ -190,7 +190,7 @@ function Arcade() {
           <Gem className="size-4 shrink-0 text-gold" />
           <span>
             <span className="font-black uppercase tracking-[0.14em]">Fanzeno Pro</span> unlocks Quiz
-            Ludo, Sports Mastermind and every premium game — one payment, lifetime.
+            Pro modes are available to existing members; lifetime checkout is coming soon.
           </span>
           <ArrowRight className="ml-auto size-4 shrink-0" />
         </Link>

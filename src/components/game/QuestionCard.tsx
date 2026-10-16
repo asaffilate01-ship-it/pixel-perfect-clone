@@ -72,6 +72,8 @@ export function QuestionCard({
   const [challenged, setChallenged] = useState(false);
   const started = useRef(Date.now());
   const loadedFor = useRef<string | null>(null);
+  const resolveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingOutcome = useRef<QuestionOutcome | null>(null);
 
   const loadKey = [
     turnKey,
@@ -84,6 +86,13 @@ export function QuestionCard({
     canAnswer ? "active" : "waiting",
     reload,
   ].join(":");
+
+  // Never advance a different player's turn after a stale delayed result.
+  useEffect(() => () => {
+    if (resolveTimer.current) clearTimeout(resolveTimer.current);
+    resolveTimer.current = null;
+    pendingOutcome.current = null;
+  }, [loadKey]);
 
   useEffect(() => {
     if (loadedFor.current === loadKey) return;
@@ -149,8 +158,17 @@ export function QuestionCard({
     })();
   }, [loadKey, bank, canAnswer, categoryKey, difficulty, modeSlug, roomId, sportId, user]);
 
+  const advanceTurn = () => {
+    if (loadedFor.current !== loadKey || !pendingOutcome.current) return;
+    const outcome = pendingOutcome.current;
+    pendingOutcome.current = null;
+    if (resolveTimer.current) clearTimeout(resolveTimer.current);
+    resolveTimer.current = null;
+    onResolved(outcome);
+  };
+
   const resolveServer = async (input: AnswerInput | null) => {
-    if (!question) return;
+    if (!question || busy || reveal) return;
     setBusy(true);
     setSubmitError(null);
     try {
@@ -168,12 +186,17 @@ export function QuestionCard({
           transcriptConfidence: input?.confidence ?? null,
         },
       });
+      if (loadedFor.current !== loadKey) return;
+      const outcome = { correct: res.correct, usedClue: clue, passed: !input, answer: res.answer };
+      pendingOutcome.current = outcome;
       setReveal({ correct: res.correct, answer: res.answer });
-      setTimeout(
-        () =>
-          onResolved({ correct: res.correct, usedClue: clue, passed: !input, answer: res.answer }),
-        1400,
-      );
+      // Allow eight seconds to challenge a rejection; auto-advance prevents online stalls.
+      resolveTimer.current = setTimeout(() => {
+        if (loadedFor.current === loadKey && pendingOutcome.current) {
+          pendingOutcome.current = null;
+          onResolved(outcome);
+        }
+      }, !res.correct && input ? 8000 : 1400);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Answer rejected");
     } finally {
@@ -269,6 +292,11 @@ export function QuestionCard({
               <Flag className="size-3.5" /> {challenged ? "Sent" : "Challenge"}
             </Button>
           )}
+          {!reveal.correct && (
+            <Button type="button" className="ml-auto" size="sm" onClick={advanceTurn}>
+              Continue
+            </Button>
+          )}
         </div>
       ) : !canAnswer ? (
         <p className="mt-4 text-xs text-muted-foreground">
@@ -287,12 +315,42 @@ export function QuestionCard({
               <Lightbulb className="size-4" /> Get clue
             </Button>
           )}
-          <AnswerComposer
-            disabled={loading}
-            busy={busy}
-            onSubmit={(a) => void resolveServer(a)}
-            onPass={() => void resolveServer(null)}
-          />
+          {question.options && question.options.length >= 2 ? (
+            <div className="mt-4">
+              <p className="text-xs font-bold text-muted-foreground">
+                {question.options.length === 2 &&
+                question.options.some((option) => option.toLowerCase() === "true")
+                  ? "True or false?"
+                  : "Choose the correct answer"}
+              </p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2" role="group" aria-label="Answer choices">
+                {question.options.map((option, index) => (
+                  <Button
+                    key={option}
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    className="h-auto min-h-14 justify-start whitespace-normal px-3 py-3 text-left"
+                    onClick={() => void resolveServer({ text: option, method: "typed", confidence: null })}
+                  >
+                    <span className="mr-2 font-black text-primary">{String.fromCharCode(65 + index)}</span>
+                    {option}
+                  </Button>
+                ))}
+              </div>
+              <Button className="mt-3" type="button" variant="ghost" size="sm" disabled={busy}
+                onClick={() => void resolveServer(null)}>
+                Pass this question
+              </Button>
+            </div>
+          ) : (
+            <AnswerComposer
+              disabled={loading}
+              busy={busy}
+              onSubmit={(a) => void resolveServer(a)}
+              onPass={() => void resolveServer(null)}
+            />
+          )}
           {submitError && <p className="mt-2 text-xs text-destructive">{submitError}</p>}
         </>
       ) : (

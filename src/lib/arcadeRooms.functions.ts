@@ -316,6 +316,8 @@ export type FairQuestion = {
   clue: string | null;
   question_type: string;
   difficulty_percentile: number;
+  /** Public answer choices only; correct answers stay on the server. */
+  options?: string[];
 };
 
 const questionSchema = z.object({
@@ -390,12 +392,29 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
     }
     const { data: q } = await admin
       .from("question_bank")
-      .select("id, prompt_i18n, clue_i18n, question_type, difficulty_percentile")
+      .select("id, prompt_i18n, clue_i18n, question_type, difficulty_percentile, answer_rule")
       .eq("id", id as string)
       .single();
     if (!q) throw new Error("Question unavailable");
     const prompt = (q.prompt_i18n as Record<string, string>)["en"] ?? "";
     const clue = (q.clue_i18n as Record<string, string> | null)?.["en"] ?? null;
+    // Answer rule is privileged. Only allow-listed distractor labels leave the server.
+    const rawOptions = (q.answer_rule as { options?: unknown } | null)?.options;
+    const options =
+      q.question_type === "single_choice" && Array.isArray(rawOptions) &&
+      rawOptions.length >= 2 && rawOptions.length <= 6 &&
+      rawOptions.every((option): option is string =>
+        typeof option === "string" && option.trim().length > 0 && option.length <= 90) &&
+      new Set(rawOptions.map((option: string) => option.trim().toLowerCase())).size === rawOptions.length
+        ? (rawOptions as string[])
+        : undefined;
+    if (options) {
+      // Shuffle server-side so option position never becomes the answer key.
+      for (let index = options.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [options[index], options[swapIndex]] = [options[swapIndex]!, options[index]!];
+      }
+    }
     if (data.roomId) {
       await admin.from("arcade_questions").insert({
         room_id: data.roomId,
@@ -417,6 +436,7 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
         clue,
         question_type: q.question_type,
         difficulty_percentile: Number(q.difficulty_percentile),
+        ...(options ? { options } : {}),
       } as FairQuestion,
     } as { question: FairQuestion | null; unavailable?: string };
   });

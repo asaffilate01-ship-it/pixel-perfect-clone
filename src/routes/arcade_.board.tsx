@@ -143,12 +143,28 @@ const CONFIG: Record<
   },
 };
 
-const CONNECTION_GROUPS = [
-  { label: "Won the men's FIFA World Cup", items: ["Messi", "Mbappé", "Iniesta", "Ronaldo"] },
-  { label: "Formula 1 world champions", items: ["Hamilton", "Vettel", "Alonso", "Verstappen"] },
-  { label: "Wimbledon singles champions", items: ["Federer", "Nadal", "Djokovic", "Murray"] },
-  { label: "Cricket World Cup winners", items: ["Stokes", "Ponting", "Dhoni", "Akram"] },
-];
+/** Rotating, unambiguous editorial Connections boards. */
+const CONNECTION_PUZZLES = [
+  [
+    { label: "Men's FIFA World Cup winners", items: ["Lionel Messi", "Kylian Mbappé", "Andrés Iniesta", "Ronaldo Nazário"] },
+    { label: "Formula 1 world champions", items: ["Lewis Hamilton", "Sebastian Vettel", "Fernando Alonso", "Max Verstappen"] },
+    { label: "Wimbledon singles champions", items: ["Roger Federer", "Rafael Nadal", "Novak Djokovic", "Andy Murray"] },
+    { label: "Men's Cricket World Cup winners", items: ["Ben Stokes", "Ricky Ponting", "MS Dhoni", "Wasim Akram"] },
+  ],
+  [
+    { label: "Argentina's 2022 World Cup squad", items: ["Emiliano Martínez", "Julián Álvarez", "Ángel Di María", "Enzo Fernández"] },
+    { label: "NBA Finals MVP winners", items: ["Michael Jordan", "LeBron James", "Stephen Curry", "Giannis Antetokounmpo"] },
+    { label: "Stanley Cup-winning captains", items: ["Sidney Crosby", "Jonathan Toews", "Alex Ovechkin", "Steven Stamkos"] },
+    { label: "World snooker champions", items: ["Ronnie O'Sullivan", "Neil Robertson", "Judd Trump", "Mark Selby"] },
+  ],
+  [
+    { label: "Germany's 2014 World Cup squad", items: ["Manuel Neuer", "Toni Kroos", "Miroslav Klose", "Thomas Müller"] },
+    { label: "England's 2019 Cricket World Cup squad", items: ["Eoin Morgan", "Ben Stokes", "Joe Root", "Jos Buttler"] },
+    { label: "Historic Formula 1 world champions", items: ["Alain Prost", "Ayrton Senna", "Michael Schumacher", "Kimi Räikkönen"] },
+    { label: "Olympic men's 100m champions", items: ["Usain Bolt", "Justin Gatlin", "Maurice Greene", "Donovan Bailey"] },
+  ],
+] as const;
+
 const BINGO = [
   "World champion",
   "Olympic medallist",
@@ -241,9 +257,12 @@ function BoardPage() {
   const [visitQuestion, setVisitQuestion] = useState(0);
   const [visitScore, setVisitScore] = useState(0);
   const [checkout, setCheckout] = useState(false);
+  const [setupDart, setSetupDart] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const [solved, setSolved] = useState<string[]>([]);
+  const [puzzleIndex, setPuzzleIndex] = useState(0);
+  const connectionGroups = CONNECTION_PUZZLES[puzzleIndex % CONNECTION_PUZZLES.length]!;
   const [squad, setSquad] = useState<number[]>([]);
   const [misses, setMisses] = useState(0);
   const [towerLevel, setTowerLevel] = useState(0);
@@ -260,6 +279,7 @@ function BoardPage() {
     setVisitQuestion(0);
     setVisitScore(0);
     setCheckout(false);
+    setSetupDart(false);
     setFeedback(null);
     setSelected([]);
     setSolved([]);
@@ -283,7 +303,7 @@ function BoardPage() {
               ? towerLevel >= 8 || lives === 0
               : mode === "cards"
                 ? cardWins >= 10 || lives === 0
-                : solved.length === 4;
+                : solved.length === 4 || misses >= 4;
   const won =
     mode === "territory"
       ? mine.length >= 10
@@ -291,12 +311,12 @@ function BoardPage() {
         ? towerLevel >= 8
         : mode === "cards"
           ? cardWins >= 10
-          : finished;
+          : mode === "connections" ? solved.length === 4 : finished;
   const progress =
     mode === "501"
       ? `${remaining}`
       : mode === "connections"
-        ? `${solved.length}/4 groups`
+        ? `${solved.length}/4 groups · ${Math.max(0, 4 - misses)} tries left`
         : mode === "draft"
           ? `${squad.length}/5 signed`
           : mode === "territory"
@@ -322,14 +342,11 @@ function BoardPage() {
       else setLives((value) => Math.max(0, value - 1));
     }
     if (mode === "501") {
-      const value = checkout ? remaining : (DART_SCORES[target] ?? 25);
+      const value = checkout ? remaining : setupDart ? 1 : (DART_SCORES[target] ?? 25);
       if (correct) {
         const hit = checkout
-          ? ({
-              segment: Math.max(1, Math.min(20, remaining / 2)),
-              ring: "double",
-            } as DartboardHighlight)
-          : (DART_BEDS[target] ?? null);
+          ? ({ segment: remaining === 50 ? 50 : remaining / 2, ring: remaining === 50 ? "bull" : "double" } as DartboardHighlight)
+          : setupDart ? ({ segment: 1, ring: "single" } as DartboardHighlight) : (DART_BEDS[target] ?? null);
         setLastBed(hit);
         setDartThrow((value) => value + 1);
       } else {
@@ -342,7 +359,7 @@ function BoardPage() {
       if (correct && checkout) {
         setRemaining(0);
         setVisitScore((score) => score + value);
-        setFeedback(`Checkout! Double ${value / 2} — game won.`);
+        setFeedback(value === 50 ? "Checkout! Bullseye — game won." : `Checkout! Double ${value / 2} — game won.`);
       } else if (bust) {
         setRemaining(visitStart);
         setVisitScore(0);
@@ -368,6 +385,7 @@ function BoardPage() {
         }
       }
       setCheckout(false);
+      setSetupDart(false);
     }
     if (!correct) setMisses((m) => m + 1);
     if (mode !== "501") {
@@ -383,25 +401,28 @@ function BoardPage() {
 
   const checkConnection = () => {
     if (selected.length !== 4) return;
-    const group = CONNECTION_GROUPS.find((g) => g.items.every((x) => selected.includes(x)));
+    if (misses >= 4 || solved.length === 4) return;
+    const group = connectionGroups.find((g) => g.items.every((x) => selected.includes(x)));
     if (group && !solved.includes(group.label)) {
       setSolved((v) => [...v, group.label]);
       setFeedback(`Connected: ${group.label}`);
     } else {
       setMisses((m) => m + 1);
-      setFeedback("Those four do not form a complete group.");
+      const oneAway = connectionGroups.some((g) => g.items.filter((item) => selected.includes(item)).length === 3);
+      setFeedback(oneAway ? "One away! Three of those terms share a connection." : "Those four do not form a complete group.");
     }
     setSelected([]);
   };
   const allConnections = useMemo(
-    () => CONNECTION_GROUPS.flatMap((g) => g.items).sort((a, b) => seeded(a, 3) - seeded(b, 3)),
-    [],
+    () => connectionGroups.flatMap((g) => [...g.items]).sort((a, b) => seeded(a, 3 + puzzleIndex) - seeded(b, 3 + puzzleIndex)),
+    [connectionGroups, puzzleIndex],
   );
   const solvedItems = new Set(
-    solved.flatMap((l) => CONNECTION_GROUPS.find((g) => g.label === l)?.items ?? []),
+    solved.flatMap((l) => connectionGroups.find((g) => g.label === l)?.items ?? []),
   );
 
   const reset = () => {
+    if (mode === "connections") setPuzzleIndex((index) => (index + 1) % CONNECTION_PUZZLES.length);
     setRound(0);
     setTarget(null);
     setMine([]);
@@ -411,6 +432,7 @@ function BoardPage() {
     setVisitQuestion(0);
     setVisitScore(0);
     setCheckout(false);
+    setSetupDart(false);
     setFeedback(null);
     setSelected([]);
     setSolved([]);
@@ -540,7 +562,7 @@ function BoardPage() {
                         ? won
                           ? "Deck mastered"
                           : "Out of lives"
-                        : "All four connected"}
+                        : won ? "All four connected" : "Four misses · try another puzzle"}
           </p>
           <p className="mt-2 text-xs text-muted-foreground">
             {round} question{round === 1 ? "" : "s"} · {misses} miss{misses === 1 ? "" : "es"}
@@ -641,6 +663,7 @@ function BoardPage() {
                     key={level.level}
                     on={difficulty === level.level}
                     onClick={() => {
+                      if (target !== null) return;
                       setLastBed(null);
                       setDifficulty(level.level);
                     }}
@@ -669,13 +692,14 @@ function BoardPage() {
                   </span>
                 </div>
               </div>
-              {remaining <= 40 && remaining % 2 === 0 ? (
+              {((remaining <= 40 && remaining % 2 === 0) || remaining === 50) ? (
                 <div className="mt-4 grid gap-2 sm:grid-cols-2">
                   <Button
                     variant="outline"
                     disabled={target !== null}
                     onClick={() => {
                       setCheckout(false);
+                      setSetupDart(false);
                       setTarget(difficulty - 1);
                     }}
                   >
@@ -685,19 +709,33 @@ function BoardPage() {
                     disabled={target !== null}
                     onClick={() => {
                       setCheckout(true);
+                      setSetupDart(false);
                       setTarget(difficulty - 1);
                     }}
                     className="bg-gold text-background hover:bg-gold/90"
                   >
-                    Checkout · Double {remaining / 2}
+                    {remaining === 50 ? "Checkout · Bullseye 50" : `Checkout · Double ${remaining / 2}`}
                   </Button>
                 </div>
+              ) : remaining < 25 && remaining % 2 === 1 ? (
+                <Button
+                  className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
+                  disabled={target !== null}
+                  onClick={() => {
+                    setCheckout(false);
+                    setSetupDart(true);
+                    setTarget(difficulty - 1);
+                  }}
+                >
+                  Setup dart · Single 1 · leave {remaining - 1} for a double
+                </Button>
               ) : (
                 <Button
                   className="mt-4 w-full font-bold uppercase tracking-[0.14em]"
                   disabled={target !== null}
                   onClick={() => {
                     setCheckout(false);
+                    setSetupDart(false);
                     setTarget(difficulty - 1);
                   }}
                 >
@@ -1002,8 +1040,8 @@ function BoardPage() {
                   ? `Zone ${target + 1} · answer to capture`
                   : mode === "501"
                     ? checkout
-                      ? `Checkout · Double ${remaining / 2}`
-                      : `${DIFFICULTIES[target]?.label ?? "Question"} · ${DART_SCORES[target] ?? 25} points`
+                      ? remaining === 50 ? "Checkout · Bullseye 50" : `Checkout · Double ${remaining / 2}`
+                      : setupDart ? "Set-up · Single 1" : `${DIFFICULTIES[target]?.label ?? "Question"} · ${DART_SCORES[target] ?? 25} points`
                     : mode === "draft"
                       ? `Sign ${DRAFT[target]?.name ?? "the athlete"}`
                       : mode === "tower"

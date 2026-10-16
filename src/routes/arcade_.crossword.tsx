@@ -40,6 +40,33 @@ const FALLBACK_ENTRIES: Entry[] = [
   { answer: "PIT", clue: "Where a racing car stops for service", row: 7, col: 5 },
 ];
 
+/** Distinct offline practice grids, used only when the verified online pool is unavailable. */
+const OFFLINE_PUZZLES: { size: number; label: string; entries: Entry[] }[] = [
+  { size: 9, label: "Mixed sports", entries: FALLBACK_ENTRIES },
+  {
+    size: 9, label: "Sports basics",
+    entries: [
+      { answer: "RUGBY", clue: "A sport with tries, conversions and scrums", row: 3, col: 2 },
+      { answer: "RUN", clue: "A cricket score or a short sprint", row: 3, col: 2, vertical: true },
+      { answer: "USA", clue: "Three-letter abbreviation for the United States", row: 3, col: 3, vertical: true },
+      { answer: "GOAL", clue: "A scoring target in football and hockey", row: 3, col: 4, vertical: true },
+      { answer: "BOX", clue: "What a boxer does in the ring", row: 3, col: 5, vertical: true },
+      { answer: "YARD", clue: "Three-foot distance unit used in gridiron football", row: 3, col: 6, vertical: true },
+    ],
+  },
+  {
+    size: 9, label: "Race day",
+    entries: [
+      { answer: "TRACK", clue: "Surface on which a motor or running race takes place", row: 2, col: 3 },
+      { answer: "TRY", clue: "Five-point score in rugby union", row: 2, col: 3, vertical: true },
+      { answer: "RACE", clue: "A contest to finish first", row: 2, col: 4, vertical: true },
+      { answer: "ACE", clue: "A serve the opponent cannot touch in tennis", row: 2, col: 5, vertical: true },
+      { answer: "CUP", clue: "A trophy often awarded to tournament winners", row: 2, col: 6, vertical: true },
+      { answer: "KICK", clue: "A method of striking a ball with the foot", row: 2, col: 7, vertical: true },
+    ],
+  },
+];
+
 function cellKey(row: number, col: number) {
   return `${row}:${col}`;
 }
@@ -84,6 +111,9 @@ function CrosswordPage() {
     let live = true;
     setLoadingPuzzle(true);
     setLoadNotice(null);
+    setLetters({});
+    setHints(new Set());
+    setChecked(false);
     void reserveCrossword(difficulty)
       .then((puzzle) => {
         if (!live) return;
@@ -92,11 +122,20 @@ function CrosswordPage() {
           setSize(puzzle.size);
           setPuzzleLabel(puzzle.sportLabel);
         } else {
-          setLoadNotice("Verified puzzles are still being populated; showing the offline puzzle.");
+          const offline = OFFLINE_PUZZLES[puzzleVersion % OFFLINE_PUZZLES.length]!;
+          setEntries(offline.entries);
+          setSize(offline.size);
+          setPuzzleLabel(offline.label);
+          setLoadNotice("Verified puzzles are still being populated; showing offline practice.");
         }
       })
       .catch(() => {
-        if (live) setLoadNotice("Offline puzzle loaded. Your next online game will rotate again.");
+        if (!live) return;
+        const offline = OFFLINE_PUZZLES[puzzleVersion % OFFLINE_PUZZLES.length]!;
+        setEntries(offline.entries);
+        setSize(offline.size);
+        setPuzzleLabel(offline.label);
+        setLoadNotice("Offline practice puzzle. Scores are not sent to the ranked question bank.");
       })
       .finally(() => live && setLoadingPuzzle(false));
     return () => {
@@ -106,7 +145,9 @@ function CrosswordPage() {
 
   const correct = [...cells].filter(([key, cell]) => letters[key] === cell.letter).length;
   const complete = correct === cells.size;
-  const score = Math.max(0, correct * 100 - hints.size * 150);
+  const filled = [...cells.keys()].filter((key) => Boolean(letters[key])).length;
+  // Do not leak correctness through live score changes as the player types.
+  const score = checked ? Math.max(0, correct * 100 - hints.size * 150) : 0;
 
   const revealHint = (entryIndex: number) => {
     if (hints.has(entryIndex)) return;
@@ -171,9 +212,9 @@ function CrosswordPage() {
             </div>
             <div className="game-score-ring shrink-0">
               <div className="game-score-ring-inner text-center">
-                <p className="font-display text-xl text-primary">{score}</p>
+                <p className="font-display text-xl text-primary">{checked ? score : filled}</p>
                 <p className="text-[.5rem] font-black uppercase tracking-wider text-muted-foreground">
-                  pts
+                  {checked ? "pts" : `/${cells.size} filled`}
                 </p>
               </div>
             </div>
@@ -247,6 +288,7 @@ function CrosswordPage() {
                       )}
                       <input
                         value={letters[key] ?? ""}
+                        disabled={loadingPuzzle}
                         maxLength={1}
                         aria-label={`${number > 0 ? `Clue ${number}, ` : ""}crossword row ${row + 1}, column ${col + 1}`}
                         onChange={(event) => {
@@ -266,7 +308,7 @@ function CrosswordPage() {
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
-            <Button onClick={() => setChecked(true)} className="flex-1 sm:flex-none">
+            <Button disabled={loadingPuzzle} onClick={() => setChecked(true)} className="flex-1 sm:flex-none">
               <Check className="mr-2 size-4" /> Check answers
             </Button>
             <Button variant="outline" onClick={reset}>

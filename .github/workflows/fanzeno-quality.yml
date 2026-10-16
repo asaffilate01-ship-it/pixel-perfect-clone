@@ -1,0 +1,25 @@
+name: Fanzeno quality gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: oven-sh/setup-bun@v2
+      - name: Install pinned dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify arcade logic
+        run: npm run test:logic
+      - name: TypeScript check
+        run: bunx tsc --noEmit
+      - name: Build production client and server
+        run: bun run build
