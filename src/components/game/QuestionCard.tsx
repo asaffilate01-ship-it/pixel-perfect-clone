@@ -74,6 +74,16 @@ export function QuestionCard({
   const loadedFor = useRef<string | null>(null);
   const resolveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingOutcome = useRef<QuestionOutcome | null>(null);
+  const mounted = useRef(true);
+  const submitting = useRef(false);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      submitting.current = false;
+    };
+  }, []);
 
   const loadKey = [
     turnKey,
@@ -110,7 +120,7 @@ export function QuestionCard({
     const myKey = loadKey;
     // Only a genuine scope change (new loadKey) invalidates this request — not an
     // unrelated re-render where `user`/`bank` object identity changed.
-    const isStale = () => loadedFor.current !== myKey;
+    const isStale = () => !mounted.current || loadedFor.current !== myKey;
     (async () => {
       if (user && sportId && canAnswer) {
         try {
@@ -159,7 +169,7 @@ export function QuestionCard({
   }, [loadKey, bank, canAnswer, categoryKey, difficulty, modeSlug, roomId, sportId, user]);
 
   const advanceTurn = () => {
-    if (loadedFor.current !== loadKey || !pendingOutcome.current) return;
+    if (!mounted.current || loadedFor.current !== loadKey || !pendingOutcome.current) return;
     const outcome = pendingOutcome.current;
     pendingOutcome.current = null;
     if (resolveTimer.current) clearTimeout(resolveTimer.current);
@@ -168,7 +178,8 @@ export function QuestionCard({
   };
 
   const resolveServer = async (input: AnswerInput | null) => {
-    if (!question || busy || reveal) return;
+    if (!question || busy || reveal || submitting.current || !mounted.current) return;
+    submitting.current = true;
     setBusy(true);
     setSubmitError(null);
     try {
@@ -186,21 +197,24 @@ export function QuestionCard({
           transcriptConfidence: input?.confidence ?? null,
         },
       });
-      if (loadedFor.current !== loadKey) return;
+      if (!mounted.current || loadedFor.current !== loadKey) return;
       const outcome = { correct: res.correct, usedClue: clue, passed: !input, answer: res.answer };
       pendingOutcome.current = outcome;
       setReveal({ correct: res.correct, answer: res.answer });
       // Allow eight seconds to challenge a rejection; auto-advance prevents online stalls.
       resolveTimer.current = setTimeout(() => {
-        if (loadedFor.current === loadKey && pendingOutcome.current) {
+        if (mounted.current && loadedFor.current === loadKey && pendingOutcome.current) {
           pendingOutcome.current = null;
           onResolved(outcome);
         }
       }, !res.correct && input ? 8000 : 1400);
     } catch (e) {
-      setSubmitError(e instanceof Error ? e.message : "Answer rejected");
+      if (mounted.current && loadedFor.current === loadKey) {
+        setSubmitError(e instanceof Error ? e.message : "Answer rejected");
+      }
     } finally {
-      setBusy(false);
+      submitting.current = false;
+      if (mounted.current && loadedFor.current === loadKey) setBusy(false);
     }
   };
 
@@ -345,6 +359,7 @@ export function QuestionCard({
             </div>
           ) : (
             <AnswerComposer
+              key={loadKey}
               disabled={loading}
               busy={busy}
               onSubmit={(a) => void resolveServer(a)}
