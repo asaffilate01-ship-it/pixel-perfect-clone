@@ -151,6 +151,10 @@ function MastermindPage() {
   const myTurn = online ? list[activeIdx]?.userId === user?.id : true;
   const [onlineSeconds, setOnlineSeconds] = useState(ROUND_SECONDS);
 
+  useEffect(() => {
+    if (online) setQuestion(1);
+  }, [online, room?.active_seat, room?.round_no]);
+
   const nextTurn = () => {
     setSeconds(ROUND_SECONDS);
     setQuestion(1);
@@ -220,8 +224,10 @@ function MastermindPage() {
   );
 
   const current = list[activeIdx];
+  // Every answer advances the active player's local question index. Incorrect
+  // answers score zero, so points/passes alone cannot identify a fresh question.
   const turnKey = online
-    ? `${room?.active_seat}-${room?.round_no}-${current?.points ?? 0}-${current?.passes ?? 0}`
+    ? `${room?.active_seat}-${room?.round_no}-${question}`
     : `${active}-${phase}-${question}`;
   // Round 2 is "all sports": pick a random sport per question, stable for the life of the turn key.
   const randomSport = useMemo(
@@ -445,15 +451,15 @@ function MastermindPage() {
         canAnswer={myTurn}
         bank={bank}
         accentClass={SEAT_TEXT[activeIdx % 4]!}
-        rewardLabel={() => `Question ${online ? p.correct + p.passes + 1 : question} · +100`}
+        rewardLabel={() => `Question ${question} · +100`}
         onResolved={(o) => {
           if (online) setQuestion((value) => value + 1);
           else markLocal(o.correct, o.passed);
         }}
       />
       <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-        <Eye className="size-3.5 text-primary" /> Everyone sees the question; only the active player
-        answers.
+        <Eye className="size-3.5 text-primary" /> Only the active player can answer; scores are
+        shared live with everyone in the room.
       </p>
       {(!online || myTurn || room?.host_id === user?.id) && (
         <Button
