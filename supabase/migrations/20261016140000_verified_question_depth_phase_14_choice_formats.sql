@@ -1,5 +1,5 @@
 -- Fanzeno question depth phase 14: 28 independent historical sporting facts.
--- 14 answer-choice questions (including true/false) + 14 typed answers.
+-- 19 answer-choice questions (including true/false) + 9 typed answers.
 -- All prompts are newly written and traceable to the respective governing body's results.
 -- Deployed separately via the Fanzeno Supabase project; the Git commit alone is NOT deployment.
 with editorial as (
