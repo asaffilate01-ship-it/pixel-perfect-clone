@@ -390,26 +390,60 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       });
       if (accessError || !allowed) throw new Error("Fanzeno Pro is required for this game");
     }
-    const { data: id, error } = await context.supabase.rpc("reserve_fair_question", {
-      p_user_id: context.userId,
-      p_room_id: (data.roomId ?? null) as unknown as string,
-      p_sport_id: data.sportId,
-      ...(data.competitionId ? { p_competition_id: data.competitionId } : {}),
-      ...(data.category ? { p_category_key: data.category } : {}),
-      p_difficulty: data.difficulty,
-      ...(data.questionTypes ? { p_question_types: data.questionTypes } : {}),
-    });
-    if (error) {
-      // An empty verified pool is an expected outcome, not a server fault — report it
-      // as data so the client can show guidance instead of a runtime error.
-      if (/No verified .* question is available/i.test(error.message)) {
-        return { question: null, unavailable: error.message } as {
-          question: FairQuestion | null;
-          unavailable?: string;
-        };
+    // Refreshes within the same player's turn must reuse their outstanding
+    // question instead of consuming the verified bank or issuing duplicate turns.
+    let id: string | null = null;
+    let existingRoomQuestionId: string | null = null;
+    if (data.roomId) {
+      const { data: roomTurn, error: roomError } = await admin
+        .from("arcade_rooms")
+        .select("turn_started_at")
+        .eq("id", data.roomId)
+        .single();
+      if (roomError) throw new Error(roomError.message);
+      let pending = admin
+        .from("arcade_questions")
+        .select("id, question_id")
+        .eq("room_id", data.roomId)
+        .eq("active_user_id", context.userId)
+        .eq("revealed_answer", false)
+        .gt("expires_at", new Date().toISOString());
+      if (roomTurn?.turn_started_at) {
+        pending = pending.gte("issued_at", roomTurn.turn_started_at);
       }
-      throw new Error(error.message);
+      const { data: existing, error: pendingError } = await pending
+        .order("issued_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (pendingError) throw new Error(pendingError.message);
+      if (existing?.question_id) {
+        id = existing.question_id;
+        existingRoomQuestionId = existing.id;
+      }
     }
+    if (!id) {
+      const { data: reservedId, error } = await context.supabase.rpc("reserve_fair_question", {
+        p_user_id: context.userId,
+        p_room_id: (data.roomId ?? null) as unknown as string,
+        p_sport_id: data.sportId,
+        ...(data.competitionId ? { p_competition_id: data.competitionId } : {}),
+        ...(data.category ? { p_category_key: data.category } : {}),
+        p_difficulty: data.difficulty,
+        ...(data.questionTypes ? { p_question_types: data.questionTypes } : {}),
+      });
+      if (error) {
+        // An empty verified pool is an expected outcome, not a server fault.
+        if (/No verified .* question is available/i.test(error.message)) {
+          return { question: null, unavailable: error.message } as {
+            question: FairQuestion | null;
+            unavailable?: string;
+          };
+        }
+        throw new Error(error.message);
+      }
+      id = reservedId as string | null;
+    }
+    if (!id) throw new Error("Question reservation returned no ID");
     const { data: q } = await admin
       .from("question_bank")
       .select("id, prompt_i18n, clue_i18n, question_type, difficulty_percentile, answer_rule")
@@ -435,8 +469,19 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
         [options[index], options[swapIndex]] = [options[swapIndex]!, options[index]!];
       }
     }
-    if (data.roomId) {
-      await admin.from("arcade_questions").insert({
+    if (data.roomId && !existingRoomQuestionId) {
+      // A second question can be created within the same second during a fast
+      // Mastermind round, so do not use Unix seconds as an unexamined unique ID.
+      const { data: latest, error: turnError } = await admin
+        .from("arcade_questions")
+        .select("turn_no")
+        .eq("room_id", data.roomId)
+        .order("turn_no", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (turnError) throw new Error(turnError.message);
+      const nextTurnNo = Math.max(Math.floor(Date.now() / 1000), (latest?.turn_no ?? 0) + 1);
+      const { error: issueError } = await admin.from("arcade_questions").insert({
         room_id: data.roomId,
         question_id: q.id,
         active_user_id: context.userId,
@@ -445,9 +490,10 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
         prompt_i18n: q.prompt_i18n,
         clue_i18n: q.clue_i18n,
         answer_display_i18n: {},
-        turn_no: Math.floor(Date.now() / 1000),
+        turn_no: nextTurnNo,
         expires_at: new Date(Date.now() + 180_000).toISOString(),
       });
+      if (issueError) throw new Error("Could not issue this room question: " + issueError.message);
     }
     return {
       question: {
