@@ -223,7 +223,7 @@ function QuizRacePage() {
   }, [spaces, game]);
 
   const winner = online
-    ? room?.status === "finished"
+    ? (room?.status === "complete" || room?.status === "finished")
       ? list.find((p) => (game === "ludo" ? p.position >= LUDO_HOME : p.position >= 100))
       : undefined
     : players
