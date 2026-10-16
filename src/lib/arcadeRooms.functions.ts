@@ -214,15 +214,18 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     if (!member) throw new Error("Not a room participant");
 
     if (data.action === "ready") {
-      await admin
+      if (room.status !== "lobby") throw new Error("Room setup is already closed");
+      const { error } = await admin
         .from("arcade_room_players")
         .update({ status: data.ready ? "ready" : "active", last_seen_at: new Date().toISOString() })
         .eq("room_id", room.id)
         .eq("user_id", userId);
+      if (error) throw new Error(error.message);
       return { ready: data.ready };
     }
 
     if (data.action === "settings") {
+      if (room.status !== "lobby") throw new Error("Room setup is already closed");
       const current = (member.settings ?? {}) as Record<string, string | null>;
       const next: Record<string, string | null> = {
         ...current,
@@ -230,7 +233,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         ...(data.categoryKey !== undefined ? { category_key: data.categoryKey } : {}),
         ...(data.avatarId ? { avatar_id: data.avatarId } : {}),
       };
-      await admin
+      const { error } = await admin
         .from("arcade_room_players")
         .update({
           settings: next,
@@ -240,18 +243,20 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         })
         .eq("room_id", room.id)
         .eq("user_id", userId);
+      if (error) throw new Error(error.message);
       return { settings: next };
     }
 
     if (data.action === "start") {
       if (room.host_id !== userId) throw new Error("Only the host can start");
+      if (room.status !== "lobby") throw new Error("This match has already started");
       const { data: members } = await admin
         .from("arcade_room_players")
         .select("status")
         .eq("room_id", room.id);
       if ((members?.length ?? 0) < 2 || members?.some((m) => m.status !== "ready"))
         throw new Error("At least two players must be ready");
-      await admin
+      const { data: started, error: startError } = await admin
         .from("arcade_rooms")
         .update({
           status: "active",
@@ -260,11 +265,18 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
           turn_started_at: new Date().toISOString(),
           turn_ends_at: new Date(Date.now() + 180_000).toISOString(),
         })
-        .eq("id", room.id);
+        .eq("id", room.id)
+        .eq("status", "lobby")
+        .select("id")
+        .maybeSingle();
+      if (startError) throw new Error(startError.message);
+      if (!started) throw new Error("Another player already started this match");
       return { started: true };
     }
 
     if (data.action === "advance") {
+      if (room.mode_slug !== "sports-mastermind") throw new Error("Only Mastermind uses timed advance");
+      if (room.status !== "active") throw new Error("This round is no longer active");
       // Mastermind: the active player's 3-minute slot ended. Host or active player may pass the baton.
       const { data: players } = await admin
         .from("arcade_room_players")
@@ -277,6 +289,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         .eq("id", room.id)
         .single();
       const seats = (players ?? []).map((p) => p.seat);
+      if (!live || !seats.length || live.active_seat === null) throw new Error("No active round");
       const activeUser = players?.find((p) => p.seat === live?.active_seat)?.user_id;
       if (room.host_id !== userId && activeUser !== userId)
         throw new Error("Only the host or active player can end a turn");
@@ -284,16 +297,23 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
       const wrap = idx + 1 >= seats.length;
       const nextSeat = wrap ? (seats[0] ?? 0) : (seats[idx + 1] ?? 0);
       const nextRound = wrap ? (live?.round_no ?? 1) + 1 : (live?.round_no ?? 1);
-      await admin
+      const { data: advanced, error: advanceError } = await admin
         .from("arcade_rooms")
         .update({
           active_seat: nextSeat,
           round_no: nextRound,
-          status: nextRound > 2 ? "finished" : "active",
+          status: nextRound > 2 ? "complete" : "active",
           turn_started_at: new Date().toISOString(),
-          turn_ends_at: new Date(Date.now() + 180_000).toISOString(),
+          turn_ends_at: nextRound > 2 ? null : new Date(Date.now() + 180_000).toISOString(),
         })
-        .eq("id", room.id);
+        .eq("id", room.id)
+        .eq("status", "active")
+        .eq("active_seat", live.active_seat)
+        .eq("round_no", live.round_no)
+        .select("id")
+        .maybeSingle();
+      if (advanceError) throw new Error(advanceError.message);
+      if (!advanced) throw new Error("This round was already advanced");
       return { advanced: true, finished: nextRound > 2 };
     }
 
@@ -517,13 +537,13 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
     if (data.roomId) {
       const { data: roomQ } = await admin
         .from("arcade_questions")
-        .select("id, active_user_id, expires_at, revealed_answer")
+        .select("id, question_id, active_user_id, expires_at, revealed_answer")
         .eq("room_id", data.roomId)
-        .eq("question_id", data.questionId)
-        .order("turn_no", { ascending: false })
+        .order("issued_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!roomQ || roomQ.active_user_id !== context.userId || roomQ.revealed_answer)
+      if (!roomQ || roomQ.question_id !== data.questionId ||
+          roomQ.active_user_id !== context.userId || roomQ.revealed_answer)
         throw new Error("Not your active question");
       if (roomQ.expires_at && Date.parse(roomQ.expires_at) <= Date.now()) {
         throw new Error("This question has expired");
@@ -635,7 +655,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         } else if (mode === "quiz-ludo") {
           position = Math.min(LUDO_HOME, position + movement);
         }
-        await admin
+        const { error: scoreError } = await admin
           .from("arcade_room_players")
           .update({
             position,
@@ -646,6 +666,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
           })
           .eq("room_id", data.roomId)
           .eq("user_id", context.userId);
+        if (scoreError) throw new Error(scoreError.message);
 
         const won =
           (mode === "quiz-snakes-ladders" && position >= 100) ||
@@ -657,16 +678,18 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         const seats = (players ?? []).map((p) => p.seat).sort((a, b) => a - b);
         const idx = seats.indexOf(me.seat);
         const nextSeat = again ? me.seat : (seats[(idx + 1) % seats.length] ?? me.seat);
-        await admin
+        const { error: turnError } = await admin
           .from("arcade_rooms")
           .update({
-            status: won ? "finished" : room.status,
+            status: won ? "complete" : room.status,
             active_seat: nextSeat,
             round_no: nextSeat <= me.seat && !again ? room.round_no + 1 : room.round_no,
             turn_started_at: new Date().toISOString(),
-            turn_ends_at: new Date(Date.now() + 180_000).toISOString(),
+            turn_ends_at: won ? null : new Date(Date.now() + 180_000).toISOString(),
           })
-          .eq("id", data.roomId);
+          .eq("id", data.roomId)
+          .eq("status", "active");
+        if (turnError) throw new Error(turnError.message);
       }
     }
 
