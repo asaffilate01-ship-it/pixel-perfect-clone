@@ -28,6 +28,7 @@ import {
 import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeSetup";
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard, type QuestionOutcome } from "@/components/game/QuestionCard";
+import { isArcadeRoomComplete } from "@/lib/roomLifecycle";
 import { useEntitlements } from "@/lib/entitlements";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -223,7 +224,7 @@ function QuizRacePage() {
   }, [spaces, game]);
 
   const winner = online
-    ? (room?.status === "complete" || room?.status === "finished")
+    ? isArcadeRoomComplete(room?.status)
       ? list.find((p) => (game === "ludo" ? p.position >= LUDO_HOME : p.position >= 100))
       : undefined
     : players
