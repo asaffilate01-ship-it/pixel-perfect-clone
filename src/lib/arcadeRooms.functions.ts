@@ -408,6 +408,13 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       new Set(rawOptions.map((option: string) => option.trim().toLowerCase())).size === rawOptions.length
         ? (rawOptions as string[])
         : undefined;
+    if (options) {
+      // Shuffle server-side so option position never becomes the answer key.
+      for (let index = options.length - 1; index > 0; index--) {
+        const swapIndex = Math.floor(Math.random() * (index + 1));
+        [options[index], options[swapIndex]] = [options[swapIndex]!, options[index]!];
+      }
+    }
     if (data.roomId) {
       await admin.from("arcade_questions").insert({
         room_id: data.roomId,
