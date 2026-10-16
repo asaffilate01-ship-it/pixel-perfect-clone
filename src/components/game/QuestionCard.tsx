@@ -162,6 +162,8 @@ export function QuestionCard({
     if (loadedFor.current !== loadKey || !pendingOutcome.current) return;
     const outcome = pendingOutcome.current;
     pendingOutcome.current = null;
+    if (resolveTimer.current) clearTimeout(resolveTimer.current);
+    resolveTimer.current = null;
     onResolved(outcome);
   };
 
@@ -188,15 +190,13 @@ export function QuestionCard({
       const outcome = { correct: res.correct, usedClue: clue, passed: !input, answer: res.answer };
       pendingOutcome.current = outcome;
       setReveal({ correct: res.correct, answer: res.answer });
-      // Wrong typed/choice answers remain visible for a challenge before continuing.
-      if (res.correct || !input) {
-        resolveTimer.current = setTimeout(() => {
-          if (loadedFor.current === loadKey && pendingOutcome.current) {
-            pendingOutcome.current = null;
-            onResolved(outcome);
-          }
-        }, 1400);
-      }
+      // Allow eight seconds to challenge a rejection; auto-advance prevents online stalls.
+      resolveTimer.current = setTimeout(() => {
+        if (loadedFor.current === loadKey && pendingOutcome.current) {
+          pendingOutcome.current = null;
+          onResolved(outcome);
+        }
+      }, !res.correct && input ? 8000 : 1400);
     } catch (e) {
       setSubmitError(e instanceof Error ? e.message : "Answer rejected");
     } finally {
