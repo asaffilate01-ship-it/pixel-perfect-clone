@@ -8,7 +8,7 @@ import {
 
 test("release marker is read from this exact checked-out app source", () => {
   const source = fs.readFileSync(new URL("../src/routes/__root.tsx", import.meta.url), "utf8");
-  assert.equal(extractFanzenoReleaseMarker(source), "2026-10-31-q17-ranked-turn-presence");
+  assert.equal(extractFanzenoReleaseMarker(source), "2026-10-31-q18-mastermind-recovery");
 });
 
 test("missing marker fails closed instead of accepting an older site", () => {
