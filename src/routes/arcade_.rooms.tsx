@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Brain,
   ChevronLeft,
@@ -15,7 +16,8 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Chip, Label } from "@/components/game/ArcadeSetup";
-import { DIFFICULTIES } from "@/lib/fanzeno";
+import { DIFFICULTIES, fetchSports } from "@/lib/fanzeno";
+import { createMatchmakingSearch } from "@/lib/matchmakingSearch";
 import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { useEntitlements } from "@/lib/entitlements";
@@ -74,6 +76,14 @@ function RoomsPage() {
   const [code, setCode] = useState(invited ?? "");
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [searching, setSearching] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+  const [matchSport, setMatchSport] = useState("football");
+  const { data: sports = [], isLoading: sportsLoading, isError: sportsError } = useQuery({
+    queryKey: ["sports"],
+    queryFn: fetchSports,
+  });
+  const selectedSportId = sports.find((sport) => sport.slug === matchSport)?.id ?? null;
+  const searchRef = useRef<ReturnType<typeof createMatchmakingSearch> | null>(null);
 
   const selected = MODES.find((m) => m.slug === mode)!;
   const hostLocked = selected.pro && !pro;
@@ -109,31 +119,62 @@ function RoomsPage() {
     }
   };
 
-  const findRandom = useCallback(async () => {
-    try {
-      const result = await arcadeRoomAction({ data: { action: "matchmake", mode, difficulty } });
-      if (result.roomId) {
-        setSearching(false);
-        void navigate({ to: "/arcade/rooms/$id", params: { id: result.roomId } });
-      } else {
-        setSearching(true);
-      }
-    } catch (e) {
-      setSearching(false);
-      toast.error(e instanceof Error ? e.message : "Matchmaking unavailable");
+  const startRandom = () => {
+    if (!user || hostLocked || busy || searching || cancelling) return;
+    if (!selectedSportId) {
+      toast.error("Choose a sport before searching for an opponent");
+      return;
     }
-  }, [difficulty, mode, navigate]);
-
-  useEffect(() => {
-    if (!searching) return;
-    const timer = setInterval(() => void findRandom(), 2_000);
-    return () => clearInterval(timer);
-  }, [findRandom, searching]);
+    // Take a snapshot: the pending match must not switch modes or difficulty
+    // while its server ticket is being polled.
+    const controller = createMatchmakingSearch({
+      poll: () =>
+        arcadeRoomAction({
+          data: { action: "matchmake", mode, difficulty, sportId: selectedSportId },
+        }),
+      cancel: () => arcadeRoomAction({ data: { action: "cancel_matchmaking" } }),
+      onMatch: (roomId) => {
+        searchRef.current = null;
+        setSearching(false);
+        void navigate({ to: "/arcade/rooms/$id", params: { id: roomId } });
+      },
+      onError: (error) => {
+        searchRef.current = null;
+        setSearching(false);
+        toast.error(error instanceof Error ? error.message : "Matchmaking unavailable");
+      },
+    });
+    searchRef.current = controller;
+    if (controller.start()) setSearching(true);
+  };
 
   const cancelRandom = async () => {
+    const controller = searchRef.current;
+    if (!controller || cancelling) return;
+    setCancelling(true);
     setSearching(false);
-    await arcadeRoomAction({ data: { action: "cancel_matchmaking" } });
+    try {
+      await controller.stop();
+      if (searchRef.current === controller) searchRef.current = null;
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? `Could not cancel matchmaking: ${error.message}`
+          : "Could not confirm cancellation; check your connection",
+      );
+    } finally {
+      setCancelling(false);
+    }
   };
+
+  useEffect(() => {
+    return () => {
+      // Leaving this screen cannot strand a ticket behind a late RPC response.
+      const controller = searchRef.current;
+      searchRef.current = null;
+      if (controller) void controller.stop().catch(() => undefined);
+    };
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-8">
@@ -183,7 +224,7 @@ function RoomsPage() {
           />
           <Button
             className="h-12 px-6 font-bold uppercase tracking-[0.14em]"
-            disabled={!user || busy !== null}
+            disabled={!user || busy !== null || searching || cancelling}
             onClick={() => void join()}
           >
             {busy === "join" ? "Joining…" : "Join"}
@@ -204,6 +245,7 @@ function RoomsPage() {
               key={m.slug}
               type="button"
               onClick={() => setMode(m.slug)}
+              disabled={searching || cancelling}
               aria-pressed={on}
               className={`panel flex w-full items-center gap-3 p-3 text-left transition-colors ${on ? "border-primary" : "hover:border-primary/50"}`}
             >
@@ -231,7 +273,7 @@ function RoomsPage() {
       <Label>Room size</Label>
       <div className="flex flex-wrap gap-2">
         {[2, 3, 4].map((n) => (
-          <Chip key={n} on={players === n} onClick={() => setPlayers(n)}>
+          <Chip key={n} on={players === n} disabled={searching || cancelling} onClick={() => setPlayers(n)}>
             {n} players
           </Chip>
         ))}
@@ -239,11 +281,33 @@ function RoomsPage() {
       <Label>Difficulty</Label>
       <div className="flex flex-wrap gap-2">
         {DIFFICULTIES.map((d) => (
-          <Chip key={d.level} on={difficulty === d.level} onClick={() => setDifficulty(d.level)}>
+          <Chip key={d.level} on={difficulty === d.level} disabled={searching || cancelling} onClick={() => setDifficulty(d.level)}>
             {d.label}
           </Chip>
         ))}
       </div>
+
+      <Label>Your sport for random matchmaking</Label>
+      <select
+        aria-label="Sport for random matchmaking"
+        value={matchSport}
+        onChange={(event) => setMatchSport(event.target.value)}
+        disabled={sportsLoading || sportsError || searching || cancelling || sports.length === 0}
+        className="h-12 w-full rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground disabled:opacity-60"
+      >
+        {sports.length === 0 && <option value="football">Loading sports…</option>}
+        {sports.map((sport) => (
+          <option key={sport.id} value={sport.slug}>{sport.name}</option>
+        ))}
+      </select>
+      {sportsError && (
+        <p role="alert" className="mt-2 text-xs text-destructive">
+          Sports could not be loaded. Refresh the page to try matchmaking.
+        </p>
+      )}
+      <p className="mt-2 text-xs text-muted-foreground">
+        Choose your own sport for ranked answers. Some sports and difficulty levels have limited verified questions.
+      </p>
 
       <p className="mt-6 flex items-start gap-2 rounded-xl border border-border bg-surface/60 p-3 text-xs text-muted-foreground">
         <ShieldCheck className="mt-0.5 size-4 shrink-0 text-primary" />
@@ -255,8 +319,8 @@ function RoomsPage() {
         <Button
           size="lg"
           variant="secondary"
-          disabled={!user || searching || hostLocked}
-          onClick={() => void findRandom()}
+          disabled={!user || searching || cancelling || hostLocked || busy !== null || !selectedSportId}
+          onClick={startRandom}
           className="font-bold uppercase tracking-[0.12em]"
         >
           <Search className="size-4" /> Find random rival
@@ -266,9 +330,10 @@ function RoomsPage() {
             size="lg"
             variant="outline"
             onClick={() => void cancelRandom()}
-            className="border-cyan-300/30 text-cyan-100"
+            disabled={cancelling}
+            className="border-primary/30 text-foreground"
           >
-            <Radio className="size-4 animate-pulse" /> Searching… <X className="ml-auto size-4" />
+            <Radio className="size-4 motion-safe:animate-pulse" /> {cancelling ? "Stopping…" : "Cancel search"} <X className="ml-auto size-4" />
           </Button>
         ) : (
           <div className="grid place-items-center rounded-xl border border-dashed border-border px-3 text-center text-xs text-muted-foreground">
@@ -291,14 +356,14 @@ function RoomsPage() {
           variant="outline"
         >
           <Link to="/upgrade">
-            <Gem className="size-4 text-gold" /> Unlock Pro to host {selected.name}
+            <Gem className="size-4 text-gold" /> Existing Pro membership required to host {selected.name}
           </Link>
         </Button>
       ) : (
         <Button
           size="lg"
           className="mt-6 w-full font-bold uppercase tracking-[0.14em]"
-          disabled={!user || busy !== null}
+          disabled={!user || busy !== null || searching || cancelling}
           onClick={() => void create()}
         >
           {busy === "create" ? "Creating…" : "Create private room"}{" "}
