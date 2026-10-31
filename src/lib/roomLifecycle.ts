@@ -42,3 +42,60 @@ export function nextMastermindTurn(
     complete: round > maxRounds,
   };
 }
+
+
+/**
+ * Verify a ranked room question against server-controlled room/player settings.
+ * Client-provided difficulty and sport/category are never authorization.
+ * Mastermind's second round is deliberately all-sports (unfiltered).
+ */
+export function assertRoomQuestionScope(
+  room: { modeSlug: string; roundNo: number; difficulty: number },
+  player: { sportId: string | null; categoryKey: string | null },
+  requested: { sportId: string; categoryKey: string | null; difficulty: number },
+): void {
+  assertRoomAnswerDifficulty(room.difficulty, requested.difficulty);
+  if (!Number.isInteger(room.roundNo) || room.roundNo < 1) {
+    throw new Error("Invalid room round");
+  }
+  if (room.modeSlug === "sports-mastermind" && room.roundNo >= 2) {
+    if (requested.categoryKey !== null) {
+      throw new Error("All-sports rounds cannot be filtered by category");
+    }
+    return;
+  }
+  if (!player.sportId || requested.sportId !== player.sportId) {
+    throw new Error("Question sport does not match your room selection");
+  }
+  if (requested.categoryKey !== player.categoryKey) {
+    throw new Error("Question category does not match your room selection");
+  }
+}
+
+/** Prevent a modified client from reporting a higher ranked difficulty. */
+export function assertRoomAnswerDifficulty(roomDifficulty: number, submittedDifficulty: number): void {
+  if (
+    !Number.isInteger(roomDifficulty) ||
+    roomDifficulty < 1 ||
+    roomDifficulty > 4 ||
+    submittedDifficulty !== roomDifficulty
+  ) {
+    throw new Error("Question difficulty does not match the room");
+  }
+}
+
+/**
+ * Safe spectator projection. Never return answer rules, answers, source metadata
+ * or submissions through the active-question endpoint.
+ */
+export function publicRoomQuestion(row: {
+  id: string;
+  prompt_i18n: Record<string, string> | null;
+  issued_at: string;
+}): { id: string; prompt: string; issuedAt: string } {
+  return {
+    id: row.id,
+    prompt: typeof row.prompt_i18n?.en === "string" ? row.prompt_i18n.en : "",
+    issuedAt: row.issued_at,
+  };
+}
