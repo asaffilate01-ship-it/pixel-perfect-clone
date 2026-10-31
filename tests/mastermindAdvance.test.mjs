@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { createMastermindAdvanceGate, remainingMastermindSeconds } from "../src/lib/mastermindAdvance.ts";
+import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds } from "../src/lib/mastermindAdvance.ts";
 
 test("only one advancement runs for a turn; success cannot skip a second seat", () => {
   const gate = createMastermindAdvanceGate();
@@ -44,4 +44,13 @@ test("deadline shows one second until the actual last millisecond, never early z
   assert.equal(remainingMastermindSeconds(null, endMs), null);
   assert.equal(remainingMastermindSeconds("bad", endMs), null);
   assert.equal(remainingMastermindSeconds(end, NaN), null);
+});
+
+test("host can hand off for a disconnected active player, spectators cannot", () => {
+  assert.equal(canAdvanceMastermindTurn("seat1", "host", "seat1", "active"), true);
+  assert.equal(canAdvanceMastermindTurn("host", "host", "seat1", "active"), true);
+  assert.equal(canAdvanceMastermindTurn("spectator", "host", "seat1", "active"), false);
+  assert.equal(canAdvanceMastermindTurn(null, "host", "seat1", "active"), false);
+  assert.equal(canAdvanceMastermindTurn("host", "host", "seat1", "complete"), false);
+  assert.equal(canAdvanceMastermindTurn("host", "host", "seat1", "lobby"), false);
 });
