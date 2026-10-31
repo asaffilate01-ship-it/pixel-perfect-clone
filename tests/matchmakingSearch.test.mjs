@@ -119,9 +119,13 @@ test("a failed poll cleans the queue before exposing an error or allowing a retr
 
 test("a rejected cancellation still prevents late match navigation", async () => {
   const request = deferred();
+  let cancellationAttempts = 0;
   const controller = createMatchmakingSearch({
     poll: () => request.promise,
-    cancel: async () => { throw new Error("Queue could not be cleared"); },
+    cancel: async () => {
+      cancellationAttempts += 1;
+      if (cancellationAttempts === 1) throw new Error("Queue could not be cleared");
+    },
     onMatch: () => assert.fail("cancelled request must not navigate"),
     onError: () => {},
   });
@@ -130,5 +134,14 @@ test("a rejected cancellation still prevents late match navigation", async () =>
   const pending = controller.stop();
   request.resolve({ roomId: "too-late" });
   await assert.rejects(pending, /Queue could not be cleared/);
+  assert.equal(controller.isSearching(), false);
+  assert.equal(controller.needsCleanup(), true);
+  assert.equal(controller.start(), false, "uncertain queue cannot be restarted");
+  await controller.stop();
+  assert.equal(cancellationAttempts, 2);
+  assert.equal(controller.needsCleanup(), false);
+  assert.equal(controller.start(), true);
+  await flush();
+  // A matched session cannot be cancelled or repolled once it has completed.
   assert.equal(controller.isSearching(), false);
 });
