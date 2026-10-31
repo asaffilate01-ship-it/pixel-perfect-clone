@@ -28,7 +28,9 @@ import {
 import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeSetup";
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard, type QuestionOutcome } from "@/components/game/QuestionCard";
-import { isArcadeRoomComplete } from "@/lib/roomLifecycle";
+import { isArcadeRoomComplete, QUIZ_RACE_TIMEOUT_GRACE_MS } from "@/lib/roomLifecycle";
+import { createTurnAdvanceGate, remainingTurnSeconds } from "@/lib/mastermindAdvance";
+import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
 import { useEntitlements } from "@/lib/entitlements";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -134,6 +136,9 @@ function QuizRacePage() {
   const [turnKey, setTurnKey] = useState(0);
   const [rolling, setRolling] = useState(false);
   const [moving, setMoving] = useState(false);
+  const [remaining, setRemaining] = useState<number | null>(null);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [recoveryGate] = useState(() => createTurnAdvanceGate());
   const [players, setPlayers] = useState<Player[]>(() =>
     Array.from({ length: 4 }, (_, i) => ({
       name: `Player ${i + 1}`,
@@ -210,6 +215,48 @@ function QuizRacePage() {
     online ? room?.round_no : undefined,
     online ? room?.active_seat : undefined,
   ]);
+
+  // A disconnected Quiz Race player must not leave the whole room stuck.
+  // Every seated client may request recovery, but only the server may advance an
+  // expired turn and its conditional update ensures the move happens once.
+  useEffect(() => {
+    const deadline = room?.turn_ends_at;
+    if (!online || !roomId || !user || room?.status !== "active" || !deadline) {
+      return;
+    }
+    const end = Date.parse(deadline);
+    const key = `${roomId}:${room.active_seat}:${room.round_no}:${deadline}`;
+    let disposed = false;
+    setRecoveryError(null);
+    const tick = () => {
+      const now = Date.now();
+      setRemaining(remainingTurnSeconds(deadline, now));
+      if (!Number.isFinite(end) || now < end + QUIZ_RACE_TIMEOUT_GRACE_MS ||
+          !recoveryGate.claim(key, now)) return;
+      void arcadeRoomAction({ data: { action: "recover_timeout", roomId } })
+        .then(() => {
+          recoveryGate.finish(key, true, Date.now());
+          if (disposed) return;
+          setRecoveryError(null);
+          void qc.invalidateQueries({ queryKey: ["arcade-room", roomId] });
+          void qc.invalidateQueries({ queryKey: ["arcade-room-players", roomId] });
+        })
+        .catch((error: unknown) => {
+          recoveryGate.finish(key, false, Date.now());
+          if (disposed) return;
+          setRecoveryError(error instanceof Error ? error.message : "Could not recover the expired turn");
+        });
+    };
+    tick();
+    const timer = window.setInterval(tick, 1_000);
+    return () => {
+      disposed = true;
+      window.clearInterval(timer);
+    };
+  }, [online, roomId, room?.status, room?.active_seat, room?.round_no,
+      room?.turn_ends_at, user?.id, qc, recoveryGate]);
+
+  const turnExpired = online && room?.status === "active" && remaining === 0;
 
   const list = online ? onlinePlayers : players;
   const n = online ? list.length : count;
@@ -492,6 +539,16 @@ function QuizRacePage() {
           <span className="text-muted-foreground">Round {room?.round_no ?? 1}</span>
         </div>
       )}
+      {online && room?.status === "active" && (
+        <div role="status" className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border bg-surface/60 p-3 text-xs font-semibold">
+          <span className={turnExpired ? "text-gold" : "text-muted-foreground"}>
+            {remaining === null ? "Synchronising the turn timer…" : remaining > 0
+              ? `Turn time left: ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}`
+              : "Turn expired · restoring the next player"}
+          </span>
+          {recoveryError && <span className="text-gold">Recovering: {recoveryError}. Retrying automatically.</span>}
+        </div>
+      )}
       <div className={`game-card flex items-center gap-3 p-4 ${online ? "mt-3" : "mt-6"}`}>
         <Avatar id={active.avatar} size={48} />
         <div className="flex-1">
@@ -575,7 +632,7 @@ function QuizRacePage() {
         categoryKey={active.categoryKey}
         difficulty={onlineDifficulty}
         roomId={roomId ?? null}
-        canAnswer={myTurn && !moving}
+        canAnswer={myTurn && !moving && !turnExpired}
         bank={bank}
         accentClass={SEAT_TEXT[activeIdx % 4]!}
         onResolved={(o) => {
