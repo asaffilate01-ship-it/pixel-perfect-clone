@@ -99,3 +99,46 @@ export function publicRoomQuestion(row: {
     issuedAt: row.issued_at,
   };
 }
+
+
+/**
+ * A room can remain marked active while a timer expires and its client is
+ * reconnecting. Time is checked on the server, never trusted from the browser.
+ */
+export function assertActiveRoomTurnWindow(
+  startedAt: string | null,
+  endsAt: string | null,
+  nowMs = Date.now(),
+): void {
+  const start = startedAt ? Date.parse(startedAt) : NaN;
+  const end = endsAt ? Date.parse(endsAt) : NaN;
+  if (!Number.isFinite(nowMs) || !Number.isFinite(start) ||
+      !Number.isFinite(end) || end <= start) {
+    throw new Error("This room has no valid active turn window");
+  }
+  if (nowMs < start) throw new Error("This room turn has not started");
+  if (nowMs >= end) throw new Error("This room turn has expired");
+}
+
+/**
+ * A player's new turn must never accept a question issued on their earlier
+ * turn, even if that older question's own 3-minute expiration is in the future.
+ * A missing/invalid question expiration fails closed.
+ */
+export function assertQuestionIssuedThisTurn(
+  issuedAt: string | null,
+  turnStartedAt: string | null,
+  expiresAt: string | null,
+  nowMs = Date.now(),
+): void {
+  const issued = issuedAt ? Date.parse(issuedAt) : NaN;
+  const started = turnStartedAt ? Date.parse(turnStartedAt) : NaN;
+  const expires = expiresAt ? Date.parse(expiresAt) : NaN;
+  if (!Number.isFinite(nowMs) || !Number.isFinite(issued) ||
+      !Number.isFinite(started) || issued < started) {
+    throw new Error("This question was not issued for the current turn");
+  }
+  if (!Number.isFinite(expires) || expires <= nowMs || expires <= issued) {
+    throw new Error("This question has expired");
+  }
+}
