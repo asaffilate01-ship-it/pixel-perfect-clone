@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Brain, ChevronLeft, Eye, Gem, Radio, Trophy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchSports } from "@/lib/fanzeno";
@@ -12,6 +12,7 @@ import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeS
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { isArcadeRoomComplete } from "@/lib/roomLifecycle";
+import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds } from "@/lib/mastermindAdvance";
 import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
 import { ConnectionBanner, PresenceDot } from "@/components/game/RoomPresence";
 import { useArcadePresence } from "@/hooks/useArcadePresence";
@@ -190,25 +191,56 @@ function MastermindPage() {
     return () => clearInterval(t);
   }, [online, setup, finished]);
 
-  // Online timer follows the server's turn_ends_at; the active player hands over when it hits zero.
-  const advancing = useRef(false);
+  // Online turns are authoritative. Host auto-handoff prevents a disconnected
+  // active player from freezing the whole match. One request per turn is allowed
+  // at a time, with backoff after transient errors (no unhandled promises).
+  const [advanceGate] = useState(() => createMastermindAdvanceGate());
+  const [advancePending, setAdvancePending] = useState(false);
+  const [advanceFeedback, setAdvanceFeedback] = useState<string | null>(null);
+  const canAdvanceOnline = online && canAdvanceMastermindTurn(
+    user?.id,
+    room?.host_id,
+    list[activeIdx]?.userId,
+    room?.status,
+  );
+  const advanceTurnKey = online && room
+    ? `${roomId}:${room.active_seat}:${room.round_no}:${room.turn_ends_at}`
+    : "";
+  const advanceOnlineTurn = useCallback(
+    async (manual = false) => {
+      if (!roomId || !canAdvanceOnline || !advanceTurnKey ||
+          !advanceGate.claim(advanceTurnKey, Date.now(), manual)) return;
+      setAdvancePending(true);
+      try {
+        await arcadeRoomAction({ data: { action: "advance", roomId } });
+        advanceGate.finish(advanceTurnKey, true, Date.now());
+        setAdvanceFeedback(null);
+        void qc.invalidateQueries({ queryKey: ["arcade-room", roomId] });
+        void qc.invalidateQueries({ queryKey: ["arcade-room-players", roomId] });
+      } catch (error) {
+        advanceGate.finish(advanceTurnKey, false, Date.now());
+        setAdvanceFeedback(manual
+          ? error instanceof Error ? error.message : "Turn could not be advanced"
+          : "Automatic turn handoff is retrying after a connection issue.");
+      } finally {
+        setAdvancePending(false);
+      }
+    },
+    [roomId, canAdvanceOnline, advanceTurnKey, advanceGate, qc],
+  );
+
   useEffect(() => {
     if (!online || !room?.turn_ends_at || isFinished) return;
-    const end = new Date(room.turn_ends_at).getTime();
     const tick = () => {
-      const left = Math.max(0, Math.round((end - Date.now()) / 1000));
+      const left = remainingMastermindSeconds(room.turn_ends_at, Date.now());
+      if (left === null) return;
       setOnlineSeconds(left);
-      if (left === 0 && myTurn && !advancing.current) {
-        advancing.current = true;
-        void arcadeRoomAction({ data: { action: "advance", roomId: roomId! } }).finally(() => {
-          advancing.current = false;
-        });
-      }
+      if (left === 0 && canAdvanceOnline) void advanceOnlineTurn();
     };
     tick();
-    const t = setInterval(tick, 1000);
+    const t = setInterval(tick, 1_000);
     return () => clearInterval(t);
-  }, [online, room?.turn_ends_at, isFinished, myTurn, roomId]);
+  }, [online, room?.turn_ends_at, isFinished, canAdvanceOnline, advanceOnlineTurn]);
 
   const markLocal = (correct: boolean, passed: boolean) => {
     setPlayers((x) =>
@@ -494,18 +526,20 @@ function MastermindPage() {
         <Eye className="size-3.5 text-primary" /> Only the active player can answer; scores are
         shared live with everyone in the room.
       </p>
-      {(!online || myTurn || room?.host_id === user?.id) && (
+      {(!online || canAdvanceOnline) && (
         <Button
           variant="ghost"
           className="mt-2 w-full text-muted-foreground"
-          onClick={() =>
-            online
-              ? void arcadeRoomAction({ data: { action: "advance", roomId: roomId! } })
-              : nextTurn()
-          }
+          disabled={online && advancePending}
+          onClick={() => online ? void advanceOnlineTurn(true) : nextTurn()}
         >
-          End player&apos;s turn
+          {online && advancePending ? "Advancing turn…" : "End player&apos;s turn"}
         </Button>
+      )}
+      {advanceFeedback && online && (
+        <p role="status" className="mt-2 text-center text-xs text-gold">
+          {advanceFeedback}
+        </p>
       )}
     </Shell>
   );
