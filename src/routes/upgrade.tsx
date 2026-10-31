@@ -10,12 +10,12 @@ export const Route = createFileRoute("/upgrade")({
       {
         name: "description",
         content:
-          "One payment unlocks Quiz Ludo, Sports Mastermind, premium tactical games and tournaments, and removes every banner forever.",
+          "Explore Fanzeno Pro game modes and lifetime ad-free benefits. Checkout is currently unavailable for new purchases.",
       },
       { property: "og:title", content: "Fanzeno Pro — lifetime unlock" },
       {
         property: "og:description",
-        content: "Premium games, tournament formats and ad-free play. One payment, not a subscription.",
+        content: "Existing Pro members can access premium games. New lifetime purchases are coming soon.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -26,10 +26,10 @@ export const Route = createFileRoute("/upgrade")({
 
 const perks = [
   "Quiz Ludo and Sports Mastermind",
-  "Premium tactical games and the full grid archive",
-  "Premium tournaments and every future Pro mode",
-  "No discovery banner or wide-screen side rail — the only ads Fanzeno ever shows",
-  "Restore on your other devices — this is not a subscription",
+  "Selected premium tactical game modes",
+  "Lifetime entitlement for existing Pro members",
+  "No Fanzeno discovery banners or side rails while Pro is active",
+  "Use your Pro access after signing in on another device",
 ];
 
 function Upgrade() {
@@ -38,14 +38,14 @@ function Upgrade() {
     <div className="mx-auto w-full max-w-2xl px-4 py-14">
       <p className="eyebrow">Lifetime Pro</p>
       <h1 className="mt-3 text-5xl">
-        {pro ? "You’re Fanzeno Pro." : "Unlock the full arena."}
+        {pro ? "You’re Fanzeno Pro." : "More ways to play."}
         <br />
-        <span className="text-gold">{pro ? "Everything is open." : "One payment. Forever."}</span>
+        <span className="text-gold">{pro ? "Your membership is active." : "Lifetime Pro is coming soon."}</span>
       </h1>
       <p className="mt-4 max-w-lg text-sm text-muted-foreground">
         {pro
           ? "Your lifetime Pro entitlement is active on this account."
-          : "Premium games, tournament formats and completely ad-free play. Free guests can still join a Pro host’s private match."}
+          : "Existing Pro members can access premium modes and ad-free play. New purchases aren't available yet; free guests can still join a Pro host’s private match."}
       </p>
 
       <div className="panel mt-8 p-7">
@@ -56,7 +56,7 @@ function Upgrade() {
           <div>
             <p className="font-display text-4xl text-gold">£4.99</p>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-muted-foreground">
-              One-time lifetime purchase
+              Planned one-time lifetime price
             </p>
           </div>
         </div>
