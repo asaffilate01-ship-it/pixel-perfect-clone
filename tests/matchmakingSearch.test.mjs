@@ -15,10 +15,11 @@ const deferred = () => {
 
 test("matchmaking starts exactly one request and ignores repeated starts", async () => {
   const first = deferred();
+  const second = deferred();
   let polls = 0;
   let cancels = 0;
   const controller = createMatchmakingSearch({
-    poll: () => { polls += 1; return first.promise; },
+    poll: () => { polls += 1; return polls === 1 ? first.promise : second.promise; },
     cancel: async () => { cancels += 1; },
     onMatch: () => assert.fail("cancelled search must not navigate"),
     onError: () => assert.fail("search must not fail"),
@@ -39,6 +40,7 @@ test("matchmaking starts exactly one request and ignores repeated starts", async
   // This new request is still outstanding; resolve it before cleaning up.
   assert.equal(polls, 2);
   const stoppedAgain = controller.stop();
+  second.resolve({ queued: true });
   await stoppedAgain;
   assert.equal(cancels, 2);
 });
