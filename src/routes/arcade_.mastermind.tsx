@@ -194,7 +194,7 @@ function MastermindPage() {
   // Online turns are authoritative. Host auto-handoff prevents a disconnected
   // active player from freezing the whole match. One request per turn is allowed
   // at a time, with backoff after transient errors (no unhandled promises).
-  const [advanceGate] = useState(createMastermindAdvanceGate);
+  const [advanceGate] = useState(() => createMastermindAdvanceGate());
   const [advancePending, setAdvancePending] = useState(false);
   const [advanceFeedback, setAdvanceFeedback] = useState<string | null>(null);
   const canAdvanceOnline = online && canAdvanceMastermindTurn(
