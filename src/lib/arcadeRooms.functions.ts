@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
-import { nextMastermindTurn, ROOM_COMPLETE_STATUS } from "@/lib/roomLifecycle";
+import { firstOccupiedSeat, nextMastermindTurn, ROOM_COMPLETE_STATUS } from "@/lib/roomLifecycle";
 
 /**
  * Online arcade room actions (v0.11). Rooms, seats, questions and answers are all
@@ -281,7 +281,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         throw new Error("At least two players must be ready");
       if (members?.some((m) => !m.sport_id))
         throw new Error("Every player must choose a sport before starting");
-      const firstSeat = Math.min(...(members ?? []).map((m) => m.seat));
+      const firstSeat = firstOccupiedSeat((members ?? []).map((m) => m.seat));
       const { data: started, error: startError } = await admin
         .from("arcade_rooms")
         .update({
@@ -391,7 +391,7 @@ async function requireActiveRoomTurn(
   ]);
   if (!room || !player) throw new Error("You are not a participant in this room");
   if (room.status !== "active") throw new Error("This room is not active");
-  if (room.active_seat !== null && room.active_seat !== player.seat)
+  if (room.active_seat === null || room.active_seat !== player.seat)
     throw new Error("It is not your turn");
   if (player.status === "disconnected" || player.status === "finished")
     throw new Error("This player cannot take a turn");
