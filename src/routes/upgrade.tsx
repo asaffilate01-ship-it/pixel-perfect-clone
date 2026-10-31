@@ -75,8 +75,8 @@ function Upgrade() {
             <Button className="mt-7 w-full font-bold uppercase tracking-[0.14em]" size="lg" disabled>
               Unlock Fanzeno Pro · checkout coming soon
             </Button>
-            <p className="mt-3 text-center text-xs text-muted-foreground">
-              Payments aren&apos;t wired up yet — ask and we&apos;ll connect Stripe checkout.
+            <p role="status" className="mt-3 text-center text-xs text-muted-foreground">
+              Checkout isn&apos;t available yet. No payment can be taken on this page.
             </p>
           </>
         )}
