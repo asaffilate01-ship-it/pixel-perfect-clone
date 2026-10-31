@@ -574,7 +574,7 @@ export const observeActiveRoomQuestion = createServerFn({ method: "POST" })
     const [memberResult, roomResult] = await Promise.all([
       admin
         .from("arcade_room_players")
-        .select("user_id")
+        .select("user_id, status")
         .eq("room_id", data.roomId)
         .eq("user_id", context.userId)
         .maybeSingle(),
@@ -586,7 +586,10 @@ export const observeActiveRoomQuestion = createServerFn({ method: "POST" })
     ]);
     if (memberResult.error) throw new Error(memberResult.error.message);
     if (roomResult.error) throw new Error(roomResult.error.message);
-    if (!memberResult.data) throw new Error("Not a participant in this room");
+    if (!memberResult.data || memberResult.data.status === "disconnected" ||
+        memberResult.data.status === "finished") {
+      throw new Error("Not an active participant in this room");
+    }
     const room = roomResult.data;
     if (!room || room.status !== "active" || room.active_seat === null || !room.turn_started_at) {
       return { question: null };
