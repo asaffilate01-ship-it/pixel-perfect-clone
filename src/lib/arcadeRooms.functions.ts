@@ -383,6 +383,11 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         live.turn_ends_at,
         nowMs,
       );
+      // The validator fails closed at runtime; narrow nullable database columns
+      // explicitly as well before using them in the conditional update.
+      if (!live.turn_started_at || !live.turn_ends_at) {
+        throw new Error("Invalid Quiz Race turn deadline");
+      }
       const next = nextQuizRaceTurn(
         (playersResult.data ?? []).map((player) => player.seat),
         live.active_seat,
