@@ -29,7 +29,7 @@ export function createMatchmakingSearch({
   schedule = setTimeout,
   clearScheduled = clearTimeout,
 }: MatchmakingSearchOptions) {
-  let phase: "idle" | "searching" | "stopping" | "matched" = "idle";
+  let phase: "idle" | "searching" | "stopping" | "matched" | "uncertain" = "idle";
   let generation = 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let pending: Promise<MatchmakingPollResult> | null = null;
@@ -42,7 +42,7 @@ export function createMatchmakingSearch({
 
   const stop = (): Promise<void> => {
     if (stopping) return stopping;
-    if (phase !== "searching") return Promise.resolve();
+    if (phase !== "searching" && phase !== "uncertain") return Promise.resolve();
     phase = "stopping";
     generation += 1;
     clearTimer();
@@ -52,8 +52,13 @@ export function createMatchmakingSearch({
         // Always delete the ticket *after* the last write-making poll has settled.
         if (outstanding) await outstanding.catch(() => undefined);
         await cancel();
-      } finally {
         phase = "idle";
+      } catch (error) {
+        // The ticket may still exist. Keep a retryable state rather than
+        // pretending cancellation succeeded and starting a second search.
+        phase = "uncertain";
+        throw error;
+      } finally {
         stopping = null;
       }
     };
@@ -103,5 +108,6 @@ export function createMatchmakingSearch({
     },
     stop,
     isSearching: () => phase === "searching",
+    needsCleanup: () => phase === "uncertain",
   };
 }
