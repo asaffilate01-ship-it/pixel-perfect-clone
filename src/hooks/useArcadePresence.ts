@@ -87,7 +87,7 @@ export function useArcadePresence(roomId: string | undefined, userId: string | u
         if (error) throw error;
         if (!stopped) {
           setWriteFailed(false);
-          void qc.invalidateQueries({ queryKey });
+          void qc.invalidateQueries({ queryKey: ["arcade-presence", roomId] });
         }
       } catch {
         if (!stopped) setWriteFailed(true);
