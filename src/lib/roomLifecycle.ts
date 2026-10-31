@@ -114,7 +114,7 @@ export function assertActiveRoomTurnWindow(
   const end = endsAt ? Date.parse(endsAt) : NaN;
   if (!Number.isFinite(nowMs) || !Number.isFinite(start) ||
       !Number.isFinite(end) || end <= start) {
-    throw new Error("This room has no valid active turn window");
+    throw new Error("Invalid room turn window");
   }
   if (nowMs < start) throw new Error("This room turn has not started");
   if (nowMs >= end) throw new Error("This room turn has expired");
