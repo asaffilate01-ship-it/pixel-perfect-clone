@@ -555,6 +555,70 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
     } as { question: FairQuestion | null; unavailable?: string };
   });
 
+/**
+ * Spectator-safe view of the current verified question.
+ * Only seated participants can view the current prompt; never return the
+ * scoring answer, answer_rule, accepted aliases or other privileged fields.
+ * Separate from nextFairQuestion so spectators never reserve new questions.
+ */
+export const observeActiveRoomQuestion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ roomId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const [memberResult, roomResult] = await Promise.all([
+      admin
+        .from("arcade_room_players")
+        .select("user_id")
+        .eq("room_id", data.roomId)
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+      admin
+        .from("arcade_rooms")
+        .select("status, active_seat, turn_started_at")
+        .eq("id", data.roomId)
+        .maybeSingle(),
+    ]);
+    if (memberResult.error) throw new Error(memberResult.error.message);
+    if (roomResult.error) throw new Error(roomResult.error.message);
+    if (!memberResult.data) throw new Error("Not a participant in this room");
+    const room = roomResult.data;
+    if (!room || room.status !== "active" || room.active_seat === null || !room.turn_started_at) {
+      return { question: null };
+    }
+
+    const { data: activePlayer, error: activeError } = await admin
+      .from("arcade_room_players")
+      .select("user_id")
+      .eq("room_id", data.roomId)
+      .eq("seat", room.active_seat)
+      .maybeSingle();
+    if (activeError) throw new Error(activeError.message);
+    if (!activePlayer) return { question: null };
+
+    const { data: issued, error: issuedError } = await admin
+      .from("arcade_questions")
+      .select("id, prompt_i18n, issued_at")
+      .eq("room_id", data.roomId)
+      .eq("active_user_id", activePlayer.user_id)
+      .eq("revealed_answer", false)
+      .gte("issued_at", room.turn_started_at)
+      .gt("expires_at", new Date().toISOString())
+      .order("issued_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (issuedError) throw new Error(issuedError.message);
+    return {
+      question: issued
+        ? publicRoomQuestion({
+            id: issued.id,
+            prompt_i18n: issued.prompt_i18n as Record<string, string> | null,
+            issued_at: issued.issued_at,
+          })
+        : null,
+    };
+  });
+
 const answerSchema = z.object({
   questionId: z.string().uuid(),
   roomId: z.string().uuid().nullable().optional(),
