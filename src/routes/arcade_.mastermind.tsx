@@ -55,20 +55,32 @@ function MastermindPage() {
   const online = !!roomId;
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const presence = useArcadePresence(roomId, user?.id);
   const { pro, loading: entLoading } = useEntitlements();
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
-  const { data: room } = useQuery({
+  const {
+    data: room,
+    isPending: roomPending,
+    isError: roomError,
+    refetch: retryRoom,
+  } = useQuery({
     queryKey: ["arcade-room", roomId],
     queryFn: () => fetchRoom(roomId!),
-    enabled: online,
+    enabled: online && !!user,
+    refetchInterval: online ? 8_000 : false,
   });
-  const { data: roomPlayers } = useQuery({
+  const {
+    data: roomPlayers,
+    isPending: playersPending,
+    isError: playersError,
+    refetch: retryPlayers,
+  } = useQuery({
     queryKey: ["arcade-room-players", roomId],
     queryFn: () => fetchRoomPlayers(roomId!),
-    enabled: online,
+    enabled: online && !!user,
+    refetchInterval: online ? 8_000 : false,
   });
 
   const [setup, setSetup] = useState(true);
@@ -145,7 +157,7 @@ function MastermindPage() {
   const seatOrder = useMemo(() => (roomPlayers ?? []).map((p) => p.seat), [roomPlayers]);
   const list = online ? onlinePlayers : players;
   const n = online ? list.length : count;
-  const activeIdx = online ? Math.max(0, seatOrder.indexOf(room?.active_seat ?? 0)) : active;
+  const activeIdx = online ? seatOrder.indexOf(room?.active_seat ?? -1) : active;
   const currentPhase: 1 | 2 = online ? ((room?.round_no ?? 1) >= 2 ? 2 : 1) : phase;
   const isFinished = online ? isArcadeRoomComplete(room?.status) : finished;
   const myTurn = online ? list[activeIdx]?.userId === user?.id : true;
@@ -256,15 +268,15 @@ function MastermindPage() {
           <p className="eyebrow mt-4">Fanzeno Pro</p>
           <h2 className="mt-1 text-3xl">Sports Mastermind is a Pro game</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Unlock it with Fanzeno Pro — one payment, lifetime. Free guests can still join a Pro
-            host&apos;s private room.
+            Existing Pro members can play this mode. New lifetime purchases are not available yet.
+            Free guests can still join a Pro host&apos;s private room.
           </p>
           <div className="game-progress mx-auto mt-5 max-w-xs">
             <div className="game-progress-fill w-3/4" />
           </div>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button asChild>
-              <Link to="/upgrade">Unlock Fanzeno Pro</Link>
+              <Link to="/upgrade">Learn about Fanzeno Pro</Link>
             </Button>
             <Button asChild variant="outline">
               <Link to="/arcade/rooms">Join a room</Link>
@@ -381,12 +393,33 @@ function MastermindPage() {
   }
 
   const p = list[activeIdx];
+  if (online && (!room || !roomPlayers?.length || room.status !== "active") && !isArcadeRoomComplete(room?.status)) {
+    return (
+      <Shell onBack={reset}>
+        {roomPending || playersPending || authLoading ? (
+          <p role="status" className="mt-8 text-center text-sm text-muted-foreground">Connecting to your room…</p>
+        ) : (
+          <div role={roomError || playersError ? "alert" : "status"} className="panel mt-8 space-y-3 p-5">
+            <p className="text-sm">
+              {!user ? "Sign in to view the room." : roomError || playersError
+                ? "Could not refresh the live room. Retry without losing your seat."
+                : !room ? "Room not found or unavailable." : "This room is not in an active match."}
+            </p>
+            {user && <Button variant="outline" onClick={() => { void retryRoom(); void retryPlayers(); }}>Retry room</Button>}
+            <Button asChild variant="outline"><Link to="/arcade/rooms">Return to rooms</Link></Button>
+          </div>
+        )}
+      </Shell>
+    );
+  }
+
   if (!p) {
     return (
       <Shell onBack={reset}>
-        <p className="mt-8 animate-pulse text-center text-sm text-muted-foreground">
-          Joining the room…
-        </p>
+        <div role="alert" className="panel mt-8 space-y-3 p-5">
+          <p className="text-sm">The current turn has no occupied player. Room data may be out of sync.</p>
+          <Button variant="outline" onClick={() => { void retryRoom(); void retryPlayers(); }}>Refresh room state</Button>
+        </div>
       </Shell>
     );
   }

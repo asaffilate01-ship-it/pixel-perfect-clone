@@ -97,22 +97,34 @@ function QuizRacePage() {
   const { game, room: roomId } = Route.useSearch();
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { pro, loading: entLoading } = useEntitlements();
   const isPro = game === "ludo";
   const online = !!roomId;
   const presence = useArcadePresence(roomId, user?.id);
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: bank } = useQuery({ queryKey: ["clue-bank"], queryFn: fetchClueBank });
-  const { data: room } = useQuery({
+  const {
+    data: room,
+    isPending: roomPending,
+    isError: roomError,
+    refetch: retryRoom,
+  } = useQuery({
     queryKey: ["arcade-room", roomId],
     queryFn: () => fetchRoom(roomId!),
-    enabled: online,
+    enabled: online && !!user,
+    refetchInterval: online ? 8_000 : false,
   });
-  const { data: roomPlayers } = useQuery({
+  const {
+    data: roomPlayers,
+    isPending: playersPending,
+    isError: playersError,
+    refetch: retryPlayers,
+  } = useQuery({
     queryKey: ["arcade-room-players", roomId],
     queryFn: () => fetchRoomPlayers(roomId!),
-    enabled: online,
+    enabled: online && !!user,
+    refetchInterval: online ? 8_000 : false,
   });
 
   const [setup, setSetup] = useState(true);
@@ -201,7 +213,7 @@ function QuizRacePage() {
 
   const list = online ? onlinePlayers : players;
   const n = online ? list.length : count;
-  const activeIdx = online ? Math.max(0, seatOrder.indexOf(room?.active_seat ?? 0)) : turn;
+  const activeIdx = online ? seatOrder.indexOf(room?.active_seat ?? -1) : turn;
   const active = list[activeIdx];
   const onlineDifficulty = online ? (room?.difficulty ?? 2) : difficulty;
   const myTurn = online ? active?.userId === user?.id : true;
@@ -309,15 +321,15 @@ function QuizRacePage() {
           <p className="eyebrow mt-4">Fanzeno Pro</p>
           <h2 className="mt-1 text-3xl">Quiz Ludo is a Pro game</h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Unlock it with Fanzeno Pro — one payment, lifetime. Snakes &amp; Ladders is free to play
-            right now.
+            Existing Pro members can play Quiz Ludo. New lifetime purchases are not available yet.
+            Snakes &amp; Ladders is free to play right now.
           </p>
           <div className="game-progress mx-auto mt-5 max-w-xs">
             <div className="game-progress-fill w-3/4" />
           </div>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button asChild>
-              <Link to="/upgrade">Unlock Fanzeno Pro</Link>
+              <Link to="/upgrade">Learn about Fanzeno Pro</Link>
             </Button>
             <Button asChild variant="outline">
               <Link to="/arcade/quiz-race" search={{ game: "snakes" }}>
@@ -440,12 +452,33 @@ function QuizRacePage() {
     );
   }
 
+  if (online && (!room || !roomPlayers?.length || room.status !== "active") && !isArcadeRoomComplete(room?.status)) {
+    return (
+      <Shell title={title} onBack={reset}>
+        {roomPending || playersPending || authLoading ? (
+          <p role="status" className="mt-8 text-center text-sm text-muted-foreground">Connecting to your room…</p>
+        ) : (
+          <div role={roomError || playersError ? "alert" : "status"} className="panel mt-8 space-y-3 p-5">
+            <p className="text-sm">
+              {!user ? "Sign in to view the room." : roomError || playersError
+                ? "Room updates could not be loaded. Retry without losing your seat."
+                : !room ? "Room not found or unavailable." : "This room is not in an active match."}
+            </p>
+            {user && <Button variant="outline" onClick={() => { void retryRoom(); void retryPlayers(); }}>Retry room</Button>}
+            <Button asChild variant="outline"><Link to="/arcade/rooms">Return to rooms</Link></Button>
+          </div>
+        )}
+      </Shell>
+    );
+  }
+
   if (!active) {
     return (
       <Shell title={title} onBack={reset}>
-        <p className="mt-8 animate-pulse text-center text-sm text-muted-foreground">
-          Joining the room…
-        </p>
+        <div role="alert" className="panel mt-8 space-y-3 p-5">
+          <p className="text-sm">The current turn has no occupied player. Room data may be out of sync.</p>
+          <Button variant="outline" onClick={() => { void retryRoom(); void retryPlayers(); }}>Refresh room state</Button>
+        </div>
       </Shell>
     );
   }

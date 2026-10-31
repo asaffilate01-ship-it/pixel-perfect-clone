@@ -2,7 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
-import { firstOccupiedSeat, nextMastermindTurn, ROOM_COMPLETE_STATUS } from "@/lib/roomLifecycle";
+import {
+  assertRoomAnswerDifficulty,
+  assertRoomQuestionScope,
+  firstOccupiedSeat,
+  nextMastermindTurn,
+  publicRoomQuestion,
+  ROOM_COMPLETE_STATUS,
+} from "@/lib/roomLifecycle";
 
 /**
  * Online arcade room actions (v0.11). Rooms, seats, questions and answers are all
@@ -380,21 +387,30 @@ async function requireActiveRoomTurn(
   roomId: string,
   userId: string,
 ) {
-  const [{ data: room }, { data: player }] = await Promise.all([
-    admin.from("arcade_rooms").select("status, active_seat").eq("id", roomId).maybeSingle(),
+  const [roomResult, playerResult] = await Promise.all([
+    admin
+      .from("arcade_rooms")
+      .select("status, active_seat, mode_slug, round_no, difficulty")
+      .eq("id", roomId)
+      .maybeSingle(),
     admin
       .from("arcade_room_players")
-      .select("seat, status")
+      .select("seat, status, sport_id, category_key, settings")
       .eq("room_id", roomId)
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
+  if (roomResult.error) throw new Error(roomResult.error.message);
+  if (playerResult.error) throw new Error(playerResult.error.message);
+  const room = roomResult.data;
+  const player = playerResult.data;
   if (!room || !player) throw new Error("You are not a participant in this room");
   if (room.status !== "active") throw new Error("This room is not active");
   if (room.active_seat === null || room.active_seat !== player.seat)
     throw new Error("It is not your turn");
   if (player.status === "disconnected" || player.status === "finished")
     throw new Error("This player cannot take a turn");
+  return { room, player };
 }
 
 /** Reserve a fair, never-recently-seen verified question. Only prompt + clue are returned. */
@@ -403,7 +419,19 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => questionSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
-    if (data.roomId) await requireActiveRoomTurn(admin, data.roomId, context.userId);
+    if (data.roomId) {
+      const { room, player } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
+      assertRoomQuestionScope(
+        { modeSlug: room.mode_slug, roundNo: room.round_no, difficulty: room.difficulty },
+        {
+          sportId: player.sport_id ??
+            (player.settings as { sport_id?: string | null } | null)?.sport_id ?? null,
+          categoryKey: player.category_key ??
+            (player.settings as { category_key?: string | null } | null)?.category_key ?? null,
+        },
+        { sportId: data.sportId, categoryKey: data.category ?? null, difficulty: data.difficulty },
+      );
+    }
     if (!data.roomId && data.modeSlug) {
       const secureRpc = admin.rpc.bind(admin) as unknown as (
         name: string,
@@ -532,6 +560,73 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
     } as { question: FairQuestion | null; unavailable?: string };
   });
 
+/**
+ * Spectator-safe view of the current verified question.
+ * Only seated participants can view the current prompt; never return the
+ * scoring answer, answer_rule, accepted aliases or other privileged fields.
+ * Separate from nextFairQuestion so spectators never reserve new questions.
+ */
+export const observeActiveRoomQuestion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => z.object({ roomId: z.string().uuid() }).parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const [memberResult, roomResult] = await Promise.all([
+      admin
+        .from("arcade_room_players")
+        .select("user_id, status")
+        .eq("room_id", data.roomId)
+        .eq("user_id", context.userId)
+        .maybeSingle(),
+      admin
+        .from("arcade_rooms")
+        .select("status, active_seat, turn_started_at")
+        .eq("id", data.roomId)
+        .maybeSingle(),
+    ]);
+    if (memberResult.error) throw new Error(memberResult.error.message);
+    if (roomResult.error) throw new Error(roomResult.error.message);
+    if (!memberResult.data || memberResult.data.status === "disconnected" ||
+        memberResult.data.status === "finished") {
+      throw new Error("Not an active participant in this room");
+    }
+    const room = roomResult.data;
+    if (!room || room.status !== "active" || room.active_seat === null || !room.turn_started_at) {
+      return { question: null };
+    }
+
+    const { data: activePlayer, error: activeError } = await admin
+      .from("arcade_room_players")
+      .select("user_id")
+      .eq("room_id", data.roomId)
+      .eq("seat", room.active_seat)
+      .maybeSingle();
+    if (activeError) throw new Error(activeError.message);
+    if (!activePlayer) return { question: null };
+
+    const { data: issued, error: issuedError } = await admin
+      .from("arcade_questions")
+      .select("id, prompt_i18n, issued_at")
+      .eq("room_id", data.roomId)
+      .eq("active_user_id", activePlayer.user_id)
+      .eq("revealed_answer", false)
+      .gte("issued_at", room.turn_started_at)
+      .gt("expires_at", new Date().toISOString())
+      .order("issued_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (issuedError) throw new Error(issuedError.message);
+    return {
+      question: issued
+        ? publicRoomQuestion({
+            id: issued.id,
+            prompt_i18n: issued.prompt_i18n as Record<string, string> | null,
+            issued_at: issued.issued_at,
+          })
+        : null,
+    };
+  });
+
 const answerSchema = z.object({
   questionId: z.string().uuid(),
   roomId: z.string().uuid().nullable().optional(),
@@ -595,7 +690,10 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => answerSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
-    if (data.roomId) await requireActiveRoomTurn(admin, data.roomId, context.userId);
+    if (data.roomId) {
+      const { room } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
+      assertRoomAnswerDifficulty(room.difficulty, data.difficulty);
+    }
     const { data: q } = await admin
       .from("question_bank")
       .select("answer_rule, answer_display_i18n, question_type")

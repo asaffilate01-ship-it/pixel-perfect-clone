@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Check,
   Flag,
@@ -14,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
   nextFairQuestion,
+  observeActiveRoomQuestion,
   challengeArcadeAnswer,
   submitArcadeAnswer,
   type FairQuestion,
@@ -59,6 +61,18 @@ export function QuestionCard({
   rewardLabel?: (clue: boolean) => string;
 }) {
   const { user } = useAuth();
+  const observing = Boolean(user && roomId && !canAnswer);
+  const {
+    data: observed,
+    isPending: observingPending,
+    isError: observingError,
+  } = useQuery({
+    queryKey: ["arcade-room-observed-question", roomId],
+    queryFn: () => observeActiveRoomQuestion({ data: { roomId: roomId! } }),
+    enabled: observing,
+    refetchInterval: observing ? 2_500 : false,
+    retry: 1,
+  });
   const [question, setQuestion] = useState<FairQuestion | null>(null);
   const [fallback, setFallback] = useState<string>("");
   const [clue, setClue] = useState(false);
@@ -122,6 +136,17 @@ export function QuestionCard({
     // unrelated re-render where `user`/`bank` object identity changed.
     const isStale = () => !mounted.current || loadedFor.current !== myKey;
     (async () => {
+      if (roomId && (!user || !canAnswer || !sportId)) {
+        // Online rooms never substitute a random local criterion for a verified
+        // question. A missing active sport must pause rather than invent play.
+        if (!isStale()) {
+          if (canAnswer && !sportId) {
+            setLoadError("This turn has no available sport. Retry after your sport catalogue loads.");
+          }
+          setLoading(false);
+        }
+        return;
+      }
       if (user && sportId && canAnswer) {
         try {
           const request = nextFairQuestion({
@@ -133,10 +158,17 @@ export function QuestionCard({
               modeSlug: roomId ? null : (modeSlug ?? null),
             },
           });
-          const timeout = new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("Question request timed out")), 8_000),
-          );
-          const { question: q, unavailable } = await Promise.race([request, timeout]);
+          let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+          const timeout = new Promise<never>((_, reject) => {
+            timeoutHandle = setTimeout(() => reject(new Error("Question request timed out")), 8_000);
+          });
+          let outcome: Awaited<typeof request>;
+          try {
+            outcome = await Promise.race([request, timeout]);
+          } finally {
+            if (timeoutHandle) clearTimeout(timeoutHandle);
+          }
+          const { question: q, unavailable } = outcome;
           if (!isStale()) {
             if (q) {
               setQuestion(q);
@@ -218,7 +250,10 @@ export function QuestionCard({
     }
   };
 
-  const prompt = question?.prompt ?? fallback;
+  const prompt = observing
+    ? observed?.question?.prompt ?? (observingError ? "Unable to refresh the live question" : "Waiting for the active player’s question…")
+    : question?.prompt ?? fallback;
+  const promptLoading = observing ? observingPending : loading;
   const borderAccent = accentClass.replace("text-", "border-");
   return (
     <div className={`game-card relative mt-4 overflow-hidden border-t-4 ${borderAccent} p-5`}>
@@ -227,20 +262,22 @@ export function QuestionCard({
         <p
           className={`text-[0.62rem] font-black uppercase tracking-[0.16em] ${clue ? "text-gold" : accentClass}`}
         >
-          {rewardLabel(clue)}
+          {observing ? "Live question · read-only" : rewardLabel(clue)}
         </p>
-        {question && (
+        {(question || (observing && observed?.question)) && (
           <span className="inline-flex items-center gap-1 text-[0.58rem] font-bold uppercase tracking-[0.14em] text-muted-foreground">
             <ShieldCheck className="size-3 text-primary" /> Verified · server-checked
           </span>
         )}
       </div>
       <p
-        className={`relative mt-3 font-display text-3xl leading-tight sm:text-4xl ${loading ? "text-muted-foreground" : "text-foreground"}`}
+        className={`relative mt-3 font-display text-3xl leading-tight sm:text-4xl ${promptLoading ? "text-muted-foreground" : "text-foreground"}`}
+        aria-live={observing ? "polite" : undefined}
       >
-        {loading ? (
+        {promptLoading ? (
           <span className="inline-flex items-center gap-2">
-            <LoaderCircle className="size-5 animate-spin text-cyan-300" /> Picking a fair question…
+            <LoaderCircle className="size-5 motion-safe:animate-spin text-primary" />
+            {observing ? "Loading the live question…" : "Picking a fair question…"}
           </span>
         ) : (
           prompt
@@ -313,9 +350,12 @@ export function QuestionCard({
           )}
         </div>
       ) : !canAnswer ? (
-        <p className="mt-4 text-xs text-muted-foreground">
-          Waiting for the active player to answer…
-        </p>
+        <div role="status" className="mt-4 text-xs text-muted-foreground">
+          {observingError && (
+            <p className="mb-2 text-gold">Couldn&apos;t refresh the live question. We&apos;ll try again automatically.</p>
+          )}
+          <p>Only the active player can answer. The room question is read-only for everyone else.</p>
+        </div>
       ) : question ? (
         <>
           {!clue && (
@@ -375,9 +415,11 @@ export function QuestionCard({
               ? loading
                 ? "Matching a verified question to your sport, category and difficulty…"
                 : "This round is paused because no verified question matches the exact sport, category and difficulty. Retry or change the setup."
-              : "Sign in for server-checked questions. In pass-and-play, type or say the answer and let the players confirm it."}
+              : roomId
+                ? "Sign in to take a seat and see your room’s live questions."
+                : "Sign in for server-checked questions. In pass-and-play, type or say the answer and let the players confirm it."}
           </p>
-          {!user && (
+          {!user && !roomId && (
             <div className="mt-4 flex flex-wrap gap-2">
               {!clue && (
                 <Button variant="outline" onClick={() => setClue(true)} disabled={loading}>
