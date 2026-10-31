@@ -67,7 +67,8 @@ export function QuestionCard({
     isPending: observingPending,
     isError: observingError,
   } = useQuery({
-    queryKey: ["arcade-room-observed-question", roomId],
+    // Do not reuse a prior player's cached prompt across accounts or turns.
+    queryKey: ["arcade-room-observed-question", roomId, user?.id, turnKey],
     queryFn: () => observeActiveRoomQuestion({ data: { roomId: roomId! } }),
     enabled: observing,
     refetchInterval: observing ? 2_500 : false,

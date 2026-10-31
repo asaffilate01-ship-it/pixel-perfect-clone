@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ROOM_COMPLETE_STATUS, isArcadeRoomComplete, firstOccupiedSeat, nextMastermindTurn, assertRoomQuestionScope, assertRoomAnswerDifficulty, publicRoomQuestion } from "../src/lib/roomLifecycle.ts";
+import { ROOM_COMPLETE_STATUS, isArcadeRoomComplete, firstOccupiedSeat, nextMastermindTurn, assertRoomQuestionScope, assertRoomAnswerDifficulty, publicRoomQuestion, assertActiveRoomTurnWindow, assertQuestionIssuedThisTurn } from "../src/lib/roomLifecycle.ts";
 
 test("database completion status is complete, with legacy display compatibility", () => {
   assert.equal(ROOM_COMPLETE_STATUS, "complete");
@@ -104,4 +104,39 @@ test("spectator payload excludes the canonical answer even if input includes it"
     issuedAt: "2026-10-31T11:00:00Z",
   });
   assert.equal(JSON.stringify(visible).includes("SECRET ANSWER"), false);
+});
+
+test("expired, future and malformed room turns cannot reserve or submit ranked answers", () => {
+  const start = "2026-10-31T10:00:00.000Z";
+  const end = "2026-10-31T10:03:00.000Z";
+  const tick = Date.parse("2026-10-31T10:02:00.000Z");
+  assert.doesNotThrow(() => assertActiveRoomTurnWindow(start, end, tick));
+  assert.doesNotThrow(() => assertActiveRoomTurnWindow(start, end, Date.parse(start)));
+  for (const [a, b, now] of [
+    [start, end, Date.parse(end)],
+    [start, end, Date.parse(end) + 1],
+    [start, end, Date.parse(start) - 1],
+    [null, end, tick],
+    [start, null, tick],
+    ["not a date", end, tick],
+    [start, "not a date", tick],
+    [end, start, tick],
+    [start, end, NaN],
+  ]) assert.throws(() => assertActiveRoomTurnWindow(a, b, now), /room turn/);
+});
+
+test("answers cannot reuse an unresolved question from a previous room turn", () => {
+  const oldIssued = "2026-10-31T10:00:10.000Z";
+  const newTurnStart = "2026-10-31T10:00:30.000Z";
+  const currentIssued = "2026-10-31T10:00:31.000Z";
+  const expiresAt = "2026-10-31T10:03:10.000Z";
+  const now = Date.parse("2026-10-31T10:00:45.000Z");
+  assert.doesNotThrow(() => assertQuestionIssuedThisTurn(currentIssued, newTurnStart, expiresAt, now));
+  assert.doesNotThrow(() => assertQuestionIssuedThisTurn(newTurnStart, newTurnStart, expiresAt, now));
+  assert.throws(() => assertQuestionIssuedThisTurn(oldIssued, newTurnStart, expiresAt, now), /not issued/);
+  assert.throws(() => assertQuestionIssuedThisTurn(null, newTurnStart, expiresAt, now), /not issued/);
+  assert.throws(() => assertQuestionIssuedThisTurn(currentIssued, null, expiresAt, now), /not issued/);
+  assert.throws(() => assertQuestionIssuedThisTurn(currentIssued, newTurnStart, expiresAt, Date.parse(expiresAt)), /expired/);
+  assert.throws(() => assertQuestionIssuedThisTurn(currentIssued, newTurnStart, null, now), /expired/);
+  assert.throws(() => assertQuestionIssuedThisTurn(currentIssued, newTurnStart, oldIssued, now), /expired/);
 });

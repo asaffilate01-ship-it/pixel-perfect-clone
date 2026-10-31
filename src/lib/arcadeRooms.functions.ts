@@ -3,6 +3,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
 import {
+  assertActiveRoomTurnWindow,
+  assertQuestionIssuedThisTurn,
   assertRoomAnswerDifficulty,
   assertRoomQuestionScope,
   firstOccupiedSeat,
@@ -390,7 +392,7 @@ async function requireActiveRoomTurn(
   const [roomResult, playerResult] = await Promise.all([
     admin
       .from("arcade_rooms")
-      .select("status, active_seat, mode_slug, round_no, difficulty")
+      .select("status, active_seat, mode_slug, round_no, difficulty, turn_started_at, turn_ends_at")
       .eq("id", roomId)
       .maybeSingle(),
     admin
@@ -410,6 +412,7 @@ async function requireActiveRoomTurn(
     throw new Error("It is not your turn");
   if (player.status === "disconnected" || player.status === "finished")
     throw new Error("This player cannot take a turn");
+  assertActiveRoomTurnWindow(room.turn_started_at, room.turn_ends_at);
   return { room, player };
 }
 
@@ -419,8 +422,10 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => questionSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    let currentRoomTurnStartedAt: string | null = null;
     if (data.roomId) {
       const { room, player } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
+      currentRoomTurnStartedAt = room.turn_started_at;
       assertRoomQuestionScope(
         { modeSlug: room.mode_slug, roundNo: room.round_no, difficulty: room.difficulty },
         {
@@ -448,22 +453,15 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
     let id: string | null = null;
     let existingRoomQuestionId: string | null = null;
     if (data.roomId) {
-      const { data: roomTurn, error: roomError } = await admin
-        .from("arcade_rooms")
-        .select("turn_started_at")
-        .eq("id", data.roomId)
-        .single();
-      if (roomError) throw new Error(roomError.message);
-      let pending = admin
+      if (!currentRoomTurnStartedAt) throw new Error("No current room turn");
+      const pending = admin
         .from("arcade_questions")
         .select("id, question_id")
         .eq("room_id", data.roomId)
         .eq("active_user_id", context.userId)
         .eq("revealed_answer", false)
-        .gt("expires_at", new Date().toISOString());
-      if (roomTurn?.turn_started_at) {
-        pending = pending.gte("issued_at", roomTurn.turn_started_at);
-      }
+        .gt("expires_at", new Date().toISOString())
+        .gte("issued_at", currentRoomTurnStartedAt);
       const { data: existing, error: pendingError } = await pending
         .order("issued_at", { ascending: false })
         .limit(1)
@@ -690,9 +688,11 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => answerSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    let currentRoomTurnStartedAt: string | null = null;
     if (data.roomId) {
       const { room } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
       assertRoomAnswerDifficulty(room.difficulty, data.difficulty);
+      currentRoomTurnStartedAt = room.turn_started_at;
     }
     const { data: q } = await admin
       .from("question_bank")
@@ -704,19 +704,26 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
 
     let roomQuestionId: string | null = null;
     if (data.roomId) {
-      const { data: roomQ } = await admin
+      if (!currentRoomTurnStartedAt) throw new Error("No current room turn");
+      const { data: roomQ, error: roomQuestionError } = await admin
         .from("arcade_questions")
-        .select("id, question_id, active_user_id, expires_at, revealed_answer")
+        .select("id, question_id, active_user_id, issued_at, expires_at, revealed_answer")
         .eq("room_id", data.roomId)
+        .eq("active_user_id", context.userId)
+        .eq("revealed_answer", false)
+        .gte("issued_at", currentRoomTurnStartedAt)
         .order("issued_at", { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (roomQuestionError) throw new Error(roomQuestionError.message);
       if (!roomQ || roomQ.question_id !== data.questionId ||
           roomQ.active_user_id !== context.userId || roomQ.revealed_answer)
         throw new Error("Not your active question");
-      if (roomQ.expires_at && Date.parse(roomQ.expires_at) <= Date.now()) {
-        throw new Error("This question has expired");
-      }
+      assertQuestionIssuedThisTurn(
+        roomQ.issued_at,
+        currentRoomTurnStartedAt,
+        roomQ.expires_at,
+      );
       roomQuestionId = roomQ.id;
     } else {
       // A solo player can only submit an actively reserved question. Prevent
