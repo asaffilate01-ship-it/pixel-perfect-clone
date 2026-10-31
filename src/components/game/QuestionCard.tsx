@@ -136,10 +136,15 @@ export function QuestionCard({
     // unrelated re-render where `user`/`bank` object identity changed.
     const isStale = () => !mounted.current || loadedFor.current !== myKey;
     (async () => {
-      if (roomId && (!user || !canAnswer)) {
-        // Online spectators never reserve a question or receive a random local
-        // criterion. The read-only server view above supplies the live prompt.
-        if (!isStale()) setLoading(false);
+      if (roomId && (!user || !canAnswer || !sportId)) {
+        // Online rooms never substitute a random local criterion for a verified
+        // question. A missing active sport must pause rather than invent play.
+        if (!isStale()) {
+          if (canAnswer && !sportId) {
+            setLoadError("This turn has no available sport. Retry after your sport catalogue loads.");
+          }
+          setLoading(false);
+        }
         return;
       }
       if (user && sportId && canAnswer) {
