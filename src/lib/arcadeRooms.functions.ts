@@ -7,7 +7,9 @@ import {
   assertQuestionIssuedThisTurn,
   assertRoomAnswerDifficulty,
   assertRoomQuestionScope,
+  assertQuizRaceTurnRecoverable,
   firstOccupiedSeat,
+  nextQuizRaceTurn,
   nextMastermindTurn,
   publicRoomQuestion,
   ROOM_COMPLETE_STATUS,
@@ -103,6 +105,7 @@ const actionSchema = z.discriminatedUnion("action", [
   }),
   z.object({ action: z.literal("start"), roomId: z.string().uuid() }),
   z.object({ action: z.literal("advance"), roomId: z.string().uuid() }),
+  z.object({ action: z.literal("recover_timeout"), roomId: z.string().uuid() }),
   z.object({ action: z.literal("leave"), roomId: z.string().uuid() }),
 ]);
 
@@ -233,7 +236,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     if (!room) throw new Error("Room not found");
     const { data: member } = await admin
       .from("arcade_room_players")
-      .select("user_id, settings, sport_id")
+      .select("user_id, status, settings, sport_id")
       .eq("room_id", room.id)
       .eq("user_id", userId)
       .maybeSingle();
@@ -349,6 +352,67 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
       if (advanceError) throw new Error(advanceError.message);
       if (!advanced) throw new Error("This round was already advanced");
       return { advanced: true, finished: progression.complete };
+    }
+
+    if (data.action === "recover_timeout") {
+      // Any *currently seated* player may help an expired Quiz Race progress;
+      // no client may skip a live turn or advance a different game mode.
+      if (member.status === "disconnected" || member.status === "finished")
+        throw new Error("You are no longer active in this room");
+      const [roomResult, playersResult] = await Promise.all([
+        admin
+          .from("arcade_rooms")
+          .select("status, mode_slug, active_seat, round_no, turn_started_at, turn_ends_at")
+          .eq("id", room.id)
+          .single(),
+        admin
+          .from("arcade_room_players")
+          .select("seat")
+          .eq("room_id", room.id)
+          .order("seat"),
+      ]);
+      if (roomResult.error) throw new Error(roomResult.error.message);
+      if (playersResult.error) throw new Error(playersResult.error.message);
+      const live = roomResult.data;
+      if (!live || live.active_seat === null) throw new Error("No active Quiz Race turn");
+      const nowMs = Date.now();
+      assertQuizRaceTurnRecoverable(
+        live.mode_slug,
+        live.status,
+        live.turn_started_at,
+        live.turn_ends_at,
+        nowMs,
+      );
+      // The validator fails closed at runtime; narrow nullable database columns
+      // explicitly as well before using them in the conditional update.
+      if (!live.turn_started_at || !live.turn_ends_at) {
+        throw new Error("Invalid Quiz Race turn deadline");
+      }
+      const next = nextQuizRaceTurn(
+        (playersResult.data ?? []).map((player) => player.seat),
+        live.active_seat,
+        live.round_no,
+      );
+      const { data: advanced, error: updateError } = await admin
+        .from("arcade_rooms")
+        .update({
+          active_seat: next.seat,
+          round_no: next.round,
+          turn_started_at: new Date(nowMs).toISOString(),
+          turn_ends_at: new Date(nowMs + 180_000).toISOString(),
+        })
+        .eq("id", room.id)
+        .eq("status", "active")
+        .eq("active_seat", live.active_seat)
+        .eq("round_no", live.round_no)
+        .eq("turn_started_at", live.turn_started_at)
+        .eq("turn_ends_at", live.turn_ends_at)
+        .select("id")
+        .maybeSingle();
+      if (updateError) throw new Error(updateError.message);
+      // Another player may already have recovered this turn; that is not a
+      // second move. Refresh client room state instead of retrying the mutation.
+      return { advanced: !!advanced };
     }
 
     // leave
