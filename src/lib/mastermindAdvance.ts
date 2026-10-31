@@ -37,3 +37,14 @@ export function remainingMastermindSeconds(endsAt: string | null, nowMs: number)
   if (!Number.isFinite(end) || !Number.isFinite(nowMs)) return null;
   return Math.max(0, Math.ceil((end - nowMs) / 1_000));
 }
+
+/** Only the active player or room host can recover an active room's turn. */
+export function canAdvanceMastermindTurn(
+  userId: string | null | undefined,
+  hostId: string | null | undefined,
+  activeUserId: string | null | undefined,
+  roomStatus: string | null | undefined,
+): boolean {
+  return roomStatus === "active" && !!userId &&
+    (userId === hostId || userId === activeUserId);
+}
