@@ -153,6 +153,15 @@
     touch-action: manipulation;
   }
 
+  :where(a, button, input, select, textarea, [role="button"]):focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 3px;
+  }
+
+  #main-content {
+    scroll-margin-top: 5rem;
+  }
+
   h1,
   h2,
   h3 {
