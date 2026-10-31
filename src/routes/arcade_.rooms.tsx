@@ -140,7 +140,7 @@ function RoomsPage() {
         void navigate({ to: "/arcade/rooms/$id", params: { id: roomId } });
       },
       onError: (error) => {
-        if (controller.needsCleanup()) setCancelFailed(true);
+        if (searchRef.current?.needsCleanup()) setCancelFailed(true);
         else searchRef.current = null;
         setSearching(false);
         toast.error(error instanceof Error ? error.message : "Matchmaking unavailable");
