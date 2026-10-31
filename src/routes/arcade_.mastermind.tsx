@@ -12,7 +12,7 @@ import { Chip, FairnessNote, Label, PlayerCard } from "@/components/game/ArcadeS
 import { Avatar, AvatarPicker, AVATARS } from "@/components/game/AvatarPicker";
 import { QuestionCard } from "@/components/game/QuestionCard";
 import { isArcadeRoomComplete } from "@/lib/roomLifecycle";
-import { createMastermindAdvanceGate, remainingMastermindSeconds } from "@/lib/mastermindAdvance";
+import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds } from "@/lib/mastermindAdvance";
 import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
 import { ConnectionBanner, PresenceDot } from "@/components/game/RoomPresence";
 import { useArcadePresence } from "@/hooks/useArcadePresence";
@@ -197,8 +197,12 @@ function MastermindPage() {
   const [advanceGate] = useState(createMastermindAdvanceGate);
   const [advancePending, setAdvancePending] = useState(false);
   const [advanceFeedback, setAdvanceFeedback] = useState<string | null>(null);
-  const canAdvanceOnline = online && !!user &&
-    (myTurn || room?.host_id === user.id);
+  const canAdvanceOnline = online && canAdvanceMastermindTurn(
+    user?.id,
+    room?.host_id,
+    list[activeIdx]?.userId,
+    room?.status,
+  );
   const advanceTurnKey = online && room
     ? `${roomId}:${room.active_seat}:${room.round_no}:${room.turn_ends_at}`
     : "";
