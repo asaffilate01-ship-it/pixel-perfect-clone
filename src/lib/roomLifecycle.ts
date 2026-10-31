@@ -142,3 +142,55 @@ export function assertQuestionIssuedThisTurn(
     throw new Error("This question has expired");
   }
 }
+
+
+/** Allow a short grace period for an answer already in flight at the deadline. */
+export const QUIZ_RACE_TIMEOUT_GRACE_MS = 5_000;
+
+/** The next timed race turn is the next occupied seat, wrapping the round. */
+export function nextQuizRaceTurn(
+  seats: readonly number[],
+  activeSeat: number,
+  roundNo: number,
+): { seat: number; round: number } {
+  const ordered = [...seats].sort((a, b) => a - b);
+  if (ordered.length < 2 || ordered.length > 4 ||
+      new Set(ordered).size !== ordered.length ||
+      ordered.some((seat) => !Number.isInteger(seat) || seat < 0 || seat > 3) ||
+      !Number.isInteger(activeSeat) || !ordered.includes(activeSeat) ||
+      !Number.isInteger(roundNo) || roundNo < 1) {
+    throw new Error("Invalid Quiz Race seat or round");
+  }
+  const index = ordered.indexOf(activeSeat);
+  const wraps = index === ordered.length - 1;
+  return {
+    seat: wraps ? ordered[0]! : ordered[index + 1]!,
+    round: roundNo + (wraps ? 1 : 0),
+  };
+}
+
+/**
+ * Only an *expired* online race turn can be recovered.
+ * Run this on the server as well as showing client-side recovery UI.
+ */
+export function assertQuizRaceTurnRecoverable(
+  modeSlug: string,
+  status: string,
+  startedAt: string | null,
+  endsAt: string | null,
+  nowMs = Date.now(),
+): void {
+  if (modeSlug !== "quiz-ludo" && modeSlug !== "quiz-snakes-ladders") {
+    throw new Error("Timed recovery is only available for Quiz Race games");
+  }
+  if (status !== "active") throw new Error("This race is no longer active");
+  const started = startedAt ? Date.parse(startedAt) : NaN;
+  const end = endsAt ? Date.parse(endsAt) : NaN;
+  if (!Number.isFinite(nowMs) || !Number.isFinite(started) ||
+      !Number.isFinite(end) || end <= started) {
+    throw new Error("Invalid Quiz Race turn deadline");
+  }
+  if (nowMs < end + QUIZ_RACE_TIMEOUT_GRACE_MS) {
+    throw new Error("The Quiz Race turn has not yet expired");
+  }
+}
