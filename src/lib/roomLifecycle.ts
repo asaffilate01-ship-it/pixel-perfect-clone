@@ -95,7 +95,7 @@ export function publicRoomQuestion(row: {
 }): { id: string; prompt: string; issuedAt: string } {
   return {
     id: row.id,
-    prompt: typeof row.prompt_i18n?.en === "string" ? row.prompt_i18n.en : "",
+    prompt: typeof row.prompt_i18n?.["en"] === "string" ? row.prompt_i18n["en"] : "",
     issuedAt: row.issued_at,
   };
 }
