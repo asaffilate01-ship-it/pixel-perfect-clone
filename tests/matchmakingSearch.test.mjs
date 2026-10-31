@@ -141,7 +141,7 @@ test("a rejected cancellation still prevents late match navigation", async () =>
   assert.equal(cancellationAttempts, 2);
   assert.equal(controller.needsCleanup(), false);
   assert.equal(controller.start(), true);
-  await flush();
-  // A matched session cannot be cancelled or repolled once it has completed.
+  // Restart is allowed only after a successful cleanup, and remains cancellable.
+  await controller.stop();
   assert.equal(controller.isSearching(), false);
 });
