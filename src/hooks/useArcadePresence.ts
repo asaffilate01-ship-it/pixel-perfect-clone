@@ -1,15 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  summarizeArcadePresence,
+  type ArcadePresenceState,
+  type ArcadePresenceSignal,
+} from "@/lib/arcadePresenceState";
 
-export type ArcadePresenceState = "online" | "background" | "reconnecting" | "offline";
+export type { ArcadePresenceState } from "@/lib/arcadePresenceState";
 
-type PresenceRow = {
-  user_id: string;
-  connection_id: string;
-  status: ArcadePresenceState;
-  last_seen_at: string;
-};
+type PresenceRow = ArcadePresenceSignal & { connection_id: string };
 
 const HEARTBEAT_MS = 12_000;
 const STALE_MS = 35_000;
@@ -18,13 +18,19 @@ function connectionId() {
   return crypto.randomUUID();
 }
 
-function deviceId() {
-  const key = "fanzeno-device-id";
-  const saved = window.localStorage.getItem(key);
-  if (saved) return saved;
-  const created = crypto.randomUUID();
-  window.localStorage.setItem(key, created);
-  return created;
+function deviceId(fallback: string) {
+  try {
+    const key = "fanzeno-device-id";
+    const saved = window.localStorage.getItem(key);
+    if (saved) return saved;
+    const created = crypto.randomUUID();
+    window.localStorage.setItem(key, created);
+    return created;
+  } catch {
+    // Browsers can disable local storage. Presence must still work for this
+    // session; the connection ID remains unique without persistent storage.
+    return fallback;
+  }
 }
 
 async function fetchPresence(roomId: string): Promise<PresenceRow[]> {
@@ -36,13 +42,14 @@ async function fetchPresence(roomId: string): Promise<PresenceRow[]> {
   return (data ?? []) as PresenceRow[];
 }
 
-/** Maintains this device's heartbeat and folds multiple tabs into one player status. */
+/** Maintains a connection heartbeat and combines multiple tabs per player. */
 export function useArcadePresence(roomId: string | undefined, userId: string | undefined) {
   const qc = useQueryClient();
   const [connection] = useState(connectionId);
   const [now, setNow] = useState(Date.now());
+  const [writeFailed, setWriteFailed] = useState(true);
   const queryKey = ["arcade-presence", roomId] as const;
-  const { data = [] } = useQuery({
+  const { data = [], isError } = useQuery({
     queryKey,
     queryFn: () => fetchPresence(roomId!),
     enabled: !!roomId && !!userId,
@@ -51,29 +58,62 @@ export function useArcadePresence(roomId: string | undefined, userId: string | u
 
   useEffect(() => {
     if (!roomId || !userId) return;
-    const write = async (status: ArcadePresenceState) => {
-      await supabase.from("arcade_presence").upsert(
-        {
-          room_id: roomId,
-          user_id: userId,
-          connection_id: connection,
-          device_id: deviceId(),
-          status,
-          last_seen_at: new Date().toISOString(),
-        },
-        { onConflict: "room_id,user_id,connection_id" },
-      );
-    };
+    let stopped = false;
+    let inFlight: Promise<void> | null = null;
+    let dirty = false;
+    const localDeviceId = deviceId(connection);
+    setWriteFailed(true);
+
     const currentStatus = (): ArcadePresenceState =>
-      document.visibilityState === "hidden"
-        ? "background"
-        : navigator.onLine
-          ? "online"
-          : "reconnecting";
-    const heartbeat = () => void write(currentStatus());
+      !navigator.onLine
+        ? "offline"
+        : document.visibilityState === "hidden"
+          ? "background"
+          : "online";
+
+    const write = async () => {
+      try {
+        const { error } = await supabase.from("arcade_presence").upsert(
+          {
+            room_id: roomId,
+            user_id: userId,
+            connection_id: connection,
+            device_id: localDeviceId,
+            status: currentStatus(),
+            last_seen_at: new Date().toISOString(),
+          },
+          { onConflict: "room_id,user_id,connection_id" },
+        );
+        if (error) throw error;
+        if (!stopped) {
+          setWriteFailed(false);
+          void qc.invalidateQueries({ queryKey });
+        }
+      } catch {
+        if (!stopped) setWriteFailed(true);
+      } finally {
+        inFlight = null;
+        if (dirty && !stopped) {
+          dirty = false;
+          heartbeat();
+        }
+      }
+    };
+
+    const heartbeat = () => {
+      if (stopped) return;
+      if (inFlight) {
+        dirty = true;
+        return;
+      }
+      inFlight = write();
+    };
     const visibility = () => heartbeat();
-    const offline = () => void write("reconnecting");
-    const online = () => void write("online");
+    const offline = () => {
+      setWriteFailed(true);
+      heartbeat();
+    };
+    const online = () => heartbeat();
 
     heartbeat();
     const timer = window.setInterval(heartbeat, HEARTBEAT_MS);
@@ -81,18 +121,30 @@ export function useArcadePresence(roomId: string | undefined, userId: string | u
     window.addEventListener("offline", offline);
     window.addEventListener("online", online);
     return () => {
+      stopped = true;
+      dirty = false;
       window.clearInterval(timer);
       document.removeEventListener("visibilitychange", visibility);
       window.removeEventListener("offline", offline);
       window.removeEventListener("online", online);
-      void supabase
-        .from("arcade_presence")
-        .delete()
-        .eq("room_id", roomId)
-        .eq("user_id", userId)
-        .eq("connection_id", connection);
+      const outstanding = inFlight;
+      // Never delete an old connection before its in-flight upsert completes;
+      // otherwise a delayed write can resurrect a ghost online player.
+      void (async () => {
+        try {
+          if (outstanding) await outstanding;
+          await supabase
+            .from("arcade_presence")
+            .delete()
+            .eq("room_id", roomId)
+            .eq("user_id", userId)
+            .eq("connection_id", connection);
+        } catch {
+          // Missing cleanup will age out at STALE_MS; do not throw on unmount.
+        }
+      })();
     };
-  }, [connection, roomId, userId]);
+  }, [connection, roomId, userId, qc]);
 
   useEffect(() => {
     if (!roomId || !userId) return;
@@ -111,23 +163,21 @@ export function useArcadePresence(roomId: string | undefined, userId: string | u
     };
   }, [qc, roomId, userId]);
 
-  const byUser = useMemo(() => {
-    const result = new Map<string, ArcadePresenceState>();
-    for (const row of data) {
-      const fresh = now - new Date(row.last_seen_at).getTime() <= STALE_MS;
-      const status: ArcadePresenceState = fresh ? row.status : "offline";
-      const existing = result.get(row.user_id);
-      if (status === "online" || !existing || existing === "offline")
-        result.set(row.user_id, status);
-    }
-    return result;
-  }, [data, now]);
+  const byUser = useMemo(
+    () => summarizeArcadePresence(data, now, STALE_MS),
+    [data, now],
+  );
 
-  return {
-    byUser,
-    myStatus:
-      typeof navigator === "undefined" || !navigator.onLine
+  const browserOffline = typeof navigator !== "undefined" && !navigator.onLine;
+  const browserHidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+  const myStatus: ArcadePresenceState =
+    !roomId || !userId || browserOffline
+      ? "offline"
+      : writeFailed || isError
         ? "reconnecting"
-        : (byUser.get(userId ?? "") ?? "online"),
-  };
+        : browserHidden
+          ? "background"
+          : (byUser.get(userId) ?? "reconnecting");
+
+  return { byUser, myStatus };
 }
