@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import {
+  AlertCircle,
   ArrowRight,
   BookOpen,
   Clock,
@@ -10,9 +11,11 @@ import {
   Lock,
   Play,
   Radio,
+  RefreshCw,
   Search,
   Sparkles,
   Users,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { SideAdRail, TopAdBanner } from "@/components/site/AdSlots";
@@ -94,7 +97,10 @@ const FALLBACK_ART: GameArt = {
 };
 
 function Arcade() {
-  const { data, isLoading } = useQuery({ queryKey: ["game-modes"], queryFn: fetchGameModes });
+  const { data, isLoading, isError, isFetching, refetch } = useQuery({
+    queryKey: ["game-modes"],
+    queryFn: fetchGameModes,
+  });
   const { pro } = useEntitlements();
   const [filter, setFilter] = useState<(typeof GAME_FILTERS)[number]["key"]>("all");
   const [q, setQ] = useState("");
@@ -120,6 +126,12 @@ function Arcade() {
   }, [data, filter, q]);
 
   const liveCount = (data ?? []).filter((m) => ROUTES[m.slug]).length;
+  const filtersActive = filter !== "all" || q.trim().length > 0;
+  const catalogueFailed = isError && !data;
+  const clearFilters = () => {
+    setFilter("all");
+    setQ("");
+  };
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:py-10">
@@ -128,7 +140,8 @@ function Arcade() {
           <p className="eyebrow">Fanzeno arcade</p>
           <h1 className="mt-3 text-5xl">Pick a game</h1>
           <p className="mt-3 max-w-lg text-sm text-muted-foreground">
-            Play {liveCount} arcade modes, from verified questions to casual practice puzzles.
+            {liveCount > 0 ? `Explore ${liveCount} arcade modes` : "Explore the arcade"}, from
+            verified questions to casual practice puzzles.
           </p>
         </div>
         <Button asChild variant="outline" className="shrink-0">
@@ -144,8 +157,12 @@ function Arcade() {
 
       {/* Filter bar */}
       <div className="sticky top-16 z-20 -mx-4 mt-6 border-y border-border bg-background/85 px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-2xl sm:border">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-1 flex-wrap gap-1.5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div
+            role="group"
+            aria-label="Filter arcade games"
+            className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0"
+          >
             {GAME_FILTERS.map((f) => {
               const on = f.key === filter;
               return (
@@ -154,7 +171,7 @@ function Arcade() {
                   type="button"
                   aria-pressed={on}
                   onClick={() => setFilter(f.key)}
-                  className={`rounded-full border px-3.5 py-1.5 text-[0.64rem] font-black uppercase tracking-[0.12em] transition-colors ${
+                  className={`min-h-11 shrink-0 whitespace-nowrap rounded-full border px-3.5 py-2 text-xs font-bold uppercase tracking-[0.08em] transition-colors ${
                     on
                       ? f.key === "pro"
                         ? "border-gold bg-gold text-gold-foreground"
@@ -172,11 +189,12 @@ function Arcade() {
           <label className="relative block w-full sm:w-56">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <input
+              type="search"
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search games"
               aria-label="Search games"
-              className="h-10 w-full rounded-xl border border-border bg-surface/60 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-primary"
+              className="h-11 w-full rounded-xl border border-border bg-surface/60 pl-9 pr-3 text-sm placeholder:text-muted-foreground focus:border-primary"
             />
           </label>
         </div>
@@ -189,17 +207,52 @@ function Arcade() {
         >
           <Gem className="size-4 shrink-0 text-gold" />
           <span>
-            <span className="font-black uppercase tracking-[0.14em]">Fanzeno Pro</span> unlocks Quiz
-            Pro modes are available to existing members; lifetime checkout is coming soon.
+            <span className="font-black uppercase tracking-[0.14em]">Fanzeno Pro</span> includes
+            premium arcade modes for existing members. New lifetime purchases are coming soon.
           </span>
           <ArrowRight className="ml-auto size-4 shrink-0" />
         </Link>
       )}
 
+      {!catalogueFailed && !isLoading && (
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+          <p role="status" aria-live="polite" className="text-xs font-semibold text-muted-foreground">
+            Showing {modes.length} of {data?.length ?? 0} games
+          </p>
+          {filtersActive && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-xs font-bold text-primary hover:bg-primary/10"
+            >
+              <X className="size-4" aria-hidden /> Clear filters
+            </button>
+          )}
+        </div>
+      )}
+
+      {catalogueFailed && (
+        <div role="alert" className="panel mt-6 flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 size-5 shrink-0 text-gold" aria-hidden />
+            <div>
+              <p className="font-semibold">Couldn&apos;t load the arcade catalogue</p>
+              <p className="mt-1 text-sm text-muted-foreground">Check your connection and try again. Your game progress hasn&apos;t been changed.</p>
+            </div>
+          </div>
+          <Button variant="outline" disabled={isFetching} onClick={() => void refetch()}>
+            <RefreshCw className="size-4" aria-hidden /> Try again
+          </Button>
+        </div>
+      )}
+      {isError && data && (
+        <p role="status" className="mt-3 text-xs text-gold">Unable to refresh right now. Showing the last loaded games.</p>
+      )}
+
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {isLoading &&
+        {isLoading && !data &&
           Array.from({ length: 6 }, (_, i) => (
-            <div key={i} className="panel h-72 animate-pulse" aria-hidden />
+            <div key={i} className="panel h-72 motion-safe:animate-pulse" aria-hidden />
           ))}
         {modes.map((mode) => {
           const art = GAME_ART[mode.slug] ?? FALLBACK_ART;
@@ -223,8 +276,8 @@ function Arcade() {
                   width={768}
                   height={512}
                   loading="lazy"
-                  className={`absolute inset-0 size-full object-cover opacity-20 mix-blend-overlay transition-transform duration-500 ${
-                    playable ? "group-hover:scale-105" : "saturate-50"
+                  className={`absolute inset-0 size-full object-cover opacity-45 mix-blend-overlay motion-safe:transition-transform motion-safe:duration-500 ${
+                    playable ? "motion-safe:group-hover:scale-105" : "saturate-50"
                   }`}
                 />
                 <span className="absolute inset-0 flex items-center justify-center">
@@ -276,10 +329,10 @@ function Arcade() {
                   }`}
                 >
                   {!playable ? (
-                    "Notify me"
+                    "Coming later"
                   ) : locked ? (
                     <>
-                      <Gem className="size-3.5" /> Unlock with Pro
+                      <Gem className="size-3.5" /> Pro members only
                     </>
                   ) : (
                     <>
@@ -293,7 +346,7 @@ function Arcade() {
 
           const cls = `game-card group relative flex flex-col overflow-hidden p-0 text-left transition-all ${
             playable
-              ? "hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/40 active:scale-[0.99]"
+              ? "motion-safe:hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl hover:shadow-black/40 motion-safe:active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-primary"
               : "opacity-75"
           }`;
           if (!route) {
@@ -320,10 +373,20 @@ function Arcade() {
             </Link>
           );
         })}
-        {!isLoading && modes.length === 0 && (
-          <p className="col-span-full rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-            No games match that filter yet.
-          </p>
+        {!isLoading && !catalogueFailed && modes.length === 0 && (
+          <div className="col-span-full rounded-2xl border border-dashed border-border p-8 text-center sm:p-10">
+            <p className="font-display text-2xl text-foreground">
+              {filtersActive ? "No matching games" : "No games are available right now"}
+            </p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {filtersActive ? "Try another category or clear your search." : "The arcade catalogue is empty. Please check back later."}
+            </p>
+            {filtersActive && (
+              <Button type="button" variant="outline" className="mt-4" onClick={clearFilters}>
+                Show all games
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
