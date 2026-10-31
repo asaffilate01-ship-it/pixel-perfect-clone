@@ -5,10 +5,13 @@
  */
 import fs from "node:fs";
 import process from "node:process";
+import { extractFanzenoReleaseMarker, isExpectedReleaseOnAllRoutes } from "./release-marker.mjs";
 
 const base = (process.env.FANZENO_LIVE_URL || "https://amerfangame.lovable.app").replace(/\/$/, "");
-const requiredMarker = "2026-10-16-q15-multiplayer-hardened";
-const routes = ["/", "/arcade", "/arcade/higher-lower", "/arcade/crossword", "/upgrade"];
+const requiredMarker = extractFanzenoReleaseMarker(
+  fs.readFileSync(new URL("../src/routes/__root.tsx", import.meta.url), "utf8"),
+);
+const routes = ["/", "/arcade", "/arcade/rooms", "/compete", "/leaderboard", "/arcade/higher-lower", "/arcade/crossword", "/upgrade"];
 const results = [];
 for (const path of routes) {
   const url = `${base}${path}`;
@@ -36,10 +39,11 @@ for (const path of routes) {
 }
 
 const reachable = results.every((item) => item.ok && item.has_fanzeno_brand);
-const currentRelease = results.some((item) => item.has_release_marker);
+const currentRelease = isExpectedReleaseOnAllRoutes(results);
 const summary = {
   checked_at: new Date().toISOString(),
   target: base,
+  checked_commit: process.env.GITHUB_SHA ?? null,
   required_release: requiredMarker,
   reachable,
   current_release_published: currentRelease,
