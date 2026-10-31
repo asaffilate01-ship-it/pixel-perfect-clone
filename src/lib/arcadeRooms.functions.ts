@@ -69,7 +69,7 @@ function answerMatches(input: string, accepted: string[]): boolean {
 const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("create"),
-    mode: z.string().min(1),
+    mode: z.enum(["quiz-ludo", "quiz-snakes-ladders", "sports-mastermind"]),
     maxPlayers: z.number().int().min(2).max(4).default(4),
     difficulty: z.number().int().min(1).max(4).default(2),
     sportId: z.string().uuid().nullable().optional(),
@@ -140,7 +140,21 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
       ...extra,
     });
 
+    const requireHostingAccess = async (mode: string) => {
+      if (mode === "quiz-snakes-ladders") return;
+      // Client-side Pro gating is not authorization. Enforce it for both private
+      // hosting and matchmaking, even when someone calls this endpoint directly.
+      const { data: allowed, error } = await admin.rpc("can_host_game", {
+        p_user_id: userId,
+        p_mode_slug: mode,
+      });
+      if (error) throw new Error(error.message);
+      if (!allowed) throw new Error("Fanzeno Pro is required to host this game");
+    };
+
     if (data.action === "matchmake") {
+      if (!data.sportId) throw new Error("Choose a sport before entering ranked matchmaking");
+      await requireHostingAccess(data.mode);
       const secureRpc = admin.rpc.bind(admin) as unknown as (
         name: string,
         args: Record<string, unknown>,
@@ -164,11 +178,13 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     }
 
     if (data.action === "cancel_matchmaking") {
-      await admin.from("arcade_matchmaking_queue").delete().eq("user_id", userId);
+      const { error } = await admin.from("arcade_matchmaking_queue").delete().eq("user_id", userId);
+      if (error) throw new Error(error.message);
       return { queued: false };
     }
 
     if (data.action === "create") {
+      await requireHostingAccess(data.mode);
       const createRoom = admin.rpc.bind(admin) as unknown as (
         name: string,
         args: Record<string, unknown>,
@@ -208,7 +224,7 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     if (!room) throw new Error("Room not found");
     const { data: member } = await admin
       .from("arcade_room_players")
-      .select("user_id, settings")
+      .select("user_id, settings, sport_id")
       .eq("room_id", room.id)
       .eq("user_id", userId)
       .maybeSingle();
@@ -216,6 +232,9 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
 
     if (data.action === "ready") {
       if (room.status !== "lobby") throw new Error("Room setup is already closed");
+      const selectedSport = member.sport_id ?? (member.settings as { sport_id?: string | null } | null)?.sport_id;
+      if (data.ready && !selectedSport)
+        throw new Error("Choose a sport before marking yourself ready");
       const { error } = await admin
         .from("arcade_room_players")
         .update({ status: data.ready ? "ready" : "active", last_seen_at: new Date().toISOString() })
@@ -238,6 +257,8 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         .from("arcade_room_players")
         .update({
           settings: next,
+          // Any player-settings change invalidates an earlier ready confirmation.
+          status: "active",
           ...(data.sportId !== undefined ? { sport_id: data.sportId } : {}),
           ...(data.categoryKey !== undefined ? { category_key: data.categoryKey } : {}),
           last_seen_at: new Date().toISOString(),
@@ -251,17 +272,21 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
     if (data.action === "start") {
       if (room.host_id !== userId) throw new Error("Only the host can start");
       if (room.status !== "lobby") throw new Error("This match has already started");
-      const { data: members } = await admin
+      const { data: members, error: membersError } = await admin
         .from("arcade_room_players")
-        .select("status")
+        .select("status, seat, sport_id")
         .eq("room_id", room.id);
+      if (membersError) throw new Error(membersError.message);
       if ((members?.length ?? 0) < 2 || members?.some((m) => m.status !== "ready"))
         throw new Error("At least two players must be ready");
+      if (members?.some((m) => !m.sport_id))
+        throw new Error("Every player must choose a sport before starting");
+      const firstSeat = Math.min(...(members ?? []).map((m) => m.seat));
       const { data: started, error: startError } = await admin
         .from("arcade_rooms")
         .update({
           status: "active",
-          active_seat: 0,
+          active_seat: firstSeat,
           round_no: 1,
           turn_started_at: new Date().toISOString(),
           turn_ends_at: new Date(Date.now() + 180_000).toISOString(),
