@@ -133,9 +133,15 @@ function RootComponent() {
         <EntitlementsProvider>
           <QuizPrefsProvider>
             <div className="flex min-h-screen flex-col">
+              <a
+                href="#main-content"
+                className="sr-only fixed left-4 top-4 z-[100] rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground focus:not-sr-only"
+              >
+                Skip to main content
+              </a>
               <SiteHeader />
               {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-              <main className="flex-1 pb-24 md:pb-0">
+              <main id="main-content" tabIndex={-1} className="flex-1 pb-24 md:pb-0">
                 <Outlet />
               </main>
               <footer className="border-t border-border/70 py-8">
@@ -144,7 +150,7 @@ function RootComponent() {
                     FANZENO<span className="text-primary">.</span>
                   </span>
                   <span>
-                    Answers are validated server-side against the Fanzeno sports database.
+                    Ranked answers are checked by the server. Casual offline games are practice only.
                   </span>
                 </div>
               </footer>

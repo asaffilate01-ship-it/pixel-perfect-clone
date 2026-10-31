@@ -168,8 +168,8 @@ export const GAME_ART: Record<string, GameArt> = {
 export const TONE_TEXT: Record<GameTone, string> = {
   primary: "text-primary",
   gold: "text-gold",
-  accent: "text-accent",
-  secondary: "text-secondary",
+  accent: "text-foreground",
+  secondary: "text-muted-foreground",
   destructive: "text-destructive",
 };
 

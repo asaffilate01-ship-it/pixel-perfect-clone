@@ -57,6 +57,7 @@ function Home() {
   };
   const playable = new Set(["football", "cricket", "nba"]);
   const sportName = sports?.find((s) => s.slug === sport)?.name;
+  const canPlaySelectedSport = playable.has(sport);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10">
@@ -91,19 +92,27 @@ function Home() {
           <Button
             size="lg"
             onClick={() => navigate({ to: "/play/$sport", params: { sport } })}
+            disabled={!canPlaySelectedSport}
             className="font-bold uppercase tracking-[0.14em]"
           >
-            Play today&apos;s grid <ArrowRight className="size-4" />
+            {canPlaySelectedSport ? "Play today’s grid" : "Grid not available yet"}
+            {canPlaySelectedSport && <ArrowRight className="size-4" aria-hidden />}
           </Button>
           <Button asChild size="lg" variant="outline" className="uppercase tracking-[0.14em]">
             <Link to="/compete">Play online</Link>
           </Button>
         </div>
+        {!canPlaySelectedSport && (
+          <p role="status" className="mt-4 max-w-lg text-sm text-gold">
+            {sportName ?? "This sport"} doesn&apos;t have a published daily grid yet. Choose Football,
+            Cricket or NBA to play now, or explore other games in the arcade.
+          </p>
+        )}
         <div className="mt-7 flex flex-wrap gap-5 text-xs font-semibold text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Flame className="size-4 text-gold" /> Daily streaks
           </span>
-          <span>20 sports</span>
+          <span>{sports?.length ? `${sports.length} sports in the catalogue` : "Multiple sports"}</span>
           <span>Server-validated answers</span>
         </div>
       </section>
@@ -182,20 +191,23 @@ function Home() {
             sub="One grid. One global score."
             to="/play/$sport"
             params={{ sport }}
+            disabled={!canPlaySelectedSport}
           />
           <ModeCard
             icon={<Zap className="size-5 text-primary" />}
             title="Grid battle"
-            sub="Pass & play, vs CPU or online — pick a difficulty."
+            sub="Pass & play or vs CPU — pick a difficulty."
             to="/modes/$sport"
             params={{ sport }}
+            disabled={!canPlaySelectedSport}
           />
           <ModeCard
             icon={<InfinityIcon className="size-5 text-primary" />}
             title="Endless"
-            sub="Never-repeating grids from verified facts."
+            sub="Fresh grids built from verified facts."
             to="/endless/$sport"
             params={{ sport }}
+            disabled={!canPlaySelectedSport}
           />
           <ModeCard
             icon={<Users className="size-5 text-primary" />}
@@ -214,10 +226,10 @@ function Home() {
           <Gem className="size-5 text-gold" />
         </span>
         <span className="flex-1">
-          <span className="block font-display text-xl">Play forever without ads</span>
-          <span className="block text-xs text-muted-foreground">One payment. Lifetime access.</span>
+          <span className="block font-display text-xl">Fanzeno Pro</span>
+          <span className="block text-xs text-muted-foreground">Lifetime ad-free pass · checkout coming soon.</span>
         </span>
-        <span className="font-display text-2xl text-gold">£4.99</span>
+        <span className="font-display text-xl text-gold">£4.99 planned</span>
       </Link>
     </div>
   );
@@ -229,24 +241,35 @@ function ModeCard({
   sub,
   to,
   params,
+  disabled = false,
 }: {
   icon: React.ReactNode;
   title: string;
   sub: string;
   to: "/play/$sport" | "/modes/$sport" | "/endless/$sport" | "/compete" | "/leaderboard";
   params?: { sport: string };
+  disabled?: boolean;
 }) {
+  const content = (
+    <>
+      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary/12">{icon}</span>
+      <span>
+        <span className="block font-display text-xl tracking-wide">{title}</span>
+        <span className="block text-xs text-muted-foreground">{sub}</span>
+        {disabled && <span className="mt-1 block text-xs font-semibold text-gold">Not yet available for this sport</span>}
+      </span>
+    </>
+  );
+  if (disabled) {
+    return <div className="panel flex items-start gap-4 p-5 opacity-75" aria-disabled="true">{content}</div>;
+  }
   return (
     <Link
       to={to}
       params={params as never}
-      className="panel flex items-start gap-4 p-5 transition-colors hover:border-primary/60"
+      className="panel flex items-start gap-4 p-5 transition-colors hover:border-primary/60 focus-visible:ring-2 focus-visible:ring-primary"
     >
-      <span className="grid size-10 place-items-center rounded-xl bg-primary/12">{icon}</span>
-      <span>
-        <span className="block font-display text-xl tracking-wide">{title}</span>
-        <span className="block text-xs text-muted-foreground">{sub}</span>
-      </span>
+      {content}
     </Link>
   );
 }
