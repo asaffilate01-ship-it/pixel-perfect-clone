@@ -77,6 +77,7 @@ function RoomsPage() {
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [searching, setSearching] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelFailed, setCancelFailed] = useState(false);
   const [matchSport, setMatchSport] = useState("football");
   const { data: sports = [], isLoading: sportsLoading, isError: sportsError } = useQuery({
     queryKey: ["sports"],
@@ -120,7 +121,7 @@ function RoomsPage() {
   };
 
   const startRandom = () => {
-    if (!user || hostLocked || busy || searching || cancelling) return;
+    if (!user || hostLocked || busy || searching || cancelling || cancelFailed || searchRef.current) return;
     if (!selectedSportId) {
       toast.error("Choose a sport before searching for an opponent");
       return;
@@ -139,7 +140,8 @@ function RoomsPage() {
         void navigate({ to: "/arcade/rooms/$id", params: { id: roomId } });
       },
       onError: (error) => {
-        searchRef.current = null;
+        if (controller.needsCleanup()) setCancelFailed(true);
+        else searchRef.current = null;
         setSearching(false);
         toast.error(error instanceof Error ? error.message : "Matchmaking unavailable");
       },
@@ -156,7 +158,9 @@ function RoomsPage() {
     try {
       await controller.stop();
       if (searchRef.current === controller) searchRef.current = null;
+      setCancelFailed(false);
     } catch (error) {
+      setCancelFailed(true);
       toast.error(
         error instanceof Error
           ? `Could not cancel matchmaking: ${error.message}`
@@ -224,7 +228,7 @@ function RoomsPage() {
           />
           <Button
             className="h-12 px-6 font-bold uppercase tracking-[0.14em]"
-            disabled={!user || busy !== null || searching || cancelling}
+            disabled={!user || busy !== null || searching || cancelling || cancelFailed}
             onClick={() => void join()}
           >
             {busy === "join" ? "Joining…" : "Join"}
@@ -245,7 +249,7 @@ function RoomsPage() {
               key={m.slug}
               type="button"
               onClick={() => setMode(m.slug)}
-              disabled={searching || cancelling}
+              disabled={searching || cancelling || cancelFailed}
               aria-pressed={on}
               className={`panel flex w-full items-center gap-3 p-3 text-left transition-colors ${on ? "border-primary" : "hover:border-primary/50"}`}
             >
@@ -273,7 +277,7 @@ function RoomsPage() {
       <Label>Room size</Label>
       <div className="flex flex-wrap gap-2">
         {[2, 3, 4].map((n) => (
-          <Chip key={n} on={players === n} disabled={searching || cancelling} onClick={() => setPlayers(n)}>
+          <Chip key={n} on={players === n} disabled={searching || cancelling || cancelFailed} onClick={() => setPlayers(n)}>
             {n} players
           </Chip>
         ))}
@@ -281,7 +285,7 @@ function RoomsPage() {
       <Label>Difficulty</Label>
       <div className="flex flex-wrap gap-2">
         {DIFFICULTIES.map((d) => (
-          <Chip key={d.level} on={difficulty === d.level} disabled={searching || cancelling} onClick={() => setDifficulty(d.level)}>
+          <Chip key={d.level} on={difficulty === d.level} disabled={searching || cancelling || cancelFailed} onClick={() => setDifficulty(d.level)}>
             {d.label}
           </Chip>
         ))}
@@ -292,7 +296,7 @@ function RoomsPage() {
         aria-label="Sport for random matchmaking"
         value={matchSport}
         onChange={(event) => setMatchSport(event.target.value)}
-        disabled={sportsLoading || sportsError || searching || cancelling || sports.length === 0}
+        disabled={sportsLoading || sportsError || searching || cancelling || cancelFailed || sports.length === 0}
         className="h-12 w-full rounded-xl border border-border bg-surface px-4 text-sm font-semibold text-foreground disabled:opacity-60"
       >
         {sports.length === 0 && <option value="football">Loading sports…</option>}
@@ -319,13 +323,13 @@ function RoomsPage() {
         <Button
           size="lg"
           variant="secondary"
-          disabled={!user || searching || cancelling || hostLocked || busy !== null || !selectedSportId}
+          disabled={!user || searching || cancelling || cancelFailed || hostLocked || busy !== null || !selectedSportId}
           onClick={startRandom}
           className="font-bold uppercase tracking-[0.12em]"
         >
           <Search className="size-4" /> Find random rival
         </Button>
-        {searching ? (
+        {searching || cancelFailed ? (
           <Button
             size="lg"
             variant="outline"
@@ -333,7 +337,7 @@ function RoomsPage() {
             disabled={cancelling}
             className="border-primary/30 text-foreground"
           >
-            <Radio className="size-4 motion-safe:animate-pulse" /> {cancelling ? "Stopping…" : "Cancel search"} <X className="ml-auto size-4" />
+            <Radio className="size-4 motion-safe:animate-pulse" /> {cancelling ? "Stopping…" : cancelFailed ? "Retry cancellation" : "Cancel search"} <X className="ml-auto size-4" />
           </Button>
         ) : (
           <div className="grid place-items-center rounded-xl border border-dashed border-border px-3 text-center text-xs text-muted-foreground">
@@ -363,7 +367,7 @@ function RoomsPage() {
         <Button
           size="lg"
           className="mt-6 w-full font-bold uppercase tracking-[0.14em]"
-          disabled={!user || busy !== null || searching || cancelling}
+          disabled={!user || busy !== null || searching || cancelling || cancelFailed}
           onClick={() => void create()}
         >
           {busy === "create" ? "Creating…" : "Create private room"}{" "}
