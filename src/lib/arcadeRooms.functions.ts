@@ -395,7 +395,7 @@ async function requireActiveRoomTurn(
       .maybeSingle(),
     admin
       .from("arcade_room_players")
-      .select("seat, status, sport_id, category_key")
+      .select("seat, status, sport_id, category_key, settings")
       .eq("room_id", roomId)
       .eq("user_id", userId)
       .maybeSingle(),
@@ -423,7 +423,12 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       const { room, player } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
       assertRoomQuestionScope(
         { modeSlug: room.mode_slug, roundNo: room.round_no, difficulty: room.difficulty },
-        { sportId: player.sport_id, categoryKey: player.category_key },
+        {
+          sportId: player.sport_id ??
+            (player.settings as { sport_id?: string | null } | null)?.sport_id ?? null,
+          categoryKey: player.category_key ??
+            (player.settings as { category_key?: string | null } | null)?.category_key ?? null,
+        },
         { sportId: data.sportId, categoryKey: data.category ?? null, difficulty: data.difficulty },
       );
     }
