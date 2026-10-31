@@ -41,15 +41,26 @@ function RoomLobby() {
   const qc = useQueryClient();
   const { user, loading } = useAuth();
   const { pro } = useEntitlements();
-  const { data: room } = useQuery({
+  const {
+    data: room,
+    isLoading: roomLoading,
+    isError: roomError,
+    refetch: retryRoom,
+  } = useQuery({
     queryKey: ["arcade-room", id],
     queryFn: () => fetchRoom(id),
     enabled: !!user,
+    refetchInterval: 8_000, // Poll fallback if the realtime subscription misses an update.
   });
-  const { data: players = [] } = useQuery({
+  const {
+    data: players = [],
+    isError: playersError,
+    refetch: retryPlayers,
+  } = useQuery({
     queryKey: ["arcade-room-players", id],
     queryFn: () => fetchRoomPlayers(id),
     enabled: !!user,
+    refetchInterval: 8_000,
   });
   const { data: sports = [] } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: competitions = [] } = useQuery({
@@ -108,13 +119,19 @@ function RoomLobby() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.status]);
 
-  const act = async (data: ArcadeRoomInput) => {
+  const act = async (data: ArcadeRoomInput): Promise<boolean> => {
+    if (busy) return false;
     setBusy(true);
     try {
       await arcadeRoomAction({ data });
-      await qc.invalidateQueries({ queryKey: ["arcade-room-players", id] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["arcade-room-players", id] }),
+        qc.invalidateQueries({ queryKey: ["arcade-room", id] }),
+      ]);
+      return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Room update failed");
+      return false;
     } finally {
       setBusy(false);
     }
@@ -147,6 +164,42 @@ function RoomLobby() {
     );
   }
 
+  if (user && roomLoading && !room) {
+    return (
+      <Shell title="Private room">
+        <div role="status" className="panel mt-6 p-5 text-sm text-muted-foreground">
+          Loading the room and reserving your seat…
+        </div>
+      </Shell>
+    );
+  }
+
+  if (user && roomError && !room) {
+    return (
+      <Shell title="Connection issue">
+        <div role="alert" className="panel mt-6 p-5">
+          <p className="text-sm">Couldn&apos;t load this room. Your seat has not been changed.</p>
+          <Button variant="outline" className="mt-4" onClick={() => void retryRoom()}>
+            Retry loading room
+          </Button>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (user && !room) {
+    return (
+      <Shell title="Room unavailable">
+        <div className="panel mt-6 p-5">
+          <p className="text-sm text-muted-foreground">
+            This room no longer exists or isn&apos;t available to your account.
+          </p>
+          <Button asChild className="mt-4"><Link to="/arcade/rooms">Browse rooms</Link></Button>
+        </div>
+      </Shell>
+    );
+  }
+
   const myCategories = me?.sport_id
     ? groupCompetitions(competitions.filter((c) => c.sport_id === me.sport_id))
     : [];
@@ -154,6 +207,14 @@ function RoomLobby() {
   return (
     <Shell title={room ? modeName(room.mode_slug) : "Private room"}>
       <ConnectionBanner status={presence.myStatus} />
+      {playersError && (
+        <div role="alert" className="panel mt-4 flex flex-wrap items-center justify-between gap-3 p-4">
+          <p className="text-sm">Player seats could not be refreshed. Recheck before starting.</p>
+          <Button variant="outline" size="sm" onClick={() => void retryPlayers()}>
+            Retry player list
+          </Button>
+        </div>
+      )}
       <div className="panel mt-6 flex items-center justify-between gap-3 p-4">
         <div>
           <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
@@ -233,7 +294,7 @@ function RoomLobby() {
       </div>
 
       {me && (
-        <div className="panel mt-4 p-4">
+        <fieldset disabled={busy || me.status === "ready" || room?.status !== "lobby"} className="panel mt-4 p-4 disabled:opacity-75">
           <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
             Your seat
           </p>
@@ -291,8 +352,11 @@ function RoomLobby() {
               ))}
             </div>
           )}
+          {me.status === "ready" && (
+            <p className="mt-3 text-xs text-gold">You&apos;re ready. Unmark ready before changing your sport or avatar.</p>
+          )}
           <FairnessNote />
-        </div>
+        </fieldset>
       )}
 
       <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
@@ -305,15 +369,15 @@ function RoomLobby() {
         <Button
           variant={me?.status === "ready" ? "default" : "outline"}
           className="flex-1 font-bold uppercase tracking-[0.14em]"
-          disabled={!me || busy}
+          disabled={!me || busy || playersError || room?.status !== "lobby" || (me?.status !== "ready" && !me?.sport_id)}
           onClick={() => void act({ action: "ready", roomId: id, ready: me?.status !== "ready" })}
         >
-          <Check className="size-4" /> {me?.status === "ready" ? "Ready" : "Mark me ready"}
+          <Check className="size-4" /> {me?.status === "ready" ? "Ready · change" : !me?.sport_id ? "Choose your sport first" : "Mark me ready"}
         </Button>
         {isHost && (
           <Button
             className="flex-1 font-bold uppercase tracking-[0.14em]"
-            disabled={busy || players.length < 2 || players.some((p) => p.status !== "ready")}
+            disabled={busy || playersError || room?.status !== "lobby" || players.length < 2 || players.some((p) => p.status !== "ready" || !p.sport_id)}
             onClick={() => void act({ action: "start", roomId: id })}
           >
             <Play className="size-4" /> Start match
@@ -325,8 +389,9 @@ function RoomLobby() {
         className="mt-2 w-full text-muted-foreground"
         disabled={busy}
         onClick={async () => {
-          await act({ action: "leave", roomId: id });
-          void navigate({ to: "/arcade/rooms" });
+          if (await act({ action: "leave", roomId: id })) {
+            void navigate({ to: "/arcade/rooms" });
+          }
         }}
       >
         Leave room

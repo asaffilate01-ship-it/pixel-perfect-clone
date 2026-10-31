@@ -18,17 +18,20 @@ export function Chip({
   on,
   onClick,
   children,
+  disabled = false,
 }: {
   on: boolean;
   onClick: () => void;
   children: React.ReactNode;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      disabled={disabled}
       aria-pressed={on}
-      className={`rounded-xl border px-4 py-2.5 text-[0.7rem] font-extrabold uppercase tracking-[0.1em] transition-colors ${
+      className={`min-h-11 rounded-xl border px-4 py-2.5 text-[0.7rem] font-extrabold uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
         on
           ? "border-primary bg-primary text-primary-foreground"
           : "border-border bg-surface/60 text-muted-foreground hover:text-foreground"

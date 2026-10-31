@@ -6,6 +6,18 @@ export function isArcadeRoomComplete(status: string | null | undefined): boolean
   return status === ROOM_COMPLETE_STATUS || status === "finished";
 }
 
+/** The first turn belongs to the first *occupied* seat, not always seat zero. */
+export function firstOccupiedSeat(seats: readonly number[]): number {
+  if (
+    seats.length < 2 || seats.length > 4 ||
+    new Set(seats).size !== seats.length ||
+    seats.some((seat) => !Number.isInteger(seat) || seat < 0 || seat > 3)
+  ) {
+    throw new Error("Invalid occupied room seats");
+  }
+  return Math.min(...seats);
+}
+
 /** Advance a 2–4 player Mastermind room in seat order without skipping seats. */
 export function nextMastermindTurn(
   seats: readonly number[],
