@@ -708,13 +708,16 @@ export const revealFairClue = createServerFn({ method: "POST" })
     const nextScope = scope && typeof scope === "object" && !Array.isArray(scope)
       ? { ...scope, hint_used: true }
       : { hint_used: true };
-    const { error: updateError } = await admin
+    const { data: updated, error: updateError } = await admin
       .from("question_exposures")
       .update({ selection_scope: nextScope })
       .eq("id", exposure.id)
       .eq("user_id", context.userId)
-      .eq("question_id", data.questionId);
+      .eq("question_id", data.questionId)
+      .select("id")
+      .maybeSingle();
     if (updateError) throw new Error(updateError.message);
+    if (!updated) throw new Error("Hint reservation expired before it could be recorded");
     return { clue };
   });
 
