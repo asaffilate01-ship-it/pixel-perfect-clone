@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ROOM_COMPLETE_STATUS, isArcadeRoomComplete, firstOccupiedSeat, nextMastermindTurn, assertRoomQuestionScope, assertRoomAnswerDifficulty, publicRoomQuestion, assertActiveRoomTurnWindow, assertQuestionIssuedThisTurn } from "../src/lib/roomLifecycle.ts";
+import { ROOM_COMPLETE_STATUS, isArcadeRoomComplete, firstOccupiedSeat, nextMastermindTurn, assertRoomQuestionScope, assertRoomAnswerDifficulty, publicRoomQuestion, assertActiveRoomTurnWindow, assertQuestionIssuedThisTurn, isRoomSeatReady, canEditRoomSeat } from "../src/lib/roomLifecycle.ts";
 
 test("database completion status is complete, with legacy display compatibility", () => {
   assert.equal(ROOM_COMPLETE_STATUS, "complete");
@@ -139,4 +139,17 @@ test("answers cannot reuse an unresolved question from a previous room turn", ()
   assert.throws(() => assertQuestionIssuedThisTurn(currentIssued, newTurnStart, expiresAt, Date.parse(expiresAt)), /expired/);
   assert.throws(() => assertQuestionIssuedThisTurn(currentIssued, newTurnStart, null, now), /expired/);
   assert.throws(() => assertQuestionIssuedThisTurn(currentIssued, newTurnStart, oldIssued, now), /expired/);
+});
+
+test("a room host created as ready without a sport must be able to configure their seat", () => {
+  assert.equal(isRoomSeatReady("ready", null), false);
+  assert.equal(isRoomSeatReady("ready", ""), false);
+  assert.equal(isRoomSeatReady("ready", "  "), false);
+  assert.equal(isRoomSeatReady("ready", "valid-sport-id"), true);
+  assert.equal(isRoomSeatReady("active", "valid-sport-id"), false);
+  assert.equal(canEditRoomSeat("ready", null, "lobby"), true);
+  assert.equal(canEditRoomSeat("ready", "valid-sport-id", "lobby"), false);
+  assert.equal(canEditRoomSeat("active", "valid-sport-id", "lobby"), true);
+  assert.equal(canEditRoomSeat("ready", null, "active"), false);
+  assert.equal(canEditRoomSeat("ready", null, "lobby", true), false);
 });
