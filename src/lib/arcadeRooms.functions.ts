@@ -10,7 +10,6 @@ import {
   assertRoomQuestionScope,
   assertQuizRaceTurnRecoverable,
   firstOccupiedSeat,
-  nextQuizRaceTurn,
   nextMastermindTurn,
   nextQuizRaceTurn,
   publicRoomQuestion,
@@ -894,8 +893,8 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
           .order("seat"),
       ]);
       const me = players?.find((p) => p.user_id === context.userId);
-      if (!room || !me || room.active_seat !== me.seat || room.status !== "active" ||
-          room.turn_started_at !== currentRoomTurnStartedAt) {
+      if (!room || !me || !room.turn_started_at || room.active_seat !== me.seat ||
+          room.status !== "active" || room.turn_started_at !== currentRoomTurnStartedAt) {
         // Timeout recovery can finish while an accepted answer is being scored.
         // Do not let a stale response overwrite the newly active seat.
         return { correct, answer, movement, roomStateChanged: true };
