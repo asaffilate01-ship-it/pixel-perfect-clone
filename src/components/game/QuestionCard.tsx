@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import {
   nextFairQuestion,
+  revealFairClue,
   observeActiveRoomQuestion,
   challengeArcadeAnswer,
   submitArcadeAnswer,
@@ -77,6 +78,10 @@ export function QuestionCard({
   const [question, setQuestion] = useState<FairQuestion | null>(null);
   const [fallback, setFallback] = useState<string>("");
   const [clue, setClue] = useState(false);
+  const [clueText, setClueText] = useState<string | null>(null);
+  const [clueBusy, setClueBusy] = useState(false);
+  const [clueError, setClueError] = useState<string | null>(null);
+  const cluePending = useRef(false);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -123,6 +128,10 @@ export function QuestionCard({
     if (loadedFor.current === loadKey) return;
     loadedFor.current = loadKey;
     setClue(false);
+    setClueText(null);
+    setClueBusy(false);
+    setClueError(null);
+    cluePending.current = false;
     setReveal(null);
     setSubmittedAnswer("");
     setChallenged(false);
@@ -201,6 +210,37 @@ export function QuestionCard({
     })();
   }, [loadKey, bank, canAnswer, categoryKey, difficulty, modeSlug, roomId, sportId, user]);
 
+  const requestClue = async () => {
+    // Pass-and-play guests are human-adjudicated; no ranked claim is recorded.
+    if (!user || !question) {
+      setClue(true);
+      return;
+    }
+    if (clue || cluePending.current || busy || reveal) return;
+    const requestKey = loadKey;
+    cluePending.current = true;
+    setClueBusy(true);
+    setClueError(null);
+    try {
+      const { clue: verifiedHint } = await revealFairClue({
+        data: { questionId: question.id, roomId: roomId ?? null },
+      });
+      if (mounted.current && loadedFor.current === requestKey) {
+        setClueText(verifiedHint);
+        setClue(true);
+      }
+    } catch (error) {
+      if (mounted.current && loadedFor.current === requestKey) {
+        setClueError(error instanceof Error ? error.message : "Could not load the verified clue");
+      }
+    } finally {
+      if (mounted.current && loadedFor.current === requestKey) {
+        cluePending.current = false;
+        setClueBusy(false);
+      }
+    }
+  };
+
   const advanceTurn = () => {
     if (!mounted.current || loadedFor.current !== loadKey || !pendingOutcome.current) return;
     const outcome = pendingOutcome.current;
@@ -231,7 +271,7 @@ export function QuestionCard({
         },
       });
       if (!mounted.current || loadedFor.current !== loadKey) return;
-      const outcome = { correct: res.correct, usedClue: clue, passed: !input, answer: res.answer };
+      const outcome = { correct: res.correct, usedClue: res.usedClue, passed: !input, answer: res.answer };
       pendingOutcome.current = outcome;
       setReveal({ correct: res.correct, answer: res.answer });
       // Allow eight seconds to challenge a rejection; auto-advance prevents online stalls.
@@ -300,7 +340,7 @@ export function QuestionCard({
       {clue && (
         <p className="mt-2 flex items-center gap-2 text-xs text-gold">
           <Lightbulb className="size-3.5" />
-          {question?.clue ?? "Hint: think of a player active in the last two decades."}
+          {clueText ?? question?.clue ?? "Hint: think of a player active in the last two decades."}
         </p>
       )}
 
@@ -364,12 +404,13 @@ export function QuestionCard({
               variant="outline"
               size="sm"
               className="mt-4"
-              onClick={() => setClue(true)}
-              disabled={busy}
+              onClick={() => void requestClue()}
+              disabled={busy || clueBusy}
             >
-              <Lightbulb className="size-4" /> Get clue
+              <Lightbulb className="size-4" /> {clueBusy ? "Checking clue…" : "Get clue"}
             </Button>
           )}
+          {clueError && <p role="alert" className="mt-2 text-xs text-destructive">{clueError}</p>}
           {question.options && question.options.length >= 2 ? (
             <div className="mt-4">
               <p className="text-xs font-bold text-muted-foreground">
@@ -384,7 +425,7 @@ export function QuestionCard({
                     key={option}
                     type="button"
                     variant="outline"
-                    disabled={busy}
+                    disabled={busy || clueBusy}
                     className="h-auto min-h-14 justify-start whitespace-normal px-3 py-3 text-left"
                     onClick={() => void resolveServer({ text: option, method: "typed", confidence: null })}
                   >
@@ -393,7 +434,7 @@ export function QuestionCard({
                   </Button>
                 ))}
               </div>
-              <Button className="mt-3" type="button" variant="ghost" size="sm" disabled={busy}
+              <Button className="mt-3" type="button" variant="ghost" size="sm" disabled={busy || clueBusy}
                 onClick={() => void resolveServer(null)}>
                 Pass this question
               </Button>
@@ -402,7 +443,7 @@ export function QuestionCard({
             <AnswerComposer
               key={loadKey}
               disabled={loading}
-              busy={busy}
+              busy={busy || clueBusy}
               onSubmit={(a) => void resolveServer(a)}
               onPass={() => void resolveServer(null)}
             />
