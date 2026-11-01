@@ -194,3 +194,22 @@ export function assertQuizRaceTurnRecoverable(
     throw new Error("The Quiz Race turn has not yet expired");
   }
 }
+
+
+/** A ready seat without a chosen sport must not count as match-ready. */
+export function isRoomSeatReady(status: string | null | undefined, sportId: string | null | undefined): boolean {
+  return status === "ready" && typeof sportId === "string" && sportId.trim().length > 0;
+}
+
+/**
+ * Legacy room-creation RPCs may insert the host as ready with a null sport.
+ * Keep their subject picker editable so they can fix the invalid setup.
+ */
+export function canEditRoomSeat(
+  status: string | null | undefined,
+  sportId: string | null | undefined,
+  roomStatus: string | null | undefined,
+  busy = false,
+): boolean {
+  return !busy && roomStatus === "lobby" && !isRoomSeatReady(status, sportId);
+}
