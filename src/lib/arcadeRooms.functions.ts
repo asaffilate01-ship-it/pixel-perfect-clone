@@ -660,8 +660,11 @@ export const revealFairClue = createServerFn({ method: "POST" })
         .from("arcade_questions")
         .update({ revealed_clue: true })
         .eq("id", issued.id)
+        .eq("room_id", data.roomId)
         .eq("active_user_id", context.userId)
         .eq("revealed_answer", false)
+        .gte("issued_at", room.turn_started_at)
+        .gt("expires_at", new Date().toISOString())
         .select("id")
         .maybeSingle();
       if (updateError) throw new Error(updateError.message);
@@ -714,6 +717,7 @@ export const revealFairClue = createServerFn({ method: "POST" })
       .eq("id", exposure.id)
       .eq("user_id", context.userId)
       .eq("question_id", data.questionId)
+      .gte("exposed_at", new Date(Date.now() - 30 * 60_000).toISOString())
       .select("id")
       .maybeSingle();
     if (updateError) throw new Error(updateError.message);
