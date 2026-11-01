@@ -15,6 +15,7 @@ import { arcadeRoomAction, type ArcadeRoomInput } from "@/lib/arcadeRooms.functi
 import { Avatar, AvatarPicker } from "@/components/game/AvatarPicker";
 import { ConnectionBanner, PresenceDot } from "@/components/game/RoomPresence";
 import { useArcadePresence } from "@/hooks/useArcadePresence";
+import { canEditRoomSeat, isRoomSeatReady } from "@/lib/roomLifecycle";
 
 export const Route = createFileRoute("/arcade_/rooms_/$id")({
   head: () => ({
@@ -253,7 +254,7 @@ function RoomLobby() {
               </div>
             );
           }
-          const ready = p.status === "ready";
+          const ready = isRoomSeatReady(p.status, p.sport_id);
           const sportName = sports.find((s) => s.id === p.sport_id)?.name ?? "All sports";
           return (
             <div
@@ -294,7 +295,7 @@ function RoomLobby() {
       </div>
 
       {me && (
-        <fieldset disabled={busy || me.status === "ready" || room?.status !== "lobby"} className="panel mt-4 p-4 disabled:opacity-75">
+        <fieldset disabled={!canEditRoomSeat(me.status, me.sport_id, room?.status, busy)} className="panel mt-4 p-4 disabled:opacity-75">
           <p className="text-[0.58rem] font-black uppercase tracking-[0.18em] text-muted-foreground">
             Your seat
           </p>
@@ -352,32 +353,34 @@ function RoomLobby() {
               ))}
             </div>
           )}
-          {me.status === "ready" && (
+          {isRoomSeatReady(me.status, me.sport_id) ? (
             <p className="mt-3 text-xs text-gold">You&apos;re ready. Unmark ready before changing your sport or avatar.</p>
-          )}
+          ) : !me.sport_id ? (
+            <p className="mt-3 text-xs text-gold">Choose your sport to finish setting up your seat.</p>
+          ) : null}
           <FairnessNote />
         </fieldset>
       )}
 
       <p className="mt-4 flex items-start gap-2 text-xs text-muted-foreground">
         <Eye className="mt-0.5 size-4 shrink-0 text-gold" />
-        Players see the active question and the submitted answer, but only the active player&apos;s
-        device can answer.
+        Players see the live question and scoreboard, but only the active player&apos;s
+        device can submit an answer.
       </p>
 
       <div className="mt-6 flex flex-col gap-2 sm:flex-row">
         <Button
-          variant={me?.status === "ready" ? "default" : "outline"}
+          variant={isRoomSeatReady(me?.status, me?.sport_id) ? "default" : "outline"}
           className="flex-1 font-bold uppercase tracking-[0.14em]"
-          disabled={!me || busy || playersError || room?.status !== "lobby" || (me?.status !== "ready" && !me?.sport_id)}
+          disabled={!me || busy || playersError || room?.status !== "lobby" || !me?.sport_id}
           onClick={() => void act({ action: "ready", roomId: id, ready: me?.status !== "ready" })}
         >
-          <Check className="size-4" /> {me?.status === "ready" ? "Ready · change" : !me?.sport_id ? "Choose your sport first" : "Mark me ready"}
+          <Check className="size-4" /> {isRoomSeatReady(me?.status, me?.sport_id) ? "Ready · change" : !me?.sport_id ? "Choose your sport first" : "Mark me ready"}
         </Button>
         {isHost && (
           <Button
             className="flex-1 font-bold uppercase tracking-[0.14em]"
-            disabled={busy || playersError || room?.status !== "lobby" || players.length < 2 || players.some((p) => p.status !== "ready" || !p.sport_id)}
+            disabled={busy || playersError || room?.status !== "lobby" || players.length < 2 || players.some((p) => !isRoomSeatReady(p.status, p.sport_id))}
             onClick={() => void act({ action: "start", roomId: id })}
           >
             <Play className="size-4" /> Start match
