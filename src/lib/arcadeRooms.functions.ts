@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
+import { authoritativeResponseMs, roomTurnWasAlreadyAdvanced } from "@/lib/rankedScoring";
 import {
   assertActiveRoomTurnWindow,
   assertQuestionIssuedThisTurn,
@@ -9,8 +10,8 @@ import {
   assertRoomQuestionScope,
   assertQuizRaceTurnRecoverable,
   firstOccupiedSeat,
-  nextQuizRaceTurn,
   nextMastermindTurn,
+  nextQuizRaceTurn,
   publicRoomQuestion,
   ROOM_COMPLETE_STATUS,
 } from "@/lib/roomLifecycle";
@@ -767,6 +768,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
     if (!q) throw new Error("Question unavailable");
 
     let roomQuestionId: string | null = null;
+    let serverReservedAt: string | null = null;
     if (data.roomId) {
       if (!currentRoomTurnStartedAt) throw new Error("No current room turn");
       const { data: roomQ, error: roomQuestionError } = await admin
@@ -789,6 +791,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         roomQ.expires_at,
       );
       roomQuestionId = roomQ.id;
+      serverReservedAt = roomQ.issued_at;
     } else {
       // A solo player can only submit an actively reserved question. Prevent
       // repeated submits against an old ID from inflating their scoring history.
@@ -803,6 +806,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         .maybeSingle();
       if (exposureError) throw new Error(exposureError.message);
       if (!exposure) throw new Error("Reserve a new question before submitting an answer");
+      serverReservedAt = exposure.exposed_at;
       const { data: previous, error: attemptsError } = await admin
         .from("question_attempts")
         .select("id")
@@ -822,6 +826,9 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         rule.options.some((option) => option === data.answer));
     const correct = !data.passed && data.answer.trim().length > 0 &&
       isValidChoice && answerMatches(data.answer, accepted);
+    // Response speed contributes to ranking. A browser can claim 0ms; measure
+    // against the database-issued reservation timestamp on the server instead.
+    const responseMs = authoritativeResponseMs(serverReservedAt, Date.now());
     const movement = correct ? (data.usedClue ? 5 : 6) : 0;
 
     if (data.roomId && roomQuestionId) {
@@ -852,7 +859,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       p_correct: correct,
       p_used_clue: data.usedClue,
       p_passed: data.passed,
-      p_response_ms: data.responseMs,
+      p_response_ms: responseMs,
     });
     if (error) throw new Error(error.message);
 
@@ -876,7 +883,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       const [{ data: room }, { data: players }] = await Promise.all([
         admin
           .from("arcade_rooms")
-          .select("id, mode_slug, active_seat, round_no, status")
+          .select("id, mode_slug, active_seat, round_no, status, turn_started_at")
           .eq("id", data.roomId)
           .single(),
         admin
@@ -886,6 +893,12 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
           .order("seat"),
       ]);
       const me = players?.find((p) => p.user_id === context.userId);
+      if (!room || !me || !room.turn_started_at || room.active_seat !== me.seat ||
+          room.status !== "active" || room.turn_started_at !== currentRoomTurnStartedAt) {
+        // Timeout recovery can finish while an accepted answer is being scored.
+        // Do not let a stale response overwrite the newly active seat.
+        return { correct, answer, movement, roomStateChanged: true };
+      }
       if (room && me) {
         const mode = room.mode_slug;
         let position = me.position;
@@ -915,21 +928,28 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
         if (mode === "sports-mastermind") return { correct, answer, movement };
         // A clean first-time answer in Ludo earns another go, like rolling a six.
         const again = mode === "quiz-ludo" && movement === 6 && !won;
-        const seats = (players ?? []).map((p) => p.seat).sort((a, b) => a - b);
-        const idx = seats.indexOf(me.seat);
-        const nextSeat = again ? me.seat : (seats[(idx + 1) % seats.length] ?? me.seat);
-        const { error: turnError } = await admin
+        const progression = nextQuizRaceTurn((players ?? []).map((p) => p.seat), me.seat, room.round_no);
+        const nextSeat = again ? me.seat : progression.seat;
+        const { data: turnUpdated, error: turnError } = await admin
           .from("arcade_rooms")
           .update({
             status: won ? ROOM_COMPLETE_STATUS : room.status,
             active_seat: nextSeat,
-            round_no: nextSeat <= me.seat && !again ? room.round_no + 1 : room.round_no,
+            round_no: again ? room.round_no : progression.round,
             turn_started_at: new Date().toISOString(),
             turn_ends_at: won ? null : new Date(Date.now() + 180_000).toISOString(),
           })
           .eq("id", data.roomId)
-          .eq("status", "active");
+          .eq("status", "active")
+          .eq("active_seat", me.seat)
+          .eq("round_no", room.round_no)
+          .eq("turn_started_at", room.turn_started_at)
+          .select("id")
+          .maybeSingle();
         if (turnError) throw new Error(turnError.message);
+        if (roomTurnWasAlreadyAdvanced(turnUpdated)) {
+          return { correct, answer, movement, roomStateChanged: true };
+        }
       }
     }
 
