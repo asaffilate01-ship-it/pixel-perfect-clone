@@ -251,7 +251,7 @@ export function QuestionCard({
   };
 
   const resolveServer = async (input: AnswerInput | null) => {
-    if (!question || busy || reveal || submitting.current || !mounted.current) return;
+    if (!question || busy || clueBusy || cluePending.current || reveal || submitting.current || !mounted.current) return;
     submitting.current = true;
     setBusy(true);
     setSubmitError(null);
