@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
 import { authoritativeResponseMs, roomTurnWasAlreadyAdvanced } from "@/lib/rankedScoring";
+import { authoritativeClueUsed, verifiedClueText } from "@/lib/verifiedHint";
 import {
   assertActiveRoomTurnWindow,
   assertQuestionIssuedThisTurn,
@@ -615,12 +616,113 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       question: {
         id: q.id,
         prompt,
-        clue,
+        // The hint is revealed only through revealFairClue, which records usage.
+        clue: null,
         question_type: q.question_type,
         difficulty_percentile: Number(q.difficulty_percentile),
         ...(options ? { options } : {}),
       } as FairQuestion,
     } as { question: FairQuestion | null; unavailable?: string };
+  });
+
+/**
+ * Reveal a clue only to the user who actually reserved the current verified
+ * question. Persist usage before returning text, so the server can enforce
+ * the hint penalty regardless of a modified browser's usedClue flag.
+ */
+export const revealFairClue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    questionId: z.string().uuid(),
+    roomId: z.string().uuid().nullable().optional(),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    if (data.roomId) {
+      const { room } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
+      if (!room.turn_started_at) throw new Error("No current room turn");
+      const { data: issued, error: issuedError } = await admin
+        .from("arcade_questions")
+        .select("id, clue_i18n")
+        .eq("room_id", data.roomId)
+        .eq("active_user_id", context.userId)
+        .eq("question_id", data.questionId)
+        .eq("revealed_answer", false)
+        .gte("issued_at", room.turn_started_at)
+        .gt("expires_at", new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
+      if (issuedError) throw new Error(issuedError.message);
+      if (!issued) throw new Error("No current verified question for this turn");
+      const clue = verifiedClueText(issued.clue_i18n);
+      const { data: updated, error: updateError } = await admin
+        .from("arcade_questions")
+        .update({ revealed_clue: true })
+        .eq("id", issued.id)
+        .eq("room_id", data.roomId)
+        .eq("active_user_id", context.userId)
+        .eq("revealed_answer", false)
+        .gte("issued_at", room.turn_started_at)
+        .gt("expires_at", new Date().toISOString())
+        .select("id")
+        .maybeSingle();
+      if (updateError) throw new Error(updateError.message);
+      if (!updated) throw new Error("The question was resolved before the hint was revealed");
+      return { clue };
+    }
+
+    const { data: exposure, error: exposureError } = await admin
+      .from("question_exposures")
+      .select("id, exposed_at, selection_scope")
+      .eq("user_id", context.userId)
+      .eq("question_id", data.questionId)
+      .gte("exposed_at", new Date(Date.now() - 30 * 60_000).toISOString())
+      .order("exposed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (exposureError) throw new Error(exposureError.message);
+    if (!exposure) throw new Error("Reserve this verified question before requesting a hint");
+
+    const [{ data: previous, error: attemptError }, { data: q, error: questionError }] =
+      await Promise.all([
+        admin
+          .from("question_attempts")
+          .select("id")
+          .eq("user_id", context.userId)
+          .eq("question_id", data.questionId)
+          .gte("created_at", exposure.exposed_at)
+          .limit(1)
+          .maybeSingle(),
+        admin
+          .from("question_bank")
+          .select("clue_i18n")
+          .eq("id", data.questionId)
+          .eq("verification_status", "verified")
+          .eq("active", true)
+          .maybeSingle(),
+      ]);
+    if (attemptError) throw new Error(attemptError.message);
+    if (questionError) throw new Error(questionError.message);
+    if (previous) throw new Error("This question has already been answered");
+    if (!q) throw new Error("This verified question is unavailable");
+    const clue = verifiedClueText(q.clue_i18n);
+    const scope = exposure.selection_scope;
+    const nextScope = scope && typeof scope === "object" && !Array.isArray(scope)
+      ? { ...scope, hint_used: true }
+      : { hint_used: true };
+    const { data: updated, error: updateError } = await admin
+      .from("question_exposures")
+      .update({ selection_scope: nextScope })
+      .eq("id", exposure.id)
+      .eq("user_id", context.userId)
+      .eq("question_id", data.questionId)
+      .gte("exposed_at", new Date(Date.now() - 30 * 60_000).toISOString())
+      .select("id")
+      .maybeSingle();
+    if (updateError) throw new Error(updateError.message);
+    if (!updated) throw new Error("Hint reservation expired before it could be recorded");
+    return { clue };
   });
 
 /**
@@ -769,11 +871,13 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
 
     let roomQuestionId: string | null = null;
     let serverReservedAt: string | null = null;
+    let recordedRoomHint = false;
+    let soloSelectionScope: unknown = null;
     if (data.roomId) {
       if (!currentRoomTurnStartedAt) throw new Error("No current room turn");
       const { data: roomQ, error: roomQuestionError } = await admin
         .from("arcade_questions")
-        .select("id, question_id, active_user_id, issued_at, expires_at, revealed_answer")
+        .select("id, question_id, active_user_id, issued_at, expires_at, revealed_answer, revealed_clue")
         .eq("room_id", data.roomId)
         .eq("active_user_id", context.userId)
         .eq("revealed_answer", false)
@@ -792,12 +896,13 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       );
       roomQuestionId = roomQ.id;
       serverReservedAt = roomQ.issued_at;
+      recordedRoomHint = roomQ.revealed_clue;
     } else {
       // A solo player can only submit an actively reserved question. Prevent
       // repeated submits against an old ID from inflating their scoring history.
       const { data: exposure, error: exposureError } = await admin
         .from("question_exposures")
-        .select("id, exposed_at")
+        .select("id, exposed_at, selection_scope")
         .eq("user_id", context.userId)
         .eq("question_id", data.questionId)
         .gte("exposed_at", new Date(Date.now() - 30 * 60_000).toISOString())
@@ -807,6 +912,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       if (exposureError) throw new Error(exposureError.message);
       if (!exposure) throw new Error("Reserve a new question before submitting an answer");
       serverReservedAt = exposure.exposed_at;
+      soloSelectionScope = exposure.selection_scope;
       const { data: previous, error: attemptsError } = await admin
         .from("question_attempts")
         .select("id")
@@ -829,7 +935,8 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
     // Response speed contributes to ranking. A browser can claim 0ms; measure
     // against the database-issued reservation timestamp on the server instead.
     const responseMs = authoritativeResponseMs(serverReservedAt, Date.now());
-    const movement = correct ? (data.usedClue ? 5 : 6) : 0;
+    const usedClue = authoritativeClueUsed(recordedRoomHint, soloSelectionScope, data.usedClue);
+    const movement = correct ? (usedClue ? 5 : 6) : 0;
 
     if (data.roomId && roomQuestionId) {
       // Conditional claim makes two simultaneous submissions for one room
@@ -857,7 +964,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
       p_room_id: (data.roomId ?? null) as unknown as string,
       p_difficulty: data.difficulty,
       p_correct: correct,
-      p_used_clue: data.usedClue,
+      p_used_clue: usedClue,
       p_passed: data.passed,
       p_response_ms: responseMs,
     });
@@ -897,7 +1004,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
           room.status !== "active" || room.turn_started_at !== currentRoomTurnStartedAt) {
         // Timeout recovery can finish while an accepted answer is being scored.
         // Do not let a stale response overwrite the newly active seat.
-        return { correct, answer, movement, roomStateChanged: true };
+        return { correct, answer, movement, usedClue, roomStateChanged: true };
       }
       if (room && me) {
         const mode = room.mode_slug;
@@ -925,7 +1032,7 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
           (mode === "quiz-snakes-ladders" && position >= 100) ||
           (mode === "quiz-ludo" && position >= LUDO_HOME);
         // Mastermind keeps the same player on the clock; the turn ends via the "advance" action.
-        if (mode === "sports-mastermind") return { correct, answer, movement };
+        if (mode === "sports-mastermind") return { correct, answer, movement, usedClue };
         // A clean first-time answer in Ludo earns another go, like rolling a six.
         const again = mode === "quiz-ludo" && movement === 6 && !won;
         const progression = nextQuizRaceTurn((players ?? []).map((p) => p.seat), me.seat, room.round_no);
@@ -948,10 +1055,10 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
           .maybeSingle();
         if (turnError) throw new Error(turnError.message);
         if (roomTurnWasAlreadyAdvanced(turnUpdated)) {
-          return { correct, answer, movement, roomStateChanged: true };
+          return { correct, answer, movement, usedClue, roomStateChanged: true };
         }
       }
     }
 
-    return { correct, answer, movement };
+    return { correct, answer, movement, usedClue };
   });
