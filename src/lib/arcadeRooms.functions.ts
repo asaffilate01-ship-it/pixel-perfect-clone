@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
 import { authoritativeResponseMs, roomTurnWasAlreadyAdvanced } from "@/lib/rankedScoring";
+import { authoritativeClueUsed, verifiedClueText } from "@/lib/verifiedHint";
 import {
   assertActiveRoomTurnWindow,
   assertQuestionIssuedThisTurn,
@@ -615,12 +616,106 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
       question: {
         id: q.id,
         prompt,
-        clue,
+        // The hint is revealed only through revealFairClue, which records usage.
+        clue: null,
         question_type: q.question_type,
         difficulty_percentile: Number(q.difficulty_percentile),
         ...(options ? { options } : {}),
       } as FairQuestion,
     } as { question: FairQuestion | null; unavailable?: string };
+  });
+
+/**
+ * Reveal a clue only to the user who actually reserved the current verified
+ * question. Persist usage before returning text, so the server can enforce
+ * the hint penalty regardless of a modified browser's usedClue flag.
+ */
+export const revealFairClue = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    questionId: z.string().uuid(),
+    roomId: z.string().uuid().nullable().optional(),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+
+    if (data.roomId) {
+      const { room } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
+      if (!room.turn_started_at) throw new Error("No current room turn");
+      const { data: issued, error: issuedError } = await admin
+        .from("arcade_questions")
+        .select("id, clue_i18n")
+        .eq("room_id", data.roomId)
+        .eq("active_user_id", context.userId)
+        .eq("question_id", data.questionId)
+        .eq("revealed_answer", false)
+        .gte("issued_at", room.turn_started_at)
+        .gt("expires_at", new Date().toISOString())
+        .limit(1)
+        .maybeSingle();
+      if (issuedError) throw new Error(issuedError.message);
+      if (!issued) throw new Error("No current verified question for this turn");
+      const clue = verifiedClueText(issued.clue_i18n);
+      const { data: updated, error: updateError } = await admin
+        .from("arcade_questions")
+        .update({ revealed_clue: true })
+        .eq("id", issued.id)
+        .eq("active_user_id", context.userId)
+        .eq("revealed_answer", false)
+        .select("id")
+        .maybeSingle();
+      if (updateError) throw new Error(updateError.message);
+      if (!updated) throw new Error("The question was resolved before the hint was revealed");
+      return { clue };
+    }
+
+    const { data: exposure, error: exposureError } = await admin
+      .from("question_exposures")
+      .select("id, exposed_at, selection_scope")
+      .eq("user_id", context.userId)
+      .eq("question_id", data.questionId)
+      .gte("exposed_at", new Date(Date.now() - 30 * 60_000).toISOString())
+      .order("exposed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (exposureError) throw new Error(exposureError.message);
+    if (!exposure) throw new Error("Reserve this verified question before requesting a hint");
+
+    const [{ data: previous, error: attemptError }, { data: q, error: questionError }] =
+      await Promise.all([
+        admin
+          .from("question_attempts")
+          .select("id")
+          .eq("user_id", context.userId)
+          .eq("question_id", data.questionId)
+          .gte("created_at", exposure.exposed_at)
+          .limit(1)
+          .maybeSingle(),
+        admin
+          .from("question_bank")
+          .select("clue_i18n")
+          .eq("id", data.questionId)
+          .eq("verification_status", "verified")
+          .eq("active", true)
+          .maybeSingle(),
+      ]);
+    if (attemptError) throw new Error(attemptError.message);
+    if (questionError) throw new Error(questionError.message);
+    if (previous) throw new Error("This question has already been answered");
+    if (!q) throw new Error("This verified question is unavailable");
+    const clue = verifiedClueText(q.clue_i18n);
+    const scope = exposure.selection_scope;
+    const nextScope = scope && typeof scope === "object" && !Array.isArray(scope)
+      ? { ...scope, hint_used: true }
+      : { hint_used: true };
+    const { error: updateError } = await admin
+      .from("question_exposures")
+      .update({ selection_scope: nextScope })
+      .eq("id", exposure.id)
+      .eq("user_id", context.userId)
+      .eq("question_id", data.questionId);
+    if (updateError) throw new Error(updateError.message);
+    return { clue };
   });
 
 /**
