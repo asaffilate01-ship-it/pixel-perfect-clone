@@ -77,8 +77,8 @@ begin
 
   select * into v_bank
   from public.question_bank
-  where id = p_question_id and active and verification_status = 'verified';
-  if v_bank.id is null then raise exception 'Question no longer verified'; end if;
+  where id = p_question_id;
+  if v_bank.id is null then raise exception 'Question no longer exists'; end if;
   v_answer := coalesce(v_bank.answer_display_i18n->>'en', '');
 
   -- The exact room-question ID is the idempotency key. Replays return the
@@ -99,6 +99,12 @@ begin
       'duplicate', true,
       'roomStateChanged', false
     );
+  end if;
+
+  -- A settled answer remains replayable if its source question is later
+  -- retired. Only NEW settlements require the source to remain verified.
+  if not v_bank.active or v_bank.verification_status <> 'verified' then
+    raise exception 'Question no longer verified';
   end if;
 
   -- Authoritative validation under the room lock (not a stale browser or
