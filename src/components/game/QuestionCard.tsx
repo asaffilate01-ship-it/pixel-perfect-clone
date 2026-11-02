@@ -260,6 +260,7 @@ export function QuestionCard({
       const res = await submitArcadeAnswer({
         data: {
           questionId: question.id,
+          roomQuestionId: question.roomQuestionId ?? null,
           roomId: roomId ?? null,
           answer: input?.text ?? "",
           passed: !input,
