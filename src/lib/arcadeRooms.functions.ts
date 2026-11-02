@@ -492,54 +492,6 @@ export const nextFairQuestion = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
 
-    // The new Postgres function is a deployment-gated candidate. Never enable
-    // it until the reviewed SQL is installed and tested on the *Fanzeno* DB.
-    // When enabled, failure must NOT fall back to the legacy multi-request
-    // path: that would risk applying a settled answer twice.
-    if (data.roomId && atomicRoomScoringEnabled(process.env["FANZENO_ATOMIC_ROOM_SCORING"])) {
-      if (!data.roomQuestionId) {
-        throw new Error("Refresh your game to use Fanzeno's updated scoring");
-      }
-      const { data: bank, error: bankError } = await admin
-        .from("question_bank")
-        .select("question_type, answer_rule")
-        .eq("id", data.questionId)
-        .eq("verification_status", "verified")
-        .eq("active", true)
-        .maybeSingle();
-      if (bankError) throw new Error(bankError.message);
-      if (!bank) throw new Error("Verified question unavailable");
-
-      const rule = bank.answer_rule as { accepted?: string[]; options?: string[] } | null;
-      const accepted = Array.isArray(rule?.accepted) ? rule.accepted : [];
-      const validChoice = bank.question_type !== "single_choice" ||
-        (Array.isArray(rule?.options) && rule.options.some((option) => option === data.answer));
-      const correct = !data.passed && data.answer.trim().length > 0 &&
-        validChoice && answerMatches(data.answer, accepted);
-
-      // RPC is executable by service_role only; the client never chooses the
-      // scored participant ID or sends database credentials. The database
-      // owns the room/question locks, deadline, hint usage, and elapsed time.
-      const settle = admin.rpc.bind(admin) as unknown as (
-        name: string,
-        args: Record<string, unknown>,
-      ) => Promise<{ data: unknown; error: { message: string } | null }>;
-      const { data: settled, error: settlementError } = await settle("settle_arcade_room_answer_v1", {
-        p_room_id: data.roomId,
-        p_room_question_id: data.roomQuestionId,
-        p_question_id: data.questionId,
-        p_actor_id: context.userId,
-        p_answer_text: data.passed ? null : data.answer,
-        p_correct: correct,
-        p_passed: data.passed,
-        p_client_used_clue: data.usedClue,
-        p_input_method: data.inputMethod,
-        p_transcript_confidence: data.transcriptConfidence ?? null,
-      });
-      if (settlementError) throw new Error(settlementError.message);
-      return parseAtomicRoomScoreResult(settled);
-    }
-
     let currentRoomTurnStartedAt: string | null = null;
     if (data.roomId) {
       const { room, player } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
@@ -911,6 +863,54 @@ export const submitArcadeAnswer = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => answerSchema.parse(data))
   .handler(async ({ data, context }) => {
     const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    // The new Postgres function is a deployment-gated candidate. Never enable
+    // it until the reviewed SQL is installed and tested on the *Fanzeno* DB.
+    // When enabled, failure must NOT fall back to the legacy multi-request
+    // path: that would risk applying a settled answer twice.
+    if (data.roomId && atomicRoomScoringEnabled(process.env["FANZENO_ATOMIC_ROOM_SCORING"])) {
+      if (!data.roomQuestionId) {
+        throw new Error("Refresh your game to use Fanzeno's updated scoring");
+      }
+      const { data: bank, error: bankError } = await admin
+        .from("question_bank")
+        .select("question_type, answer_rule")
+        .eq("id", data.questionId)
+        .eq("verification_status", "verified")
+        .eq("active", true)
+        .maybeSingle();
+      if (bankError) throw new Error(bankError.message);
+      if (!bank) throw new Error("Verified question unavailable");
+
+      const rule = bank.answer_rule as { accepted?: string[]; options?: string[] } | null;
+      const accepted = Array.isArray(rule?.accepted) ? rule.accepted : [];
+      const validChoice = bank.question_type !== "single_choice" ||
+        (Array.isArray(rule?.options) && rule.options.some((option) => option === data.answer));
+      const correct = !data.passed && data.answer.trim().length > 0 &&
+        validChoice && answerMatches(data.answer, accepted);
+
+      // RPC is executable by service_role only; the client never chooses the
+      // scored participant ID or sends database credentials. The database
+      // owns the room/question locks, deadline, hint usage, and elapsed time.
+      const settle = admin.rpc.bind(admin) as unknown as (
+        name: string,
+        args: Record<string, unknown>,
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data: settled, error: settlementError } = await settle("settle_arcade_room_answer_v1", {
+        p_room_id: data.roomId,
+        p_room_question_id: data.roomQuestionId,
+        p_question_id: data.questionId,
+        p_actor_id: context.userId,
+        p_answer_text: data.passed ? null : data.answer,
+        p_correct: correct,
+        p_passed: data.passed,
+        p_client_used_clue: data.usedClue,
+        p_input_method: data.inputMethod,
+        p_transcript_confidence: data.transcriptConfidence ?? null,
+      });
+      if (settlementError) throw new Error(settlementError.message);
+      return parseAtomicRoomScoreResult(settled);
+    }
+
     let currentRoomTurnStartedAt: string | null = null;
     if (data.roomId) {
       const { room } = await requireActiveRoomTurn(admin, data.roomId, context.userId);
