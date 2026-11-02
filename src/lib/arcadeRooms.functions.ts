@@ -898,6 +898,10 @@ export const recoverMyRoomAnswer = createServerFn({ method: "POST" })
     ]);
     if (bankResult.error) throw new Error(bankResult.error.message);
     if (attemptResult.error) throw new Error(attemptResult.error.message);
+    // A submission without its verified attempt can occur after a partial
+    // failure in the legacy multi-request handler. Do not certify it as a
+    // fully recorded answer or expose its canonical result.
+    if (!attemptResult.data) return { settled: false as const, needsReview: true };
     if (!bankResult.data) throw new Error("Verified answer is unavailable");
 
     const answer =
