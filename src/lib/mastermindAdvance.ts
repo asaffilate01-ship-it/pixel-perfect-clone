@@ -53,3 +53,30 @@ export function canAdvanceMastermindTurn(
   return roomStatus === "active" && !!userId &&
     (userId === hostId || userId === activeUserId);
 }
+
+/**
+ * Compare the turn that the user actually saw against the server's current
+ * turn. Never choose a newer seat/round when an older request arrives late.
+ * Date.parse accepts both Postgres +00:00 timestamps and ISO Z timestamps.
+ */
+export type MastermindTurnSnapshot = {
+  seat: number;
+  round: number;
+  startedAt: string | null;
+};
+
+export function matchesMastermindTurn(
+  expected: MastermindTurnSnapshot,
+  current: MastermindTurnSnapshot,
+): boolean {
+  const expectedStart = expected.startedAt ? Date.parse(expected.startedAt) : NaN;
+  const currentStart = current.startedAt ? Date.parse(current.startedAt) : NaN;
+  return Number.isInteger(expected.seat) && expected.seat >= 0 && expected.seat <= 3 &&
+    Number.isInteger(expected.round) && expected.round >= 1 &&
+    Number.isInteger(current.seat) && current.seat >= 0 && current.seat <= 3 &&
+    Number.isInteger(current.round) && current.round >= 1 &&
+    Number.isFinite(expectedStart) && Number.isFinite(currentStart) &&
+    expected.seat === current.seat &&
+    expected.round === current.round &&
+    expectedStart === currentStart;
+}
