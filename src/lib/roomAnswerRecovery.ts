@@ -21,8 +21,9 @@ export function settledRoomAnswer(
 ): SettledRoomAnswer {
   if (
     !["pass", "answer"].includes(submission.action) ||
-    ![0, 5, 6].includes(submission.movement) ||
     typeof submission.correct !== "boolean" ||
+    (submission.correct ? ![5, 6].includes(submission.movement) : submission.movement !== 0) ||
+    (submission.action === "pass" && submission.correct) ||
     !canonicalAnswer.trim()
   ) {
     throw new Error("The stored room answer requires review");
