@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import {
   nextFairQuestion,
   revealFairClue,
+  recoverMyRoomAnswer,
   observeActiveRoomQuestion,
   challengeArcadeAnswer,
   submitArcadeAnswer,
@@ -86,6 +87,8 @@ export function QuestionCard({
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [checkingSavedResult, setCheckingSavedResult] = useState(false);
+  const [incompleteReceipt, setIncompleteReceipt] = useState(false);
   const [reload, setReload] = useState(0);
   const [reveal, setReveal] = useState<{ correct: boolean; answer: string } | null>(null);
   const [submittedAnswer, setSubmittedAnswer] = useState("");
@@ -96,12 +99,14 @@ export function QuestionCard({
   const pendingOutcome = useRef<QuestionOutcome | null>(null);
   const mounted = useRef(true);
   const submitting = useRef(false);
+  const checkingSaved = useRef(false);
 
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
       submitting.current = false;
+      checkingSaved.current = false;
     };
   }, []);
 
@@ -137,6 +142,9 @@ export function QuestionCard({
     setChallenged(false);
     setLoadError(null);
     setSubmitError(null);
+    setCheckingSavedResult(false);
+    setIncompleteReceipt(false);
+    checkingSaved.current = false;
     setQuestion(null);
     setFallback("");
     setLoading(true);
@@ -250,8 +258,70 @@ export function QuestionCard({
     onResolved(outcome);
   };
 
+  const displayResolvedAnswer = (outcome: QuestionOutcome) => {
+    if (!mounted.current || loadedFor.current !== loadKey) return;
+    pendingOutcome.current = outcome;
+    setReveal({ correct: outcome.correct, answer: outcome.answer ?? "" });
+    setSubmitError(null);
+    setIncompleteReceipt(false);
+    if (resolveTimer.current) clearTimeout(resolveTimer.current);
+    // Give rejected typed answers an editorial challenge window; otherwise
+    // continue promptly so a recovered Mastermind game does not stall.
+    resolveTimer.current = setTimeout(() => {
+      if (mounted.current && loadedFor.current === loadKey && pendingOutcome.current) {
+        const ready = pendingOutcome.current;
+        pendingOutcome.current = null;
+        onResolved(ready);
+      }
+    }, !outcome.correct && !outcome.passed ? 8000 : 1400);
+  };
+
+  const checkSavedAnswer = async (announceMissing = true): Promise<boolean> => {
+    if (!roomId || !question?.roomQuestionId || !user || checkingSaved.current) return false;
+    const questionKey = loadKey;
+    checkingSaved.current = true;
+    setCheckingSavedResult(true);
+    try {
+      const result = await recoverMyRoomAnswer({
+        data: { roomId, roomQuestionId: question.roomQuestionId },
+      });
+      if (!mounted.current || loadedFor.current !== questionKey) return false;
+      if (result.settled) {
+        displayResolvedAnswer({
+          correct: result.correct,
+          usedClue: result.usedClue,
+          passed: result.passed,
+          answer: result.answer,
+        });
+        return true;
+      }
+      if (result.needsReview) {
+        setIncompleteReceipt(true);
+        setSubmitError(
+          "Your answer was received but the saved result is incomplete. Do not resubmit; contact support for review.",
+        );
+      } else if (announceMissing) {
+        setSubmitError(
+          "No completed answer has been recorded yet. Check again after your connection recovers.",
+        );
+      }
+      return false;
+    } catch (error) {
+      if (announceMissing && mounted.current && loadedFor.current === questionKey) {
+        setSubmitError(error instanceof Error ? error.message : "Could not check your saved answer");
+      }
+      return false;
+    } finally {
+      if (mounted.current && loadedFor.current === questionKey) {
+        checkingSaved.current = false;
+        setCheckingSavedResult(false);
+      }
+    }
+  };
+
   const resolveServer = async (input: AnswerInput | null) => {
-    if (!question || busy || clueBusy || cluePending.current || reveal || submitting.current || !mounted.current) return;
+    if (!question || busy || clueBusy || checkingSaved.current || incompleteReceipt ||
+        cluePending.current || reveal || submitting.current || !mounted.current) return;
     submitting.current = true;
     setBusy(true);
     setSubmitError(null);
@@ -272,19 +342,15 @@ export function QuestionCard({
         },
       });
       if (!mounted.current || loadedFor.current !== loadKey) return;
-      const outcome = { correct: res.correct, usedClue: res.usedClue, passed: !input, answer: res.answer };
-      pendingOutcome.current = outcome;
-      setReveal({ correct: res.correct, answer: res.answer });
-      // Allow eight seconds to challenge a rejection; auto-advance prevents online stalls.
-      resolveTimer.current = setTimeout(() => {
-        if (mounted.current && loadedFor.current === loadKey && pendingOutcome.current) {
-          pendingOutcome.current = null;
-          onResolved(outcome);
-        }
-      }, !res.correct && input ? 8000 : 1400);
+      displayResolvedAnswer({
+        correct: res.correct, usedClue: res.usedClue, passed: !input, answer: res.answer,
+      });
     } catch (e) {
       if (mounted.current && loadedFor.current === loadKey) {
-        setSubmitError(e instanceof Error ? e.message : "Answer rejected");
+        setSubmitError(e instanceof Error ? e.message : "Answer was not confirmed");
+        // The server may have committed before a response was lost. Checking
+        // the receipt is read-only and cannot increment scores twice.
+        if (roomId && question.roomQuestionId) await checkSavedAnswer(false);
       }
     } finally {
       submitting.current = false;
@@ -426,7 +492,7 @@ export function QuestionCard({
                     key={option}
                     type="button"
                     variant="outline"
-                    disabled={busy || clueBusy}
+                    disabled={busy || clueBusy || checkingSavedResult || incompleteReceipt}
                     className="h-auto min-h-14 justify-start whitespace-normal px-3 py-3 text-left"
                     onClick={() => void resolveServer({ text: option, method: "typed", confidence: null })}
                   >
@@ -435,7 +501,7 @@ export function QuestionCard({
                   </Button>
                 ))}
               </div>
-              <Button className="mt-3" type="button" variant="ghost" size="sm" disabled={busy || clueBusy}
+              <Button className="mt-3" type="button" variant="ghost" size="sm" disabled={busy || clueBusy || checkingSavedResult || incompleteReceipt}
                 onClick={() => void resolveServer(null)}>
                 Pass this question
               </Button>
@@ -444,12 +510,28 @@ export function QuestionCard({
             <AnswerComposer
               key={loadKey}
               disabled={loading}
-              busy={busy || clueBusy}
+              busy={busy || clueBusy || checkingSavedResult || incompleteReceipt}
               onSubmit={(a) => void resolveServer(a)}
               onPass={() => void resolveServer(null)}
             />
           )}
-          {submitError && <p className="mt-2 text-xs text-destructive">{submitError}</p>}
+          {submitError && (
+            <div role="alert" className="mt-3 space-y-2">
+              <p className="text-xs text-destructive">{submitError}</p>
+              {roomId && question.roomQuestionId && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={busy || checkingSavedResult}
+                  onClick={() => void checkSavedAnswer(true)}
+                >
+                  <RefreshCw className={`size-4 ${checkingSavedResult ? "animate-spin" : ""}`} />
+                  {checkingSavedResult ? "Checking saved result…" : "Check saved result"}
+                </Button>
+              )}
+            </div>
+          )}
         </>
       ) : (
         <>
