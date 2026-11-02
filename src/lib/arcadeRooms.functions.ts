@@ -6,6 +6,7 @@ import { authoritativeResponseMs, roomTurnWasAlreadyAdvanced } from "@/lib/ranke
 import { atomicRoomScoringEnabled, parseAtomicRoomScoreResult } from "@/lib/atomicRoomScoring";
 import { authoritativeClueUsed, verifiedClueText } from "@/lib/verifiedHint";
 import { matchesMastermindTurn } from "@/lib/mastermindAdvance";
+import { settledRoomAnswer } from "@/lib/roomAnswerRecovery";
 import { authorizeRoomAvatar, canonicalRoomAvatarId, roomAvatarNeedsPro } from "@/lib/roomAvatarAccess";
 import {
   assertActiveRoomTurnWindow,
@@ -836,6 +837,80 @@ export const observeActiveRoomQuestion = createServerFn({ method: "POST" })
           })
         : null,
     };
+  });
+
+/**
+ * Read-only receipt for a previously settled online answer. The caller must
+ * be the original active player; another room member cannot recover the
+ * canonical answer through this endpoint. No updates or retry-scoring here.
+ */
+export const recoverMyRoomAnswer = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({
+    roomId: z.string().uuid(),
+    roomQuestionId: z.string().uuid(),
+  }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabaseAdmin: admin } = await import("@/integrations/supabase/client.server");
+    const { data: issued, error: issueError } = await admin
+      .from("arcade_questions")
+      .select("id, question_id, active_user_id, revealed_answer, revealed_clue, issued_at")
+      .eq("id", data.roomQuestionId)
+      .eq("room_id", data.roomId)
+      .maybeSingle();
+    if (issueError) throw new Error(issueError.message);
+    if (!issued || issued.active_user_id !== context.userId) {
+      throw new Error("No answer receipt for this player");
+    }
+    if (!issued.revealed_answer) return { settled: false as const, needsReview: false };
+
+    // The claim is NOT proof that settlement succeeded in the legacy path.
+    // Never expose a canonical answer or mark the UI resolved until its own
+    // stored submission is present.
+    const { data: submission, error: submissionError } = await admin
+      .from("arcade_submissions")
+      .select("action, correct, movement")
+      .eq("question_id", issued.id)
+      .eq("user_id", context.userId)
+      .order("submitted_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (submissionError) throw new Error(submissionError.message);
+    if (!submission) return { settled: false as const, needsReview: true };
+    if (!issued.question_id) throw new Error("Question bank reference missing");
+
+    const [bankResult, attemptResult] = await Promise.all([
+      admin
+        .from("question_bank")
+        .select("answer_display_i18n")
+        .eq("id", issued.question_id)
+        .maybeSingle(),
+      admin
+        .from("question_attempts")
+        .select("used_clue")
+        .eq("room_id", data.roomId)
+        .eq("question_id", issued.question_id)
+        .eq("user_id", context.userId)
+        .gte("created_at", issued.issued_at)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    if (bankResult.error) throw new Error(bankResult.error.message);
+    if (attemptResult.error) throw new Error(attemptResult.error.message);
+    // A submission without its verified attempt can occur after a partial
+    // failure in the legacy multi-request handler. Do not certify it as a
+    // fully recorded answer or expose its canonical result.
+    if (!attemptResult.data) return { settled: false as const, needsReview: true };
+    if (!bankResult.data) throw new Error("Verified answer is unavailable");
+
+    const answer =
+      (bankResult.data.answer_display_i18n as Record<string, string> | null)?.["en"] ?? "";
+    return settledRoomAnswer(
+      submission,
+      answer,
+      issued.revealed_clue || attemptResult.data?.used_clue === true,
+    );
   });
 
 const answerSchema = z.object({
