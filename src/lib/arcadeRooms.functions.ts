@@ -5,6 +5,7 @@ import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
 import { authoritativeResponseMs, roomTurnWasAlreadyAdvanced } from "@/lib/rankedScoring";
 import { atomicRoomScoringEnabled, parseAtomicRoomScoreResult } from "@/lib/atomicRoomScoring";
 import { authoritativeClueUsed, verifiedClueText } from "@/lib/verifiedHint";
+import { matchesMastermindTurn } from "@/lib/mastermindAdvance";
 import { authorizeRoomAvatar, canonicalRoomAvatarId, roomAvatarNeedsPro } from "@/lib/roomAvatarAccess";
 import {
   assertActiveRoomTurnWindow,
@@ -108,7 +109,13 @@ const actionSchema = z.discriminatedUnion("action", [
     avatarId: z.string().trim().min(1).max(32).optional(),
   }),
   z.object({ action: z.literal("start"), roomId: z.string().uuid() }),
-  z.object({ action: z.literal("advance"), roomId: z.string().uuid() }),
+  z.object({
+    action: z.literal("advance"),
+    roomId: z.string().uuid(),
+    expectedSeat: z.number().int().min(0).max(3),
+    expectedRound: z.number().int().min(1),
+    expectedStartedAt: z.string().datetime({ offset: true }),
+  }),
   z.object({ action: z.literal("recover_timeout"), roomId: z.string().uuid() }),
   z.object({ action: z.literal("leave"), roomId: z.string().uuid() }),
 ]);
@@ -342,16 +349,27 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         .select("user_id, seat")
         .eq("room_id", room.id)
         .order("seat");
-      const { data: live } = await admin
+      const { data: live, error: liveError } = await admin
         .from("arcade_rooms")
-        .select("active_seat, round_no")
+        .select("status, active_seat, round_no, turn_started_at, turn_ends_at")
         .eq("id", room.id)
         .single();
+      if (liveError) throw new Error(liveError.message);
       const seats = (players ?? []).map((p) => p.seat);
       if (!live || !seats.length || live.active_seat === null) throw new Error("No active round");
-      const activeUser = players?.find((p) => p.seat === live?.active_seat)?.user_id;
+      // Do not allow a delayed or retried request to skip a *new* player's
+      // turn. The action must prove the exact seat, round and start it saw.
+      if (live.status !== "active" ||
+          !matchesMastermindTurn(
+            { seat: data.expectedSeat, round: data.expectedRound, startedAt: data.expectedStartedAt },
+            { seat: live.active_seat, round: live.round_no, startedAt: live.turn_started_at },
+          )) {
+        return { advanced: false };
+      }
+      const activeUser = players?.find((p) => p.seat === live.active_seat)?.user_id;
       if (room.host_id !== userId && activeUser !== userId)
         throw new Error("Only the host or active player can end a turn");
+      if (!live.turn_started_at || !live.turn_ends_at) throw new Error("Missing active turn window");
       const progression = nextMastermindTurn(seats, live.active_seat, live.round_no);
       const nextSeat = progression.seat;
       const nextRound = progression.round;
@@ -368,11 +386,14 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
         .eq("status", "active")
         .eq("active_seat", live.active_seat)
         .eq("round_no", live.round_no)
+        .eq("turn_started_at", live.turn_started_at)
+        .eq("turn_ends_at", live.turn_ends_at)
         .select("id")
         .maybeSingle();
       if (advanceError) throw new Error(advanceError.message);
-      if (!advanced) throw new Error("This round was already advanced");
-      return { advanced: true, finished: progression.complete };
+      // A second browser may have advanced the same observed turn; that is a
+      // harmless no-op, not permission to advance the following player's turn.
+      return { advanced: !!advanced, finished: !!advanced && progression.complete };
     }
 
     if (data.action === "recover_timeout") {
