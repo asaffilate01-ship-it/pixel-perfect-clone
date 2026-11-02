@@ -5,6 +5,7 @@ import { JUMPS, LUDO_HOME } from "@/lib/arcadeQuiz";
 import { authoritativeResponseMs, roomTurnWasAlreadyAdvanced } from "@/lib/rankedScoring";
 import { atomicRoomScoringEnabled, parseAtomicRoomScoreResult } from "@/lib/atomicRoomScoring";
 import { authoritativeClueUsed, verifiedClueText } from "@/lib/verifiedHint";
+import { authorizeRoomAvatar, canonicalRoomAvatarId, roomAvatarNeedsPro } from "@/lib/roomAvatarAccess";
 import {
   assertActiveRoomTurnWindow,
   assertQuestionIssuedThisTurn,
@@ -104,7 +105,7 @@ const actionSchema = z.discriminatedUnion("action", [
     roomId: z.string().uuid(),
     sportId: z.string().uuid().nullable().optional(),
     categoryKey: z.string().nullable().optional(),
-    avatarId: z.string().optional(),
+    avatarId: z.string().trim().min(1).max(32).optional(),
   }),
   z.object({ action: z.literal("start"), roomId: z.string().uuid() }),
   z.object({ action: z.literal("advance"), roomId: z.string().uuid() }),
@@ -261,12 +262,29 @@ export const arcadeRoomAction = createServerFn({ method: "POST" })
 
     if (data.action === "settings") {
       if (room.status !== "lobby") throw new Error("Room setup is already closed");
+      // Never rely on AvatarPicker's disabled button for Pro access. An attacker
+      // can call this server action directly with an arbitrary avatar ID.
+      let avatarId: string | undefined;
+      if (data.avatarId !== undefined) {
+        const canonical = canonicalRoomAvatarId(data.avatarId);
+        if (!canonical) throw new Error("Unknown Fanzeno room avatar");
+        let proAccess = false;
+        if (roomAvatarNeedsPro(canonical)) {
+          const { data: allowed, error: proError } = await admin.rpc("can_host_game", {
+            p_user_id: userId,
+            p_mode_slug: "quiz-ludo",
+          });
+          if (proError) throw new Error(proError.message);
+          proAccess = allowed === true;
+        }
+        avatarId = authorizeRoomAvatar(canonical, proAccess);
+      }
       const current = (member.settings ?? {}) as Record<string, string | null>;
       const next: Record<string, string | null> = {
         ...current,
         ...(data.sportId !== undefined ? { sport_id: data.sportId } : {}),
         ...(data.categoryKey !== undefined ? { category_key: data.categoryKey } : {}),
-        ...(data.avatarId ? { avatar_id: data.avatarId } : {}),
+        ...(avatarId ? { avatar_id: avatarId } : {}),
       };
       const { error } = await admin
         .from("arcade_room_players")
