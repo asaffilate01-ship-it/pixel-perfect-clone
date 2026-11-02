@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds } from "../src/lib/mastermindAdvance.ts";
+import fs from "node:fs";
+import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds, matchesMastermindTurn } from "../src/lib/mastermindAdvance.ts";
 
 test("only one advancement runs for a turn; success cannot skip a second seat", () => {
   const gate = createMastermindAdvanceGate();
@@ -53,4 +54,58 @@ test("host can hand off for a disconnected active player, spectators cannot", ()
   assert.equal(canAdvanceMastermindTurn(null, "host", "seat1", "active"), false);
   assert.equal(canAdvanceMastermindTurn("host", "host", "seat1", "complete"), false);
   assert.equal(canAdvanceMastermindTurn("host", "host", "seat1", "lobby"), false);
+});
+
+test("a delayed Mastermind request cannot advance a later turn", () => {
+  const first = { seat: 0, round: 1, startedAt: "2026-11-02T17:00:00.123Z" };
+  const same = { seat: 0, round: 1, startedAt: "2026-11-02T17:00:00.123+00:00" };
+  assert.equal(matchesMastermindTurn(first, same), true);
+  assert.equal(matchesMastermindTurn(first, { ...same, seat: 1 }), false);
+  assert.equal(matchesMastermindTurn(first, { ...same, round: 2 }), false);
+  assert.equal(matchesMastermindTurn(first, {
+    ...same, startedAt: "2026-11-02T17:00:00.124+00:00",
+  }), false);
+  assert.equal(matchesMastermindTurn(first, {
+    ...same, startedAt: "2026-11-02T17:03:00.123+00:00",
+  }), false);
+});
+
+test("missing or malformed Mastermind room identifiers fail closed", () => {
+  const turn = { seat: 0, round: 1, startedAt: "2026-11-02T17:00:00.123Z" };
+  for (const bad of [
+    { ...turn, seat: -1 }, { ...turn, seat: 4 }, { ...turn, seat: NaN },
+    { ...turn, round: 0 }, { ...turn, round: 1.5 },
+    { ...turn, startedAt: null }, { ...turn, startedAt: "" },
+    { ...turn, startedAt: "not-a-date" },
+  ]) {
+    assert.equal(matchesMastermindTurn(bad, turn), false);
+    assert.equal(matchesMastermindTurn(turn, bad), false);
+  }
+});
+
+test("the Mastermind server action and UI both bind exact observed turn identity", () => {
+  const server = fs.readFileSync(
+    new URL("../src/lib/arcadeRooms.functions.ts", import.meta.url), "utf8",
+  );
+  const client = fs.readFileSync(
+    new URL("../src/routes/arcade_.mastermind.tsx", import.meta.url), "utf8",
+  );
+  const room = fs.readFileSync(
+    new URL("../src/lib/arcadeQuiz.ts", import.meta.url), "utf8",
+  );
+  const action = server.slice(
+    server.indexOf('if (data.action === "advance")'),
+    server.indexOf('if (data.action === "recover_timeout")'),
+  );
+  for (const part of [
+    "matchesMastermindTurn(", ".eq(\"turn_started_at\", live.turn_started_at)",
+    ".eq(\"turn_ends_at\", live.turn_ends_at)", "return { advanced: !!advanced",
+  ]) assert.ok(action.includes(part), `Missing server CAS: ${part}`);
+  for (const part of [
+    "expectedSeat: room.active_seat",
+    "expectedRound: room.round_no",
+    "expectedStartedAt: room.turn_started_at",
+  ]) assert.ok(client.includes(part), `Missing client snapshot: ${part}`);
+  assert.ok(room.includes("turn_started_at: string | null;"));
+  assert.ok(room.includes("round_no, turn_started_at, turn_ends_at"));
 });

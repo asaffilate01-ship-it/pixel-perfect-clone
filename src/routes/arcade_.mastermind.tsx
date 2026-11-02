@@ -203,18 +203,29 @@ function MastermindPage() {
     list[activeIdx]?.userId,
     room?.status,
   );
-  const advanceTurnKey = online && room
-    ? `${roomId}:${room.active_seat}:${room.round_no}:${room.turn_ends_at}`
+  const advanceTurnKey = online && room && room.turn_started_at
+    ? `${roomId}:${room.active_seat}:${room.round_no}:${room.turn_started_at}:${room.turn_ends_at}`
     : "";
   const advanceOnlineTurn = useCallback(
     async (manual = false) => {
-      if (!roomId || !canAdvanceOnline || !advanceTurnKey ||
+      if (!roomId || !room || !room.turn_started_at || room.active_seat === null ||
+          !canAdvanceOnline || !advanceTurnKey ||
           !advanceGate.claim(advanceTurnKey, Date.now(), manual)) return;
       setAdvancePending(true);
       try {
-        await arcadeRoomAction({ data: { action: "advance", roomId } });
+        const result = await arcadeRoomAction({
+          data: {
+            action: "advance",
+            roomId,
+            expectedSeat: room.active_seat,
+            expectedRound: room.round_no,
+            expectedStartedAt: room.turn_started_at,
+          },
+        });
         advanceGate.finish(advanceTurnKey, true, Date.now());
-        setAdvanceFeedback(null);
+        setAdvanceFeedback(result.advanced
+          ? null
+          : "This turn has already advanced on another device. Refreshing the room.");
         void qc.invalidateQueries({ queryKey: ["arcade-room", roomId] });
         void qc.invalidateQueries({ queryKey: ["arcade-room-players", roomId] });
       } catch (error) {
@@ -226,7 +237,7 @@ function MastermindPage() {
         setAdvancePending(false);
       }
     },
-    [roomId, canAdvanceOnline, advanceTurnKey, advanceGate, qc],
+    [roomId, room, canAdvanceOnline, advanceTurnKey, advanceGate, qc],
   );
 
   useEffect(() => {
@@ -530,7 +541,7 @@ function MastermindPage() {
         <Button
           variant="ghost"
           className="mt-2 w-full text-muted-foreground"
-          disabled={online && advancePending}
+          disabled={online && (advancePending || !room?.turn_started_at)}
           onClick={() => online ? void advanceOnlineTurn(true) : nextTurn()}
         >
           {online && advancePending ? "Advancing turn…" : "End player&apos;s turn"}

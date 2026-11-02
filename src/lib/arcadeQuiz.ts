@@ -124,6 +124,7 @@ export type RoomRow = {
   status: string;
   active_seat: number | null;
   round_no: number;
+  turn_started_at: string | null;
   turn_ends_at: string | null;
   settings: { max_players?: number } | null;
 };
@@ -132,7 +133,7 @@ export async function fetchRoom(roomId: string): Promise<RoomRow | null> {
   const { data, error } = await supabase
     .from("arcade_rooms")
     .select(
-      "id, code, host_id, mode_slug, difficulty, status, active_seat, round_no, turn_ends_at, settings",
+      "id, code, host_id, mode_slug, difficulty, status, active_seat, round_no, turn_started_at, turn_ends_at, settings",
     )
     .eq("id", roomId)
     .maybeSingle();
