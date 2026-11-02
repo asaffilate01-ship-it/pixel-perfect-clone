@@ -61,7 +61,11 @@ test("SQL proposal requires row locks, one-transaction settlement and replay pro
   ]) {
     assert.ok(sql.toLowerCase().includes(required.toLowerCase()), `Missing: ${required}`);
   }
-  assert.ok(!sql.toLowerCase().includes("security definer"), "RPC must remain invoker-security");
+  const executableSql = sql.split("\n")
+    .filter((line) => !line.trimStart().startsWith("--"))
+    .join("\n")
+    .toLowerCase();
+  assert.ok(!executableSql.includes("security definer"), "RPC must remain invoker-security");
 });
 
 test("review proposal duplicates the real game board jumps, not a different ruleset", () => {
