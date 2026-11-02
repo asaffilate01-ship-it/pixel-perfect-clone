@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds } from "../src/lib/mastermindAdvance.ts";
+import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds, matchesMastermindTurn } from "../src/lib/mastermindAdvance.ts";
 
 test("only one advancement runs for a turn; success cannot skip a second seat", () => {
   const gate = createMastermindAdvanceGate();
@@ -53,4 +53,31 @@ test("host can hand off for a disconnected active player, spectators cannot", ()
   assert.equal(canAdvanceMastermindTurn(null, "host", "seat1", "active"), false);
   assert.equal(canAdvanceMastermindTurn("host", "host", "seat1", "complete"), false);
   assert.equal(canAdvanceMastermindTurn("host", "host", "seat1", "lobby"), false);
+});
+
+test("a delayed Mastermind request cannot advance a later turn", () => {
+  const first = { seat: 0, round: 1, startedAt: "2026-11-02T17:00:00.123Z" };
+  const same = { seat: 0, round: 1, startedAt: "2026-11-02T17:00:00.123+00:00" };
+  assert.equal(matchesMastermindTurn(first, same), true);
+  assert.equal(matchesMastermindTurn(first, { ...same, seat: 1 }), false);
+  assert.equal(matchesMastermindTurn(first, { ...same, round: 2 }), false);
+  assert.equal(matchesMastermindTurn(first, {
+    ...same, startedAt: "2026-11-02T17:00:00.124+00:00",
+  }), false);
+  assert.equal(matchesMastermindTurn(first, {
+    ...same, startedAt: "2026-11-02T17:03:00.123+00:00",
+  }), false);
+});
+
+test("missing or malformed Mastermind room identifiers fail closed", () => {
+  const turn = { seat: 0, round: 1, startedAt: "2026-11-02T17:00:00.123Z" };
+  for (const bad of [
+    { ...turn, seat: -1 }, { ...turn, seat: 4 }, { ...turn, seat: NaN },
+    { ...turn, round: 0 }, { ...turn, round: 1.5 },
+    { ...turn, startedAt: null }, { ...turn, startedAt: "" },
+    { ...turn, startedAt: "not-a-date" },
+  ]) {
+    assert.equal(matchesMastermindTurn(bad, turn), false);
+    assert.equal(matchesMastermindTurn(turn, bad), false);
+  }
 });
