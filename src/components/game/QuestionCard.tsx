@@ -472,7 +472,7 @@ export function QuestionCard({
               size="sm"
               className="mt-4"
               onClick={() => void requestClue()}
-              disabled={busy || clueBusy}
+              disabled={busy || clueBusy || checkingSavedResult || incompleteReceipt}
             >
               <Lightbulb className="size-4" /> {clueBusy ? "Checking clue…" : "Get clue"}
             </Button>
