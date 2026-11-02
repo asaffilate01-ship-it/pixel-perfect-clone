@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import { canAdvanceMastermindTurn, createMastermindAdvanceGate, remainingMastermindSeconds, matchesMastermindTurn } from "../src/lib/mastermindAdvance.ts";
 
 test("only one advancement runs for a turn; success cannot skip a second seat", () => {
@@ -80,4 +81,31 @@ test("missing or malformed Mastermind room identifiers fail closed", () => {
     assert.equal(matchesMastermindTurn(bad, turn), false);
     assert.equal(matchesMastermindTurn(turn, bad), false);
   }
+});
+
+test("the Mastermind server action and UI both bind exact observed turn identity", () => {
+  const server = fs.readFileSync(
+    new URL("../src/lib/arcadeRooms.functions.ts", import.meta.url), "utf8",
+  );
+  const client = fs.readFileSync(
+    new URL("../src/routes/arcade_.mastermind.tsx", import.meta.url), "utf8",
+  );
+  const room = fs.readFileSync(
+    new URL("../src/lib/arcadeQuiz.ts", import.meta.url), "utf8",
+  );
+  const action = server.slice(
+    server.indexOf('if (data.action === "advance")'),
+    server.indexOf('if (data.action === "recover_timeout")'),
+  );
+  for (const part of [
+    "matchesMastermindTurn(", ".eq(\"turn_started_at\", live.turn_started_at)",
+    ".eq(\"turn_ends_at\", live.turn_ends_at)", "return { advanced: !!advanced",
+  ]) assert.ok(action.includes(part), `Missing server CAS: ${part}`);
+  for (const part of [
+    "expectedSeat: room.active_seat",
+    "expectedRound: room.round_no",
+    "expectedStartedAt: room.turn_started_at",
+  ]) assert.ok(client.includes(part), `Missing client snapshot: ${part}`);
+  assert.ok(room.includes("turn_started_at: string | null;"));
+  assert.ok(room.includes("round_no, turn_started_at, turn_ends_at"));
 });
