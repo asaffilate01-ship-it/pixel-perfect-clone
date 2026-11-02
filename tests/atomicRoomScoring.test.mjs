@@ -78,3 +78,22 @@ test("review proposal duplicates the real game board jumps, not a different rule
   }
   assert.ok(sql.includes("v_position := least(57, v_position + v_movement)"));
 });
+
+test("atomic scoring is wired exclusively into the answer submission handler", () => {
+  const handlers = fs.readFileSync(
+    new URL("../src/lib/arcadeRooms.functions.ts", import.meta.url), "utf8",
+  );
+  const reserveAt = handlers.indexOf("export const nextFairQuestion");
+  const submitAt = handlers.indexOf("export const submitArcadeAnswer");
+  const settleAt = handlers.indexOf("if (data.roomId && atomicRoomScoringEnabled(");
+  assert.ok(reserveAt > 0 && submitAt > reserveAt && settleAt > submitAt);
+  assert.ok(!handlers.slice(reserveAt, submitAt).includes(
+    'if (data.roomId && atomicRoomScoringEnabled(',
+  ));
+  assert.ok(handlers.includes('roomQuestionId: question.roomQuestionId') === false,
+    "room question id is deliberately passed from the UI, not authored in the server");
+  const card = fs.readFileSync(
+    new URL("../src/components/game/QuestionCard.tsx", import.meta.url), "utf8",
+  );
+  assert.ok(card.includes("roomQuestionId: question.roomQuestionId ?? null"));
+});
