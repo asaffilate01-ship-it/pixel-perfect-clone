@@ -7,18 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Status = "pending" | "verified";
+const PAGE_SIZE = 25;
 
-async function fetchQuestions(status: Status) {
-  const { data, error } = await supabase
+async function fetchQuestions(status: Status, page: number) {
+  const { data, count, error } = await supabase
     .from("question_bank")
     .select(
       "id, prompt_i18n, clue_i18n, answer_display_i18n, answer_rule, category_key, format_key, difficulty_percentile, source_url, source_title, reviewed_at, verification_status, sports!inner(name)",
+      { count: "exact" },
     )
     .eq("verification_status", status)
     .order("created_at", { ascending: false })
-    .limit(80);
+    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
   if (error) throw error;
-  return data ?? [];
+  return { items: data ?? [], count };
 }
 
 function en(v: unknown) {
@@ -51,9 +53,10 @@ async function fetchAnswerChallenges(): Promise<AnswerChallenge[]> {
 /** Provenance-gated question review: publish only when a source URL and accepted answers exist (v0.20). */
 export function QuestionReviewPanel() {
   const [status, setStatus] = useState<Status>("pending");
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["admin-questions", status],
-    queryFn: () => fetchQuestions(status),
+  const [page, setPage] = useState(0);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-questions", status, page],
+    queryFn: () => fetchQuestions(status, page),
   });
   const [busy, setBusy] = useState<string | null>(null);
   const [grantEmail, setGrantEmail] = useState("");
@@ -174,7 +177,7 @@ export function QuestionReviewPanel() {
                 key={s}
                 size="sm"
                 variant={status === s ? "default" : "outline"}
-                onClick={() => setStatus(s)}
+                onClick={() => { setStatus(s); setPage(0); }}
               >
                 {s === "pending" ? "Pending" : "Published"}
               </Button>
