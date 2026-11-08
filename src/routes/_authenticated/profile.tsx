@@ -34,25 +34,28 @@ export const Route = createFileRoute("/_authenticated/profile")({
 });
 
 async function fetchMyStats(userId: string) {
-  const { data: ratings } = await supabase
+  const { data: ratings, error: ratingsError } = await supabase
     .from("player_ratings")
     .select("rating, played, best_score, streak, sports!inner(name)")
     .eq("user_id", userId)
     .order("rating", { ascending: false });
-  const { data: clues } = await supabase
+  const { data: clues, error: cluesError } = await supabase
     .from("clue_attempts")
     .select("solved, score")
     .eq("user_id", userId);
-  const { data: profile } = await supabase
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("avatar_preset, avatar_settings, avatar_url")
     .eq("id", userId)
     .maybeSingle();
-  const { data: abilities } = await supabase
+  const { data: abilities, error: abilitiesError } = await supabase
     .from("player_abilities")
     .select("ability_theta, attempts, category_key, sports!inner(name)")
     .eq("user_id", userId)
     .order("attempts", { ascending: false });
+  if (ratingsError || cluesError || profileError || abilitiesError) {
+    throw ratingsError ?? cluesError ?? profileError ?? abilitiesError;
+  }
   return {
     ratings: ratings ?? [],
     clues: clues ?? [],
@@ -69,7 +72,7 @@ function ProfilePage() {
   const [avatar, setAvatar] = useState("captain");
   const [avatarSettings, setAvatarSettings] = useState<AvatarSettings>(DEFAULT_AVATAR_SETTINGS);
   const [savingAvatar, setSavingAvatar] = useState(false);
-  const { data } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ["my-stats", user?.id],
     queryFn: () => fetchMyStats(user!.id),
     enabled: !!user,
@@ -136,7 +139,18 @@ function ProfilePage() {
       />
       {user && <PhotoAvatarStudio pro={pro} userId={user.id} settings={avatarSettings} />}
 
-      <div className="panel mt-7 grid grid-cols-3 divide-x divide-border/70">
+      {isLoading && !data && (
+        <p role="status" className="panel mt-7 p-5 text-sm text-muted-foreground">Loading your saved results…</p>
+      )}
+      {isError && !data && (
+        <div role="alert" className="panel mt-7 p-5">
+          <p className="text-sm">Could not load your saved results. No statistics have been changed.</p>
+          <button type="button" className="mt-3 min-h-11 rounded-xl border border-primary/50 px-4 text-sm font-bold text-primary" onClick={() => void refetch()}>
+            Retry profile results
+          </button>
+        </div>
+      )}
+      {data && <div className="panel mt-7 grid grid-cols-3 divide-x divide-border/70">
         <Stat value={String(played)} label="Grids played" />
         <Stat value={String(bestStreak)} label="Best streak" />
         <Stat value={String(cluePoints)} label="Clue points" />
@@ -176,6 +190,7 @@ function ProfilePage() {
         </>
       )}
 
+      {data && <>
       <h2 className="mt-9 text-2xl">Sport ratings</h2>
       <div className="panel mt-4 divide-y divide-border/70">
         {ratings.length === 0 && (
@@ -206,6 +221,7 @@ function ProfilePage() {
           </div>
         ))}
       </div>
+      </>}
     </div>
   );
 }
