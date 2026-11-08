@@ -74,7 +74,7 @@ const MODES = [
 function RoomsPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const { pro } = useEntitlements();
+  const { pro, verificationError, retry } = useEntitlements();
   const { code: invited, sport: preferredSport, difficulty: preferredDifficulty } = Route.useSearch();
   const signInSearch = new URLSearchParams();
   if (invited) signInSearch.set("code", invited);
@@ -249,6 +249,13 @@ function RoomsPage() {
           Free players can join a Pro host&apos;s invited private game.
         </p>
       </div>
+
+      {verificationError && user && (
+        <div role="alert" className="panel mt-5 p-4 text-sm">
+          <p>We could not check your Pro membership. Hosting a Pro game stays locked until it is verified.</p>
+          <Button variant="outline" className="mt-3" onClick={retry}>Retry membership check</Button>
+        </div>
+      )}
 
       <Label>Create a room</Label>
       <div className="space-y-2">
