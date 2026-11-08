@@ -154,7 +154,7 @@ function ProfilePage() {
         <Stat value={String(played)} label="Grids played" />
         <Stat value={String(bestStreak)} label="Best streak" />
         <Stat value={String(cluePoints)} label="Clue points" />
-      </div>
+      </div>}
 
       {(data?.abilities.length ?? 0) > 0 && (
         <>
