@@ -75,7 +75,8 @@ export function QuestionReviewPanel() {
       toast.success(
         fn === "publish_question" ? "Published to the fair selector" : "Returned to pending",
       );
-      void refetch();
+      if (page > 0) setPage(0);
+      else void refetch();
     }
   };
 
