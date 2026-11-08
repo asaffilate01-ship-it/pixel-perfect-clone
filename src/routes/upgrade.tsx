@@ -33,20 +33,30 @@ const perks = [
 ];
 
 function Upgrade() {
-  const { pro } = useEntitlements();
+  const { pro, loading, verificationError, retry } = useEntitlements();
   return (
     <div className="mx-auto w-full max-w-2xl px-4 py-14">
       <p className="eyebrow">Lifetime Pro</p>
       <h1 className="mt-3 text-5xl">
-        {pro ? "You’re Fanzeno Pro." : "More ways to play."}
+        {pro ? "You’re Fanzeno Pro." : verificationError ? "Membership check unavailable." : "More ways to play."}
         <br />
-        <span className="text-gold">{pro ? "Your membership is active." : "Lifetime Pro is coming soon."}</span>
+        <span className="text-gold">{pro ? "Your membership is active." : verificationError ? "Try verifying again." : "Lifetime Pro is coming soon."}</span>
       </h1>
       <p className="mt-4 max-w-lg text-sm text-muted-foreground">
         {pro
           ? "Your lifetime Pro entitlement is active on this account."
-          : "Existing Pro members can access premium modes and ad-free play. New purchases aren't available yet; free guests can still join a Pro host’s private match."}
+          : verificationError
+            ? "We could not verify your current Pro status. This does not mean your membership has expired."
+            : "Existing Pro members can access premium modes and ad-free play. New purchases aren't available yet; free guests can still join a Pro host’s private match."}
       </p>
+
+      {loading && <p role="status" className="mt-5 text-sm text-muted-foreground">Checking your membership…</p>}
+      {verificationError && (
+        <div role="alert" className="panel mt-5 p-4 text-sm">
+          <p>Could not verify your membership with the server. Pro hosting stays locked until verification succeeds.</p>
+          <Button variant="outline" className="mt-3" onClick={retry}>Retry membership check</Button>
+        </div>
+      )}
 
       <div className="panel mt-8 p-7">
         <div className="flex items-center gap-4">
