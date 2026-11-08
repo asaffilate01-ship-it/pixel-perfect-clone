@@ -41,6 +41,7 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmationPending, setConfirmationPending] = useState(false);
 
   useEffect(() => {
     if (user) void navigate({ to: next || "/" });
@@ -51,16 +52,21 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: `${window.location.origin}/auth${next ? `?next=${encodeURIComponent(next)}` : ""}`,
             data: { display_name: name || email.split("@")[0] },
           },
         });
         if (error) throw error;
-        toast.success("Account created. You're in.");
+        if (!data.session) {
+          setConfirmationPending(true);
+          toast.info("Check your email for the confirmation link before signing in.");
+          return;
+        }
+        toast.success("Account created.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -90,6 +96,21 @@ function AuthPage() {
       <p className="eyebrow">Fanzeno account</p>
       <h1 className="mt-3 text-4xl">{mode === "signin" ? "Welcome back" : "Join the grid"}</h1>
 
+      {confirmationPending ? (
+        <div className="panel mt-7 p-6" role="status">
+          <h2 className="text-2xl">Check your email</h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            If confirmation is required for this email address, use the link we sent before signing in.
+            Your chosen game will be waiting when you return.
+          </p>
+          <Button className="mt-5 w-full" onClick={() => { setConfirmationPending(false); setMode("signin"); }}>
+            Return to sign in
+          </Button>
+          <Button variant="ghost" className="mt-2 w-full" onClick={() => setConfirmationPending(false)}>
+            Use another email
+          </Button>
+        </div>
+      ) : (
       <div className="panel mt-7 p-6">
         <Button variant="outline" className="w-full" onClick={() => void google()}>
           Continue with Google
@@ -138,6 +159,7 @@ function AuthPage() {
           {mode === "signin" ? "No account? Sign up" : "Already play here? Sign in"}
         </button>
       </div>
+      )}
     </div>
   );
 }
