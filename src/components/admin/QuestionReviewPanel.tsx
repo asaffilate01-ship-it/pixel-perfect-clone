@@ -60,6 +60,7 @@ export function QuestionReviewPanel() {
   });
   const [busy, setBusy] = useState<string | null>(null);
   const [grantEmail, setGrantEmail] = useState("");
+  const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
   const { data: challenges, isLoading: challengesLoading, isError: challengesError, refetch: refetchChallenges } = useQuery({
     queryKey: ["answer-challenges"],
     queryFn: fetchAnswerChallenges,
@@ -99,16 +100,26 @@ export function QuestionReviewPanel() {
   };
 
   const resolveChallenge = async (id: string, accept: boolean) => {
+    const note = (decisionNotes[id] ?? "").trim();
+    if (!accept && !note) {
+      toast.error("Add a review reason before rejecting this answer.");
+      return;
+    }
     setBusy(id);
     const { error } = await rpc("resolve_answer_challenge", {
       p_challenge_id: id,
       p_accept: accept,
-      p_note: accept ? "Approved in ops console" : "Rejected in ops console",
+      p_note: note || "Approved in ops console",
     });
     setBusy(null);
     if (error) toast.error(error.message);
     else {
       toast.success(accept ? "Answer added to the accepted set" : "Challenge rejected");
+      setDecisionNotes((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
       void refetchChallenges();
       if (accept) void refetch();
     }
@@ -154,7 +165,16 @@ export function QuestionReviewPanel() {
                 <strong>{challenge.canonical_answer}</strong>
               </p>
             </div>
-            <div className="mt-3 flex gap-2">
+            <label htmlFor={`challenge-note-${challenge.id}`} className="mt-3 block text-xs font-semibold">Decision note</label>
+            <Input
+              id={`challenge-note-${challenge.id}`}
+              className="mt-1"
+              value={decisionNotes[challenge.id] ?? ""}
+              onChange={(event) => setDecisionNotes((current) => ({ ...current, [challenge.id]: event.target.value }))}
+              placeholder="Reason or evidence (required to reject)"
+              maxLength={600}
+            />
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 size="sm"
                 disabled={busy === challenge.id}
@@ -165,7 +185,7 @@ export function QuestionReviewPanel() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={busy === challenge.id}
+                disabled={busy === challenge.id || !(decisionNotes[challenge.id] ?? "").trim()}
                 onClick={() => void resolveChallenge(challenge.id, false)}
               >
                 <X className="size-4" /> Reject
