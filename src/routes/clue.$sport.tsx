@@ -43,7 +43,7 @@ function ClueLadder() {
   const [solved, setSolved] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const { data: puzzle, isLoading } = useQuery({
+  const { data: puzzle, isLoading, isError, refetch } = useQuery({
     queryKey: ["clue", sport],
     queryFn: () => fetchClue(sport),
   });
@@ -105,6 +105,16 @@ function ClueLadder() {
 
   if (isLoading) {
     return <div className="mx-auto max-w-2xl px-4 py-16 text-sm text-muted-foreground">Loading clues…</div>;
+  }
+
+  if (isError && !puzzle) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-16">
+        <h1 className="text-3xl">Could not load clues</h1>
+        <p role="alert" className="mt-2 text-sm text-muted-foreground">The puzzle request failed. Please retry.</p>
+        <Button className="mt-6" onClick={() => void refetch()}>Retry loading clues</Button>
+      </div>
+    );
   }
 
   if (!puzzle) {
@@ -222,7 +232,7 @@ function ClueLadder() {
       )}
       {!user && (
         <p className="mt-4 text-xs text-muted-foreground">
-          <Link to="/auth" className="text-primary underline">
+          <Link to="/auth" search={{ next: `/clue/${encodeURIComponent(sport)}` }} className="text-primary underline">
             Sign in
           </Link>{" "}
           to save your clue ladder results.
