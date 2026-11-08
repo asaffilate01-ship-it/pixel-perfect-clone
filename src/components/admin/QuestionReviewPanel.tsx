@@ -60,7 +60,7 @@ export function QuestionReviewPanel() {
   });
   const [busy, setBusy] = useState<string | null>(null);
   const [grantEmail, setGrantEmail] = useState("");
-  const { data: challenges, refetch: refetchChallenges } = useQuery({
+  const { data: challenges, isLoading: challengesLoading, isError: challengesError, refetch: refetchChallenges } = useQuery({
     queryKey: ["answer-challenges"],
     queryFn: fetchAnswerChallenges,
   });
@@ -121,13 +121,21 @@ export function QuestionReviewPanel() {
           <Flag className="size-4 text-gold" />
           <span className="font-display text-xl">Answer challenges</span>
           <span className="ml-auto rounded-full bg-gold/10 px-2 py-1 text-xs font-bold text-gold">
-            {(challenges ?? []).length} pending
+            {challengesLoading ? "Loading…" : challengesError ? "Unavailable" : `${(challenges ?? []).length} shown` }
           </span>
         </div>
-        {(challenges ?? []).length === 0 && (
-          <p className="px-5 py-4 text-sm text-muted-foreground">
-            No challenged answers awaiting review.
-          </p>
+        {challengesLoading && <p role="status" className="px-5 py-4 text-sm text-muted-foreground">Loading challenges…</p>}
+        {challengesError && (
+          <div role="alert" className="px-5 py-4 text-sm">
+            <p>Could not load the answer-challenge queue. Do not treat this as zero pending.</p>
+            <Button variant="outline" className="mt-2" onClick={() => void refetchChallenges()}>Retry challenges</Button>
+          </div>
+        )}
+        {!challengesLoading && !challengesError && (challenges ?? []).length === 0 && (
+          <p className="px-5 py-4 text-sm text-muted-foreground">No challenged answers awaiting review.</p>
+        )}
+        {(challenges ?? []).length >= 100 && (
+          <p className="px-5 py-3 text-xs text-gold">Showing the first 100 reports only. Other reports may be awaiting review.</p>
         )}
         {(challenges ?? []).map((challenge) => (
           <div key={challenge.id} className="px-5 py-4">
