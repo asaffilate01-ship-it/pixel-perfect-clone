@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { fetchLeaderboard, fetchSports } from "@/lib/fanzeno";
 
 export const Route = createFileRoute("/leaderboard")({
@@ -26,7 +27,7 @@ export const Route = createFileRoute("/leaderboard")({
 function Leaderboard() {
   const [sportId, setSportId] = useState<string | undefined>(undefined);
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
-  const { data: rows, isLoading } = useQuery({
+  const { data: rows, isLoading, isError, refetch } = useQuery({
     queryKey: ["leaderboard", sportId ?? "all"],
     queryFn: () => fetchLeaderboard(sportId),
   });
@@ -48,8 +49,14 @@ function Leaderboard() {
       </div>
 
       <div className="panel mt-6 divide-y divide-border/70">
-        {isLoading && <p className="p-6 text-sm text-muted-foreground">Loading ranks…</p>}
-        {!isLoading && !rows?.length && (
+        {isLoading && <p role="status" className="p-6 text-sm text-muted-foreground">Loading ranks…</p>}
+        {isError && (
+          <div role="alert" className="p-6 text-sm">
+            <p>Could not refresh global ranks. Previously loaded rankings may be outdated.</p>
+            <Button variant="outline" className="mt-3" onClick={() => void refetch()}>Retry rankings</Button>
+          </div>
+        )}
+        {!isLoading && !isError && !rows?.length && (
           <div className="p-8 text-center">
             <Trophy className="mx-auto size-8 text-gold" />
             <p className="mt-3 font-display text-2xl">No ranked scores yet</p>

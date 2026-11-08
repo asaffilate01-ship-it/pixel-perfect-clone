@@ -25,6 +25,7 @@ import { EntityScopePicker } from "@/components/game/EntityScopePicker";
 import { SportPicker } from "@/components/game/SportPicker";
 import { SportIcon } from "@/lib/sportCatalog";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/filters")({
   head: () => ({
@@ -33,12 +34,12 @@ export const Route = createFileRoute("/filters")({
       {
         name: "description",
         content:
-          "Scope every Fanzeno quiz to a single league, cup, tour or era — EPL, Champions League, IPL, Six Nations, NBA, majors and more.",
+          "Choose a preferred sport and competition for supported Fanzeno grids, and save other interests for upcoming modes.",
       },
       { property: "og:title", content: "Quiz filters — pick your league and era | Fanzeno" },
       {
         property: "og:description",
-        content: "Whole sport or one competition. One filter drives grids, Clue Ladder and Arena rooms.",
+        content: "Save the sport and competition for supported grids. Other interests are personal preferences.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -50,6 +51,7 @@ export const Route = createFileRoute("/filters")({
 function Filters() {
   const navigate = useNavigate();
   const { prefs, hydrated, setPrefs } = useQuizPrefs();
+  const { user } = useAuth();
   const { data: sports } = useQuery({ queryKey: ["sports"], queryFn: fetchSports });
   const { data: competitions } = useQuery({
     queryKey: ["competitions"],
@@ -84,7 +86,7 @@ function Filters() {
     setSaving(true);
     try {
       await setPrefs(draft);
-      toast.success("Quiz preferences saved.");
+      toast.success(user ? "Preferences synced to your account." : "Preferences saved on this device.");
       await navigate({ to: "/" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not save preferences.");
@@ -124,7 +126,7 @@ function Filters() {
           <ChevronLeft className="size-5" />
         </Button>
         <div>
-          <p className="eyebrow">Personalise every quiz</p>
+          <p className="eyebrow">Supported quiz preferences</p>
           <h1 className="mt-1 text-4xl">Choose your coverage</h1>
         </div>
       </div>
@@ -275,7 +277,7 @@ function Filters() {
 
       {sport && (
         <>
-          <SectionLabel>4 · Team or person (optional)</SectionLabel>
+          <SectionLabel>4 · Team or person (saved interests)</SectionLabel>
           <div className="space-y-2">
             <EntityScopePicker
               sportId={sport.id}
@@ -297,7 +299,7 @@ function Filters() {
         </>
       )}
 
-      <SectionLabel>5 · Question focus</SectionLabel>
+      <SectionLabel>5 · Question focus (saved interest)</SectionLabel>
       <div className="flex flex-wrap gap-2">
         {QUESTION_FOCUS.map((f) => {
           const on = (draft.focus ?? "Mixed") === f;
@@ -318,7 +320,7 @@ function Filters() {
         })}
       </div>
 
-      <SectionLabel>6 · Era</SectionLabel>
+      <SectionLabel>6 · Era (saved interest)</SectionLabel>
       <div className="flex flex-wrap gap-2">
         {ERAS.map((e) => {
           const on = draft.era === e.id;
@@ -342,9 +344,10 @@ function Filters() {
       <div className="mt-6 flex gap-3 rounded-2xl border border-gold/40 bg-gold/8 p-4 text-xs leading-relaxed text-gold/90">
         <Sparkles className="size-4 shrink-0 text-gold" />
         <p>
-          This choice applies to grids, Clue Ladder, Arena rooms and your recommended feed. You can
-          change it before any game. When a competition has no dedicated puzzle yet, you get the
-          whole-sport puzzle instead.
+          Sport and competition preferences are used by supported Daily 9 and Endless grid requests.
+          Team, person, question focus and era are saved as interests, but do not yet restrict every
+          game. If there is no dedicated grid for a competition, the whole-sport fallback is labelled
+          in the game.
         </p>
       </div>
 

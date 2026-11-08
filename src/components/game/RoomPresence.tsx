@@ -13,7 +13,7 @@ export function PresenceDot({ status = "offline" }: { status?: ArcadePresenceSta
   return (
     <span className="inline-flex items-center gap-1.5 text-[0.58rem] font-bold text-muted-foreground">
       <span className={`size-2 rounded-full ${item.className}`} />
-      <span className="sr-only">{item.label}</span>
+      <span>{item.label}</span>
     </span>
   );
 }
@@ -30,8 +30,8 @@ export function ConnectionBanner({ status }: { status: ArcadePresenceState }) {
     >
       <Icon className={`size-4 text-gold ${status === "reconnecting" ? "animate-spin" : ""}`} />
       {background
-        ? "Game kept safe while this app is in the background"
-        : "Connection lost — restoring your live game…"}
+        ? "App in background — live turns and timers continue on the server"
+        : "Connection lost — reconnecting. Live turns and timers may continue"}
       {!offline && !background && <Cloud className="ml-auto size-4 text-muted-foreground" />}
     </div>
   );

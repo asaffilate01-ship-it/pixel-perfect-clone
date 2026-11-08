@@ -107,7 +107,7 @@ export function QuizPrefsProvider({ children }: { children: React.ReactNode }) {
       setLocal(next);
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       if (user) {
-        await supabase
+        const { data, error } = await supabase
           .from("profiles")
           .update({
             quiz_preferences: {
@@ -115,7 +115,12 @@ export function QuizPrefsProvider({ children }: { children: React.ReactNode }) {
               ...next,
             },
           })
-          .eq("id", user.id);
+          .eq("id", user.id)
+          .select("id")
+          .maybeSingle();
+        if (error || !data) {
+          throw new Error("Saved on this device, but account sync failed. Please retry.");
+        }
       }
     },
     [user],

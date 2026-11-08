@@ -90,14 +90,14 @@ function ModesPage() {
         <ModeRow
           icon={<Shuffle className="size-5 text-primary" />}
           title="Random online rival"
-          sub="Match with a similarly rated player worldwide."
-          onClick={() => void navigate({ to: "/compete" })}
+          sub="Find an opponent in a live Arcade Room (Snakes & Ladders, Quiz Ludo or Sports Mastermind). Not a Daily 9 grid duel."
+          onClick={() => void navigate({ to: "/arcade/rooms", search: { sport, difficulty: level } })}
         />
         <ModeRow
           icon={<UserPlus className="size-5 text-primary" />}
           title="Chosen player"
-          sub="Invite a friend, enter a room code, or share a private challenge."
-          onClick={() => void navigate({ to: "/compete" })}
+          sub="Create or join an Arcade Room with a code. Each friend chooses a supported question subject."
+          onClick={() => void navigate({ to: "/arcade/rooms", search: { sport, difficulty: level } })}
         />
       </div>
 

@@ -7,18 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Status = "pending" | "verified";
+const PAGE_SIZE = 25;
 
-async function fetchQuestions(status: Status) {
-  const { data, error } = await supabase
+async function fetchQuestions(status: Status, page: number) {
+  const { data, count, error } = await supabase
     .from("question_bank")
     .select(
       "id, prompt_i18n, clue_i18n, answer_display_i18n, answer_rule, category_key, format_key, difficulty_percentile, source_url, source_title, reviewed_at, verification_status, sports!inner(name)",
+      { count: "exact" },
     )
     .eq("verification_status", status)
     .order("created_at", { ascending: false })
-    .limit(80);
+    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
   if (error) throw error;
-  return data ?? [];
+  return { items: data ?? [], count };
 }
 
 function en(v: unknown) {
@@ -51,13 +53,15 @@ async function fetchAnswerChallenges(): Promise<AnswerChallenge[]> {
 /** Provenance-gated question review: publish only when a source URL and accepted answers exist (v0.20). */
 export function QuestionReviewPanel() {
   const [status, setStatus] = useState<Status>("pending");
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["admin-questions", status],
-    queryFn: () => fetchQuestions(status),
+  const [page, setPage] = useState(0);
+  const { data, isLoading, isError, refetch } = useQuery({
+    queryKey: ["admin-questions", status, page],
+    queryFn: () => fetchQuestions(status, page),
   });
   const [busy, setBusy] = useState<string | null>(null);
   const [grantEmail, setGrantEmail] = useState("");
-  const { data: challenges, refetch: refetchChallenges } = useQuery({
+  const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
+  const { data: challenges, isLoading: challengesLoading, isError: challengesError, refetch: refetchChallenges } = useQuery({
     queryKey: ["answer-challenges"],
     queryFn: fetchAnswerChallenges,
   });
@@ -71,7 +75,8 @@ export function QuestionReviewPanel() {
       toast.success(
         fn === "publish_question" ? "Published to the fair selector" : "Returned to pending",
       );
-      void refetch();
+      if (page > 0) setPage(0);
+      else void refetch();
     }
   };
 
@@ -96,16 +101,26 @@ export function QuestionReviewPanel() {
   };
 
   const resolveChallenge = async (id: string, accept: boolean) => {
+    const note = (decisionNotes[id] ?? "").trim();
+    if (!accept && !note) {
+      toast.error("Add a review reason before rejecting this answer.");
+      return;
+    }
     setBusy(id);
     const { error } = await rpc("resolve_answer_challenge", {
       p_challenge_id: id,
       p_accept: accept,
-      p_note: accept ? "Approved in ops console" : "Rejected in ops console",
+      p_note: note || "Approved in ops console",
     });
     setBusy(null);
     if (error) toast.error(error.message);
     else {
       toast.success(accept ? "Answer added to the accepted set" : "Challenge rejected");
+      setDecisionNotes((current) => {
+        const next = { ...current };
+        delete next[id];
+        return next;
+      });
       void refetchChallenges();
       if (accept) void refetch();
     }
@@ -118,13 +133,21 @@ export function QuestionReviewPanel() {
           <Flag className="size-4 text-gold" />
           <span className="font-display text-xl">Answer challenges</span>
           <span className="ml-auto rounded-full bg-gold/10 px-2 py-1 text-xs font-bold text-gold">
-            {(challenges ?? []).length} pending
+            {challengesLoading ? "Loading…" : challengesError ? "Unavailable" : `${(challenges ?? []).length} shown` }
           </span>
         </div>
-        {(challenges ?? []).length === 0 && (
-          <p className="px-5 py-4 text-sm text-muted-foreground">
-            No challenged answers awaiting review.
-          </p>
+        {challengesLoading && <p role="status" className="px-5 py-4 text-sm text-muted-foreground">Loading challenges…</p>}
+        {challengesError && (
+          <div role="alert" className="px-5 py-4 text-sm">
+            <p>Could not load the answer-challenge queue. Do not treat this as zero pending.</p>
+            <Button variant="outline" className="mt-2" onClick={() => void refetchChallenges()}>Retry challenges</Button>
+          </div>
+        )}
+        {!challengesLoading && !challengesError && (challenges ?? []).length === 0 && (
+          <p className="px-5 py-4 text-sm text-muted-foreground">No challenged answers awaiting review.</p>
+        )}
+        {(challenges ?? []).length >= 100 && (
+          <p className="px-5 py-3 text-xs text-gold">Showing the first 100 reports only. Other reports may be awaiting review.</p>
         )}
         {(challenges ?? []).map((challenge) => (
           <div key={challenge.id} className="px-5 py-4">
@@ -143,7 +166,16 @@ export function QuestionReviewPanel() {
                 <strong>{challenge.canonical_answer}</strong>
               </p>
             </div>
-            <div className="mt-3 flex gap-2">
+            <label htmlFor={`challenge-note-${challenge.id}`} className="mt-3 block text-xs font-semibold">Decision note</label>
+            <Input
+              id={`challenge-note-${challenge.id}`}
+              className="mt-1"
+              value={decisionNotes[challenge.id] ?? ""}
+              onChange={(event) => setDecisionNotes((current) => ({ ...current, [challenge.id]: event.target.value }))}
+              placeholder="Reason or evidence (required to reject)"
+              maxLength={600}
+            />
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
                 size="sm"
                 disabled={busy === challenge.id}
@@ -154,7 +186,7 @@ export function QuestionReviewPanel() {
               <Button
                 size="sm"
                 variant="outline"
-                disabled={busy === challenge.id}
+                disabled={busy === challenge.id || !(decisionNotes[challenge.id] ?? "").trim()}
                 onClick={() => void resolveChallenge(challenge.id, false)}
               >
                 <X className="size-4" /> Reject
@@ -174,18 +206,24 @@ export function QuestionReviewPanel() {
                 key={s}
                 size="sm"
                 variant={status === s ? "default" : "outline"}
-                onClick={() => setStatus(s)}
+                onClick={() => { setStatus(s); setPage(0); }}
               >
                 {s === "pending" ? "Pending" : "Published"}
               </Button>
             ))}
           </div>
         </div>
-        {isLoading && <p className="px-5 py-4 text-sm text-muted-foreground">Loading…</p>}
-        {!isLoading && (data ?? []).length === 0 && (
+        {isLoading && <p role="status" className="px-5 py-4 text-sm text-muted-foreground">Loading questions…</p>}
+        {isError && (
+          <div role="alert" className="px-5 py-4 text-sm">
+            <p>Could not load this review queue. No items have been changed.</p>
+            <Button variant="outline" className="mt-2" onClick={() => void refetch()}>Retry questions</Button>
+          </div>
+        )}
+        {!isLoading && !isError && (data?.items ?? []).length === 0 && (
           <p className="px-5 py-4 text-sm text-muted-foreground">Nothing {status} right now.</p>
         )}
-        {(data ?? []).map((q) => {
+        {(data?.items ?? []).map((q) => {
           const accepted = ((q.answer_rule as { accepted?: string[] } | null)?.accepted ??
             []) as string[];
           const ready = Boolean(q.source_url) && accepted.length > 0;
@@ -245,6 +283,15 @@ export function QuestionReviewPanel() {
             </div>
           );
         })}
+        {!isError && data && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 text-xs">
+            <span>{data.count === null ? "Question queue" : `${data.count} ${status} questions`} · page {page + 1}</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</Button>
+              <Button size="sm" variant="outline" disabled={data.count !== null ? (page + 1) * PAGE_SIZE >= data.count : data.items.length < PAGE_SIZE} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="panel mt-5 p-5">

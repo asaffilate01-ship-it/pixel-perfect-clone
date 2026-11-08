@@ -65,7 +65,7 @@ export function SiteHeader() {
                 </Link>
               </Button>
               <Button asChild variant="ghost" size="sm">
-                <Link to="/profile">
+                <Link to="/profile" aria-label="Your player profile">
                   <User className="size-4" />
                   <span className="hidden sm:inline">{displayName}</span>
                 </Link>

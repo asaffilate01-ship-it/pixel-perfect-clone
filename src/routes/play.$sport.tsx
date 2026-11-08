@@ -87,6 +87,11 @@ function PlayPage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
   const mode: PlayMode = search.mode ?? "daily";
+  const authNext = `/play/${encodeURIComponent(sport)}?${new URLSearchParams({
+    mode,
+    ...(search.grid ? { grid: search.grid } : {}),
+    ...(search.difficulty ? { difficulty: String(search.difficulty) } : {}),
+  }).toString()}`;
   const battle = mode === "pass" || mode === "cpu";
   const persisted = mode === "daily" || mode === "endless";
   const { user } = useAuth();
@@ -360,6 +365,18 @@ function PlayPage() {
     return <PageShell>Loading grid…</PageShell>;
   }
 
+  if (gridQuery.isError && !grid) {
+    return (
+      <PageShell>
+        <h1 className="text-3xl">Could not load this grid</h1>
+        <p role="alert" className="mt-2 text-sm text-muted-foreground">
+          We could not check the published puzzle. Your previous moves have not been changed.
+        </p>
+        <Button className="mt-6" onClick={() => void gridQuery.refetch()}>Retry loading grid</Button>
+      </PageShell>
+    );
+  }
+
   if (!grid) {
     return (
       <PageShell>
@@ -428,7 +445,7 @@ function PlayPage() {
             Playing as a guest — sign in to save streaks, points and ranks.
           </span>
           <Button asChild size="sm" variant="outline" className="ml-auto">
-            <Link to="/auth">Sign in</Link>
+            <Link to="/auth" search={{ next: authNext }}>Sign in</Link>
           </Button>
         </div>
       )}
