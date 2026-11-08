@@ -96,6 +96,7 @@ function ConnectFourPage() {
   const [board, setBoard] = useState<(Side | null)[]>(() => Array(COLS * ROWS).fill(null));
   const [turn, setTurn] = useState<Side>("me");
   const [result, setResult] = useState<MatchResult | null>(null);
+  const [started, setStarted] = useState(false);
   const [drawOffered, setDrawOffered] = useState(false);
   const [confirmResign, setConfirmResign] = useState(false);
   const [seconds, setSeconds] = useState(TURN_SECONDS);
@@ -126,6 +127,7 @@ function ConnectFourPage() {
     setBoard(Array(COLS * ROWS).fill(null));
     setTurn("me");
     setResult(null);
+    setStarted(false);
     setDrawOffered(false);
     setSeconds(TURN_SECONDS);
     setLastIndex(null);
@@ -134,7 +136,7 @@ function ConnectFourPage() {
 
   // Turn timer: running out forfeits the match (timeout end reason).
   useEffect(() => {
-    if (result || turn !== "me" || !sportId) return;
+    if (!started || result || turn !== "me" || !sportId) return;
     setSeconds(TURN_SECONDS);
     const id = setInterval(() => {
       setSeconds((s) => {
@@ -147,7 +149,7 @@ function ConnectFourPage() {
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [turn, result, sportId]);
+  }, [turn, result, sportId, started]);
 
   useEffect(
     () => () => {
@@ -182,7 +184,7 @@ function ConnectFourPage() {
   };
 
   const chooseColumn = (col: number) => {
-    if (turn !== "me" || result) return;
+    if (!started || turn !== "me" || result) return;
     const move = dropToken(board, col, "me");
     if (!move) {
       toast("That column is full.");
@@ -192,7 +194,7 @@ function ConnectFourPage() {
   };
 
   const play = (col: number) => {
-    if (turn !== "me" || result) return;
+    if (!started || turn !== "me" || result) return;
     const move = dropToken(board, col, "me");
     if (!move) return;
     setBoard(move.board);
@@ -218,19 +220,19 @@ function ConnectFourPage() {
       play(col);
       return;
     }
-    toast(passed ? "Question passed — rival turn." : "Incorrect — rival turn.");
+    toast(passed ? "Question passed — CPU turn." : "Incorrect — CPU turn.");
     botReply(board);
   };
 
   const pass = () => {
-    if (turn !== "me" || result) return;
+    if (!started || turn !== "me" || result) return;
     setSelectedCol(null);
-    toast("Turn passed — your rival will play.");
+    toast("Turn passed — the CPU will play.");
     botReply(board);
   };
 
   const offerDraw = () => {
-    if (turn !== "me" || result || drawOffered) return;
+    if (!started || turn !== "me" || result || drawOffered) return;
     setDrawOffered(true);
     // The rival accepts when it is behind on material, otherwise declines.
     const mine = board.filter((v) => v === "me").length;
@@ -265,7 +267,7 @@ function ConnectFourPage() {
           size="sm"
           className="relative z-10"
           onClick={() => setConfirmResign(true)}
-          disabled={!!result}
+          disabled={!started || !!result}
         >
           <Flag className="size-4" /> Resign
         </Button>
@@ -284,26 +286,39 @@ function ConnectFourPage() {
             <Timer className="size-3.5" /> 00:{String(seconds).padStart(2, "0")}
           </p>
         </div>
-        <PlayerChip label="Rival" active={turn === "them" && !result} />
+        <PlayerChip label="CPU" active={started && turn === "them" && !result} />
       </div>
 
       <div className="game-card mt-4 p-3 sm:p-4">
         <Label>Question setup</Label>
         <div className="flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none]">
           {(sports ?? []).map((sport) => (
-            <Chip key={sport.id} on={sportId === sport.id} onClick={() => setSportId(sport.id)}>
+            <Chip key={sport.id} on={sportId === sport.id} disabled={started} onClick={() => setSportId(sport.id)}>
               {sport.name}
             </Chip>
           ))}
         </div>
         <div className="mt-2 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
           {DIFFICULTIES.map((d) => (
-            <Chip key={d.level} on={difficulty === d.level} onClick={() => setDifficulty(d.level)}>
+            <Chip key={d.level} on={difficulty === d.level} disabled={started} onClick={() => setDifficulty(d.level)}>
               {d.label}
             </Chip>
           ))}
         </div>
       </div>
+
+      {!started && (
+        <div className="panel mt-4 p-4" role="status">
+          <p className="text-sm font-bold">Solo vs CPU · Practice match</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Choose your sport and difficulty first. The clock starts when you press Start.
+            Practice results do not change account ratings.
+          </p>
+          <Button className="mt-3 w-full" disabled={!sportId || sportsLoading || sportsError} onClick={() => { setSeconds(TURN_SECONDS); setStarted(true); }}>
+            Start practice match
+          </Button>
+        </div>
+      )}
 
       {sportsError && (
         <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-red-400/30 bg-red-500/10 p-3 text-xs text-red-100">
@@ -317,13 +332,15 @@ function ConnectFourPage() {
       <p className="game-feedback game-feedback-info mt-4 w-full justify-center">
         <Sparkles className="size-4 text-gold" />
         <span>
-          {result
-            ? "Match over."
+          {!started
+            ? "Select your setup and press Start to begin."
+            : result
+            ? "Practice match over."
             : turn === "me"
               ? selectedCol === null
                 ? "Tap an open column to reveal your question"
                 : `Column ${selectedCol + 1} selected — answer to drop your token`
-              : "Your rival is choosing…"}
+              : "CPU is choosing…"}
         </span>
       </p>
 
@@ -345,6 +362,7 @@ function ConnectFourPage() {
               disabled={
                 sportsLoading ||
                 !sportId ||
+                !started ||
                 turn !== "me" ||
                 !!result ||
                 selectedCol !== null ||
@@ -368,7 +386,7 @@ function ConnectFourPage() {
         </div>
       </div>
 
-      {selectedCol !== null && turn === "me" && !result && (
+      {started && selectedCol !== null && turn === "me" && !result && (
         <QuestionCard
           modeSlug="connect-four"
           turnKey={`connect-four-${filled}-${selectedCol}`}
@@ -393,7 +411,7 @@ function ConnectFourPage() {
           >
             {Array.from({ length: COLS }, (_, c) => {
               const activeCol = selectedCol ?? hoveredCol;
-              const show = activeCol === c && turn === "me" && !result && dropToken(board, c, "me");
+              const show = started && activeCol === c && turn === "me" && !result && dropToken(board, c, "me");
               return (
                 <div key={c} className="grid place-items-center">
                   {show && (
@@ -466,7 +484,7 @@ function ConnectFourPage() {
           size="sm"
           className="rounded-full border-primary/40 text-primary hover:bg-primary/10 hover:text-primary"
           onClick={pass}
-          disabled={turn !== "me" || !!result}
+          disabled={!started || turn !== "me" || !!result}
         >
           <SkipForward className="size-4" /> Pass turn
         </Button>
@@ -475,7 +493,7 @@ function ConnectFourPage() {
           size="sm"
           className="rounded-full border-gold/40 text-gold hover:bg-gold/10 hover:text-gold"
           onClick={offerDraw}
-          disabled={turn !== "me" || !!result || drawOffered}
+          disabled={!started || turn !== "me" || !!result || drawOffered}
         >
           <Handshake className="size-4" /> {drawOffered ? "Draw offered" : "Offer draw"}
         </Button>
@@ -489,7 +507,7 @@ function ConnectFourPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Resign this match?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your rival takes the win and the rating change applies.
+              The CPU wins this practice match. Your account rating will not change.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -508,14 +526,6 @@ function ConnectFourPage() {
 
       <EndGameSheet
         result={result}
-        rating={
-          result
-            ? {
-                delta: result.outcome === "win" ? 18 : result.outcome === "draw" ? 0 : -14,
-                next: result.outcome === "win" ? 1658 : result.outcome === "draw" ? 1640 : 1626,
-              }
-            : undefined
-        }
         onRematch={reset}
         onExit={() => void navigate({ to: "/arcade" })}
       />
