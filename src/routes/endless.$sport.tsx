@@ -78,7 +78,7 @@ function EndlessPage() {
             Endless mode tracks which grids you&apos;ve already seen, so it needs an account.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/auth">Sign in to play</Link>
+            <Link to="/auth" search={{ next: `/endless/${encodeURIComponent(sport)}?difficulty=${difficulty}` }}>Sign in to play</Link>
           </Button>
         </div>
       )}
