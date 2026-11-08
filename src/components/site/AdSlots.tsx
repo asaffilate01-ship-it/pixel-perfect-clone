@@ -29,8 +29,8 @@ function useAdTracking(placement: string, unit: keyof typeof AD_UNITS, active: b
  * placements, and both disappear for lifetime ad-free holders.
  */
 export function TopAdBanner({ placement }: { placement: string }) {
-  const { adFree, loading } = useEntitlements();
-  const show = !adFree && !loading;
+  const { adFree, loading, verificationError } = useEntitlements();
+  const show = !adFree && !loading && !verificationError;
   const onClick = useAdTracking(placement, "banner", show);
   if (!show) return null;
   return (
@@ -61,8 +61,8 @@ export function TopAdBanner({ placement }: { placement: string }) {
 }
 
 export function SideAdRail({ placement }: { placement: string }) {
-  const { adFree, loading } = useEntitlements();
-  const show = !adFree && !loading;
+  const { adFree, loading, verificationError } = useEntitlements();
+  const show = !adFree && !loading && !verificationError;
   const onClick = useAdTracking(placement, "rail", show);
   if (!show) return null;
   return (
