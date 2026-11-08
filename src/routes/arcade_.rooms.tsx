@@ -22,11 +22,17 @@ import { arcadeRoomAction } from "@/lib/arcadeRooms.functions";
 import { useAuth } from "@/hooks/useAuth";
 import { useEntitlements } from "@/lib/entitlements";
 
-type Search = { code?: string };
+type Search = { code?: string; sport?: string; difficulty?: number };
 
 export const Route = createFileRoute("/arcade_/rooms")({
-  validateSearch: (raw: Record<string, unknown>): Search =>
-    typeof raw["code"] === "string" && raw["code"] ? { code: raw["code"].toUpperCase() } : {},
+  validateSearch: (raw: Record<string, unknown>): Search => {
+    const search: Search = {};
+    if (typeof raw["code"] === "string" && raw["code"]) search.code = raw["code"].toUpperCase();
+    if (typeof raw["sport"] === "string" && /^[a-z0-9-]{2,32}$/.test(raw["sport"])) search.sport = raw["sport"];
+    const difficulty = Number(raw["difficulty"]);
+    if (Number.isInteger(difficulty) && difficulty >= 1 && difficulty <= 4) search.difficulty = difficulty;
+    return search;
+  },
   head: () => ({
     meta: [
       { title: "Online arcade rooms — Fanzeno" },
@@ -69,16 +75,21 @@ function RoomsPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { pro } = useEntitlements();
+  const { code: invited, sport: preferredSport, difficulty: preferredDifficulty } = Route.useSearch();
+  const signInSearch = new URLSearchParams();
+  if (invited) signInSearch.set("code", invited);
+  if (preferredSport) signInSearch.set("sport", preferredSport);
+  if (preferredDifficulty) signInSearch.set("difficulty", String(preferredDifficulty));
+  const signInNext = `/arcade/rooms${signInSearch.size ? `?${signInSearch.toString()}` : ""}`;
   const [mode, setMode] = useState<(typeof MODES)[number]["slug"]>("quiz-snakes-ladders");
   const [players, setPlayers] = useState(4);
-  const [difficulty, setDifficulty] = useState(2);
-  const { code: invited } = Route.useSearch();
+  const [difficulty, setDifficulty] = useState(preferredDifficulty ?? 2);
   const [code, setCode] = useState(invited ?? "");
   const [busy, setBusy] = useState<"create" | "join" | null>(null);
   const [searching, setSearching] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [cancelFailed, setCancelFailed] = useState(false);
-  const [matchSport, setMatchSport] = useState("football");
+  const [matchSport, setMatchSport] = useState(preferredSport ?? "football");
   const { data: sports = [], isLoading: sportsLoading, isError: sportsError } = useQuery({
     queryKey: ["sports"],
     queryFn: fetchSports,
@@ -204,7 +215,7 @@ function RoomsPage() {
             in.
           </p>
           <Button asChild className="mt-4">
-            <Link to="/auth" search={{ next: "/arcade/rooms" }}>
+            <Link to="/auth" search={{ next: signInNext }}>
               Sign in to play online
             </Link>
           </Button>
@@ -348,7 +359,7 @@ function RoomsPage() {
 
       {!loading && !user ? (
         <Button asChild size="lg" className="mt-6 w-full font-bold uppercase tracking-[0.14em]">
-          <Link to="/auth" search={{ next: "/arcade/rooms" }}>
+          <Link to="/auth" search={{ next: signInNext }}>
             Sign in to host a room <ArrowRight className="size-4" />
           </Link>
         </Button>
