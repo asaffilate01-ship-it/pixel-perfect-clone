@@ -184,11 +184,17 @@ export function QuestionReviewPanel() {
             ))}
           </div>
         </div>
-        {isLoading && <p className="px-5 py-4 text-sm text-muted-foreground">Loading…</p>}
-        {!isLoading && (data ?? []).length === 0 && (
+        {isLoading && <p role="status" className="px-5 py-4 text-sm text-muted-foreground">Loading questions…</p>}
+        {isError && (
+          <div role="alert" className="px-5 py-4 text-sm">
+            <p>Could not load this review queue. No items have been changed.</p>
+            <Button variant="outline" className="mt-2" onClick={() => void refetch()}>Retry questions</Button>
+          </div>
+        )}
+        {!isLoading && !isError && (data?.items ?? []).length === 0 && (
           <p className="px-5 py-4 text-sm text-muted-foreground">Nothing {status} right now.</p>
         )}
-        {(data ?? []).map((q) => {
+        {(data?.items ?? []).map((q) => {
           const accepted = ((q.answer_rule as { accepted?: string[] } | null)?.accepted ??
             []) as string[];
           const ready = Boolean(q.source_url) && accepted.length > 0;
@@ -248,6 +254,15 @@ export function QuestionReviewPanel() {
             </div>
           );
         })}
+        {!isError && data && (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 text-xs">
+            <span>{data.count === null ? "Question queue" : `${data.count} ${status} questions`} · page {page + 1}</span>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>Previous</Button>
+              <Button size="sm" variant="outline" disabled={data.count !== null ? (page + 1) * PAGE_SIZE >= data.count : data.items.length < PAGE_SIZE} onClick={() => setPage((p) => p + 1)}>Next</Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="panel mt-5 p-5">
